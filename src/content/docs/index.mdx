@@ -1,0 +1,80 @@
+---
+title: Accessible UI plugins for real interfaces
+description: Framework-independent JavaScript plugins for accessible forms, navigation, feedback, overlays, and common interaction patterns.
+template: splash
+hero:
+  title: Accessible UI behavior, without replacing your markup
+  tagline: Framework-independent JavaScript plugins for forms, navigation, feedback, overlays, and everyday interface patterns. Install only what you need, keep control of your HTML, and build on documented accessibility behavior.
+  actions:
+    - text: Browse plugins
+      link: /plugins/
+      icon: right-arrow
+      variant: primary
+    - text: Get started
+      link: /getting-started/about/
+      icon: open-book
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
+
+## Small plugins for specific accessibility problems
+
+The library is a collection of focused JavaScript packages—not one large framework.
+
+Each plugin handles a defined interface problem such as presenting form errors, protecting unsaved input, managing asynchronous feedback, or coordinating keyboard interaction. Packages can be installed independently and added to existing HTML through progressive enhancement.
+
+<CardGrid>
+  <Card title="Keep your markup" icon="seti:html">
+    Plugins enhance semantic HTML instead of replacing it with a proprietary component structure.
+  </Card>
+
+  <Card title="Install only what you need" icon="puzzle">
+    Every plugin is published as an independent npm package with its own API, styles, examples, and release history.
+  </Card>
+
+  <Card title="Understand the behavior" icon="open-book">
+    Documentation covers required markup, options, methods, keyboard interaction, focus behavior, limitations, and cleanup.
+  </Card>
+
+  <Card title="Use real examples" icon="rocket">
+    Interactive demos show the packages working against realistic interface states—not isolated screenshots or idealized snippets.
+  </Card>
+</CardGrid>
+
+## Designed for progressive enhancement
+
+Start with usable HTML. Add a plugin where native behavior or static markup is not enough.
+
+The packages use standard DOM APIs and remain independent of React, Vue, Svelte, Astro, or another application framework. This makes them suitable for existing websites, server-rendered applications, static sites, and framework projects that need a small behavior layer.
+
+## What you will find in each plugin guide
+
+Every documented plugin follows a consistent structure:
+
+- installation and package imports;
+- expected semantic HTML;
+- configuration options and instance methods;
+- keyboard and focus behavior;
+- emitted events and available addons;
+- CSS customization;
+- progressive-enhancement guidance;
+- known constraints and accessibility considerations;
+- working examples using the published npm package.
+
+## Start with the problem you need to solve
+
+Browse the catalog by interface problem rather than by framework.
+
+You will find focused packages for:
+
+- form validation and error recovery;
+- loading, saving, and asynchronous feedback;
+- navigation and disclosure patterns;
+- dialogs, tooltips, and overlays;
+- search, filtering, sorting, and result displays;
+- session, network, and page-state utilities.
+
+<LinkButton href="/plugins/" icon="right-arrow">
+  Explore the plugin catalog
+</LinkButton>
