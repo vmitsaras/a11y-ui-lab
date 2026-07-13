@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@astrojs/starlight": "^0.41.3",
+    "a11y-form-validator": "^1.0.19",
     "astro": "^7.0.2",
     "sharp": "^0.34.5"
   },
