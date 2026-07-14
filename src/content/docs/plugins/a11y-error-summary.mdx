@@ -1,0 +1,216 @@
+---
+title: A11y Error Summary
+description: Summarize native or application-provided form errors and link people directly to the affected controls.
+sidebar:
+  order: 5
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import ErrorSummaryDemo from '../../../components/ErrorSummaryDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-error-summary` progressively enhances an existing form with a persistent, headed list of errors. Each error is a native link that moves focus to its affected control. It can collect native constraint-validation failures or render application-provided errors without taking over successful submission.
+
+<Aside type="caution" title="Accessibility remains an integration outcome">
+  The package improves error recovery, but it does not create missing labels, inline guidance, server validation, or complete WCAG conformance. Test the finished form, messages, focus sequence, and submission states with target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- A semantic form needs a persistent overview of several errors after submission.
+- Error links should move users directly to affected native controls.
+- The application needs to pass server or business-rule failures to `setErrors()`.
+- Radio or checkbox groups should appear once in the summary and focus their first control.
+
+## Avoid when
+
+- A single inline error is enough and a form-level summary would add noise.
+- The interface uses custom widgets without application-owned focus integration.
+- You need validation on every keystroke, asynchronous validation, or request cancellation.
+- You expect the plugin to create labels, inline copy, or successful-submission behavior.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-error-summary
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-error-summary
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-error-summary
+    ```
+  </TabItem>
+</Tabs>
+
+Import only the public runtime entry and optional exported stylesheet.
+
+```js
+import { createErrorSummary } from 'a11y-error-summary';
+import 'a11y-error-summary/styles.css';
+
+const root = document.querySelector('[data-a11y-error-summary]');
+if (root instanceof HTMLElement) createErrorSummary(root);
+```
+
+Nothing auto-initializes on import. `initErrorSummaries(options, scope?)` explicitly initializes matching containers; direct class construction is public through `new A11yErrorSummary(root, options)`.
+
+## Required markup
+
+Provide a summary container and associate it with a real form by passing a form element or selector, using `data-form="form-id"`, or placing the root inside the form. Keep visible labels and native controls; add `novalidate` when the summary should replace browser validation bubbles.
+
+```html
+<div
+  data-a11y-error-summary
+  data-form="checkout"
+  data-auto-focus="true"
+  data-hidden-when-empty="true"
+></div>
+
+<form id="checkout" action="/checkout" method="post" novalidate>
+  <label for="email">Email address</label>
+  <input id="email" name="email" type="email" required />
+  <button type="submit">Continue</button>
+</form>
+```
+
+Controls associated through `form="checkout"` are supported outside the form element. The root can be any `HTMLElement`; generated output is a labelled section containing an `h2` and a list of links.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `form` | `data-form` or closest form | Form ID, selector, or `HTMLFormElement`. |
+| `autoFocus` | `false` | Focus the summary after a failed native submit. Also `data-auto-focus`. |
+| `heading` | Count-aware package text | Custom heading; `{count}` inserts the error count. |
+| `hiddenWhenEmpty` | `false` | Hide the root until errors exist. Also `data-hidden-when-empty`. |
+| `useNativeValidation` | `true` | Read native validity during submit and `update()`. Disable for fully manual reporting. |
+
+Boolean options also accept boolean-like strings. Repeated initialization of the same root returns its existing instance.
+
+## Methods and instance members
+
+| Member | Purpose |
+| --- | --- |
+| `root` | The enhanced summary container. |
+| `update()` | Collect and render native constraint-validation errors; return normalized errors. |
+| `setErrors(errors)` | Resolve and render manual errors by `element`, name, ID, `#id`, or selector. |
+| `clear()` | Remove rendered errors and restore plugin-managed `aria-invalid` values. |
+| `destroy()` | Remove listeners, generated markup and IDs, restore managed state and the original hidden state, and release the instance. |
+
+```js
+summary.setErrors([
+  { field: 'email', message: 'Enter the email address used for your order.' },
+  { element: deliveryDate, message: 'Choose an available delivery date.' },
+]);
+```
+
+`setErrors()` and `update()` return normalized objects containing the focused element, related group elements, field key, field ID, label, and message.
+
+## Events
+
+Events bubble from the summary root and include `instance` in `detail`.
+
+| Event | Detail and timing |
+| --- | --- |
+| `a11y-error-summary:init` | After initialization, with `errors`. |
+| `a11y-error-summary:update` | After native or manual errors render, with `errors`. |
+| `a11y-error-summary:clear` | After clearing, with empty `errors`. |
+| `a11y-error-summary:focus-field` | When a link focuses a control, with `error` and `element`. |
+| `a11y-error-summary:destroy` | After cleanup, with `errors`. |
+
+## Addons
+
+Both addons are separate public subpath exports and consume an initialized summary instance.
+
+```js
+import { createFieldErrorDetails } from 'a11y-error-summary/addons/field-details';
+import { createErrorRecoveryActions } from 'a11y-error-summary/addons/recovery-actions';
+
+const details = createFieldErrorDetails(summary, {
+  details: [{ field: 'email', detail: '#email-error' }],
+});
+
+const actions = createErrorRecoveryActions(summary, {
+  target: '#error-actions',
+  actions: [
+    { label: 'Review first error', onActivate: () => summary.root.querySelector('a')?.click() },
+    { label: 'Read form help', href: '#form-help' },
+  ],
+});
+```
+
+- `createFieldErrorDetails()` connects existing detail elements to invalid fields. Its controller exposes `update(errors?)`, `clear()`, and `destroy()`.
+- `createErrorRecoveryActions()` renders configured native actions. Callbacks receive `{ action, summary, event }`; its controller exposes `update()` and `destroy()`.
+
+Neither addon validates on input or owns submission. Destroy addon controllers when the host view unmounts.
+
+## CSS customization
+
+The public stylesheet styles `.a11y-error-summary`, its heading, list, links, and visible focus. Override its custom properties on the root:
+
+```css
+.checkout-errors {
+  --a11y-error-summary-accent: #9f1239;
+  --a11y-error-summary-background: #fff1f2;
+  --a11y-error-summary-color: #1f2937;
+  --a11y-error-summary-focus: #1d4ed8;
+  --a11y-error-summary-border-width: 0.25rem;
+}
+```
+
+Preserve link and focus contrast. The exported CSS disables smooth scrolling and shortens transitions under `prefers-reduced-motion: reduce`.
+
+## Keyboard interaction and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move through native error links and controls in document order. |
+| <kbd>Enter</kbd> | Activate an error link and focus its associated control. |
+| <kbd>Space</kbd> | Operate native checkbox, radio, and button controls normally. |
+
+Invalid submission moves focus to the summary only when `autoFocus` is enabled. Affected controls receive `aria-invalid="true"`; earlier values are restored on clear or destroy. A grouped radio or checkbox error appears once and focuses the first control. The plugin does not trap focus or move it during typing.
+
+## Progressive enhancement
+
+Keep a genuine `action`, `method`, labels, instructions, and server-side validation. Without JavaScript, the form can still submit and the server can return errors; without `novalidate`, browser validation remains available. With JavaScript, call `update()` for native validity or map application/server failures explicitly through `setErrors()`. Call `clear()` after correction and `destroy()` before removing the view.
+
+## Live example
+
+This example imports the installed runtime, exported CSS, and both public addon subpaths. It demonstrates native errors, a grouped radio error, field details, recovery actions, success feedback, and reset behavior. No data is sent.
+
+<ErrorSummaryDemo />
+
+## Known limitations and browser support
+
+- The plugin does not create labels, inline errors, async validation, keystroke validation, request cancellation, or successful-submission behavior.
+- Manual selectors must remain stable and point to focusable native controls; custom widgets need application-owned error resolution and focus.
+- Native constraint messages vary by browser and locale.
+- No explicit browser-support matrix is published. Version 1.0.0 requires Node 20 or later for tooling and ships browser ESM using standard DOM APIs; test target browsers and apply application-level transpilation or polyfills where required.
+- The `docs.examples` metadata currently uses lowercase GitHub Pages paths that return 404; the repository-generated pages use the case-sensitive `A11y-Error-Summary` path.
+
+## Resources and related guides
+
+<CardGrid>
+  <Card title="Package source" icon="github">
+    Review releases, issues, and examples in the [GitHub repository](https://github.com/vmitsaras/A11y-Error-Summary).
+  </Card>
+  <Card title="Published package" icon="seti:npm">
+    Inspect version and install metadata on [npm](https://www.npmjs.com/package/a11y-error-summary).
+  </Card>
+  <Card title="Package examples" icon="rocket">
+    Explore the [basic example](https://vmitsaras.github.io/A11y-Error-Summary/examples/basic/) and [checkout recovery example](https://vmitsaras.github.io/A11y-Error-Summary/examples/checkout-recovery/).
+  </Card>
+  <Card title="Related: Form Validator" icon="document">
+    Use [A11y Form Validator](/plugins/a11y-form-validator/) when the application also needs inline, custom, async, or continuous validation.
+  </Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/) to explore the complete form-plugin collection.

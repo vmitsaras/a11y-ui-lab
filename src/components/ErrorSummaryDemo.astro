@@ -1,0 +1,128 @@
+---
+import 'a11y-error-summary/styles.css';
+---
+
+<section class="error-summary-demo" aria-labelledby="error-summary-demo-title">
+  <header>
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="error-summary-demo-title">Reserve an accessible workshop place</h3>
+    <p>Submit the incomplete form, follow an error link, then try the recovery actions or reset the example.</p>
+  </header>
+
+  <div data-a11y-error-summary data-form="workshop-booking" data-auto-focus="true" data-hidden-when-empty="true" data-heading="Fix {count} booking problem(s)"></div>
+  <div class="recovery-actions" data-error-actions aria-label="Error recovery actions"></div>
+
+  <form id="workshop-booking" novalidate>
+    <div class="field">
+      <label for="booking-email">Email address</label>
+      <p id="booking-email-hint">We will send the joining instructions here.</p>
+      <input id="booking-email" name="email" type="email" autocomplete="email" required aria-describedby="booking-email-hint" />
+      <p id="booking-email-error" class="error-detail" hidden>Enter an address in the format name@example.com.</p>
+    </div>
+
+    <fieldset class="field">
+      <legend>Attendance format</legend>
+      <p>Choose one format.</p>
+      <label><input name="format" type="radio" value="studio" required /> Athens studio</label>
+      <label><input name="format" type="radio" value="online" required /> Online</label>
+      <p id="booking-format-error" class="error-detail" hidden>Choose either the studio or online format.</p>
+    </fieldset>
+
+    <div class="field">
+      <label for="booking-access">Access requirements</label>
+      <p id="booking-access-hint">Enter “None” if no adjustments are needed.</p>
+      <textarea id="booking-access" name="access" rows="4" required aria-describedby="booking-access-hint"></textarea>
+      <p id="booking-access-error" class="error-detail" hidden>Describe an adjustment or enter “None”.</p>
+    </div>
+
+    <div class="actions">
+      <button type="submit">Reserve place</button>
+      <button type="reset" class="secondary">Reset example</button>
+    </div>
+    <p class="status" data-demo-status role="status" aria-live="polite"></p>
+  </form>
+</section>
+
+<script>
+  import type { ErrorSummaryError } from 'a11y-error-summary';
+  import { createErrorSummary } from 'a11y-error-summary';
+  import { createFieldErrorDetails } from 'a11y-error-summary/addons/field-details';
+  import { createErrorRecoveryActions } from 'a11y-error-summary/addons/recovery-actions';
+
+  const root = document.querySelector('[data-a11y-error-summary][data-form="workshop-booking"]');
+  const form = document.querySelector('#workshop-booking');
+
+  if (root instanceof HTMLElement && form instanceof HTMLFormElement) {
+    const status = form.querySelector('[data-demo-status]');
+    const detailElements = Array.from(form.querySelectorAll('.error-detail'));
+    const summary = createErrorSummary(root);
+    const details = createFieldErrorDetails(summary, {
+      details: [
+        { field: 'email', detail: '#booking-email-error' },
+        { field: 'format', detail: '#booking-format-error' },
+        { field: 'access', detail: '#booking-access-error' },
+      ],
+    });
+    const actions = createErrorRecoveryActions(summary, {
+      target: '[data-error-actions]',
+      actions: [
+        { label: 'Review first error', onActivate: () => root.querySelector('a')?.click() },
+        { label: 'Clear reported errors', onActivate: () => summary.clear() },
+      ],
+    });
+
+    const syncDetails = (errors: readonly ErrorSummaryError[] = []) => {
+      const fields = new Set(errors.map((error) => error.field));
+      detailElements.forEach((element) => {
+        if (element instanceof HTMLElement) {
+          const field = element.id.replace(/^booking-/, '').replace(/-error$/, '');
+          element.hidden = !fields.has(field);
+        }
+      });
+    };
+
+    root.addEventListener('a11y-error-summary:update', (event) => {
+      if (event instanceof CustomEvent) syncDetails(event.detail.errors);
+    });
+    root.addEventListener('a11y-error-summary:clear', () => syncDetails());
+    form.addEventListener('submit', (event) => {
+      if (!form.checkValidity()) return;
+      event.preventDefault();
+      summary.clear();
+      if (status) status.textContent = 'Workshop place reserved. No data was sent.';
+    });
+    form.addEventListener('reset', () => {
+      window.setTimeout(() => {
+        syncDetails();
+        if (status) status.textContent = 'Example reset.';
+      });
+    });
+
+    document.addEventListener('astro:before-swap', () => {
+      details.destroy();
+      actions.destroy();
+      summary.destroy();
+    }, { once: true });
+  }
+</script>
+
+<style>
+  .error-summary-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); --a11y-error-summary-accent: #b42318; --a11y-error-summary-background: #fff8f7; --a11y-error-summary-color: #1f2937; --a11y-error-summary-focus: #2563eb; }
+  header { max-width: 45rem; }
+  header h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  form { display: grid; gap: 1.25rem; max-width: 42rem; margin-block-start: 1.5rem; }
+  .field { display: grid; gap: .35rem; }
+  .field p { margin: 0; color: var(--sl-color-gray-2); font-size: .9rem; }
+  label, legend { font-weight: 650; }
+  input:not([type='radio']), textarea { width: 100%; padding: .7rem .8rem; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; }
+  textarea { resize: vertical; }
+  fieldset { padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; }
+  fieldset label { display: inline-flex; gap: .4rem; align-items: center; margin-inline-end: 1rem; font-weight: 500; }
+  .error-detail { color: #fca5a5 !important; font-weight: 650; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  button { margin: 0; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; background: var(--sl-color-accent-high); color: var(--sl-color-black); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--sl-color-white); }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .status { min-height: 1.5rem; margin: 0; font-weight: 650; }
+</style>

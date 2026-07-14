@@ -1,0 +1,98 @@
+---
+import 'a11y-sortable-table/styles.css';
+---
+
+<section class="table-demo" aria-labelledby="incident-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="incident-demo-title">Incident response queue</h3>
+    <p>Sort the queue, hide an optional column, or restore the original view. One incident deliberately has no response target.</p>
+  </div>
+
+  <fieldset class="column-controls" data-column-controls>
+    <legend>Visible columns</legend>
+    <label><input type="checkbox" data-a11y-sortable-table-column="owner" checked /> Owner</label>
+    <label><input type="checkbox" data-a11y-sortable-table-column="target" checked /> Response target</label>
+  </fieldset>
+
+  <p id="incident-view-status" class="demo-status" role="status" aria-live="polite" aria-atomic="true"></p>
+  <p class="a11y-table-scroll-hint" id="incident-scroll-hint">Scroll horizontally to see every column.</p>
+  <div class="a11y-table-wrapper" data-table-wrapper aria-describedby="incident-scroll-hint">
+    <table class="a11y-sortable-table" data-a11y-sortable-table>
+      <caption>Open accessibility incidents</caption>
+      <thead>
+        <tr>
+          <th scope="col"><button class="a11y-sortable-table__button" type="button" data-sort-key="incident">Incident <span class="a11y-sortable-table__icon" aria-hidden="true"></span></button></th>
+          <th scope="col"><button class="a11y-sortable-table__button" type="button" data-sort-key="severity">Severity <span class="a11y-sortable-table__icon" aria-hidden="true"></span></button></th>
+          <th scope="col" data-column-key="owner"><button class="a11y-sortable-table__button" type="button" data-sort-key="owner">Owner <span class="a11y-sortable-table__icon" aria-hidden="true"></span></button></th>
+          <th scope="col" data-column-key="target" data-align="end"><button class="a11y-sortable-table__button" type="button" data-sort-key="target" data-sort-type="number">Response target <span class="a11y-sortable-table__icon" aria-hidden="true"></span></button></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Keyboard trap in date picker</th><td data-sort-value="1">Critical</td><td>Amara</td><td data-sort-value="15" data-align="end">15 min</td></tr>
+        <tr><th scope="row">Missing checkout error summary</th><td data-sort-value="2">High</td><td>Jon</td><td data-sort-value="60" data-align="end">1 hour</td></tr>
+        <tr><th scope="row">Low-contrast chart labels</th><td data-sort-value="3">Medium</td><td>Amara</td><td data-sort-value="240" data-align="end">4 hours</td></tr>
+        <tr><th scope="row">Unlabeled legacy export</th><td data-sort-value="3">Medium</td><td>Priya</td><td data-sort-value="" data-align="end"><span aria-label="No response target">Not set</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <button type="button" class="reset-button" data-reset-table>Reset table view</button>
+</section>
+
+<script>
+  import { createSortableTable, enhanceScrollableTableWrapper } from 'a11y-sortable-table';
+  import { createSortableTableColumnVisibility } from 'a11y-sortable-table/column-visibility';
+  import { createSortableTableReset } from 'a11y-sortable-table/reset-state';
+
+  const demo = document.querySelector<HTMLElement>('.table-demo');
+  const table = demo?.querySelector<HTMLTableElement>('[data-a11y-sortable-table]');
+  const wrapper = demo?.querySelector<HTMLElement>('[data-table-wrapper]');
+  const controls = demo?.querySelector<HTMLElement>('[data-column-controls]');
+  const resetTrigger = demo?.querySelector<HTMLButtonElement>('[data-reset-table]');
+
+  if (demo && table && wrapper && controls && resetTrigger) {
+    const instance = createSortableTable(table, { allowUnsort: true, emptyValuesLast: true });
+    createSortableTableColumnVisibility(instance, {
+      table,
+      controls,
+      statusElement: '#incident-view-status',
+    });
+    createSortableTableReset(instance, {
+      table,
+      trigger: resetTrigger,
+      statusElement: '#incident-view-status',
+      clearHash: false,
+    });
+    enhanceScrollableTableWrapper(wrapper);
+  }
+</script>
+
+<style>
+  .table-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading { max-width: 48rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .column-controls { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; margin-block: 1.5rem 1rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; }
+  .column-controls legend { padding-inline: .35rem; font-weight: 700; }
+  .column-controls label { display: inline-flex; gap: .45rem; align-items: center; }
+  .demo-status { min-height: 1.5em; font-weight: 600; }
+  .a11y-table-wrapper { --a11y-table-wrapper-min-width: 46rem; --a11y-table-wrapper-max-height: 26rem; --a11y-table-wrapper-background: var(--sl-color-gray-7); }
+  .a11y-sortable-table {
+    --a11y-sortable-table-border-color: var(--sl-color-gray-5);
+    --a11y-sortable-table-header-bg: var(--sl-color-gray-6);
+    --a11y-sortable-table-header-active-bg: var(--sl-color-accent-high);
+    --a11y-sortable-table-header-active-color: var(--sl-color-black);
+    --a11y-sortable-table-state-accent-color: var(--sl-color-accent-high);
+    --a11y-sortable-table-row-hover-bg: var(--sl-color-gray-6);
+    --a11y-sortable-table-row-active-bg: var(--sl-color-accent-low);
+    --a11y-sortable-table-row-focus-bg: var(--sl-color-accent-low);
+    --a11y-sortable-table-cell-focus-bg: var(--sl-color-gray-6);
+    --a11y-sortable-table-sort-active-cell-bg: var(--sl-color-accent-low);
+    --a11y-sortable-table-button-hover-bg: var(--sl-color-gray-5);
+    --a11y-sortable-table-sort-icon-color: currentColor;
+    color: var(--sl-color-text);
+  }
+  .reset-button { margin-block-start: 1rem; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  .reset-button:focus-visible, input:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+</style>

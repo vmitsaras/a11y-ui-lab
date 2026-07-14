@@ -1,0 +1,221 @@
+---
+title: A11y Sortable Table
+description: Accessible sorting for semantic data tables with aria-sort, focus preservation, announcements, and optional state helpers.
+sidebar:
+  order: 5
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import SortableTableDemo from '../../../components/SortableTableDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Tables" variant="note" />
+
+`a11y-sortable-table` adds stable client-side sorting to a semantic HTML table. It uses native header buttons, applies `aria-sort` to header cells, keeps focus on the activated button, and announces changes through a polite live region. Optional public subpaths add URL, filter, summary, reset, column-visibility, and saved-view state without expanding the core behavior.
+
+<Aside type="caution" title="Keep the table semantic">
+  The plugin supports a well-authored data table; it does not repair missing headers, unclear captions, complex header associations, poor responsive behavior, or inaccessible content inside cells. It does not claim complete WCAG conformance.
+</Aside>
+
+## Use when
+
+- Users need to compare a moderate client-side data set by more than one column.
+- The content is genuinely tabular and should retain native table semantics.
+- Sorting must expose direction visually and programmatically without moving focus.
+- The host can provide meaningful sort keys and machine-readable values for formatted numbers or dates.
+
+## Avoid when
+
+- The layout is not a data table; use a list or another semantic structure instead.
+- The data set is too large for client-side DOM sorting; use server-side sorting and preserve the same semantics.
+- A spreadsheet-like grid requires cell navigation, editing, selection, or virtualization. This package deliberately does not add an ARIA grid keyboard model.
+- Several header rows or spanning cells make one-column sorting ambiguous without additional application logic.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-sortable-table
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-sortable-table
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-sortable-table
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM and does not auto-initialize. Import its runtime and public stylesheet through the export map.
+
+```js
+import { createSortableTable } from 'a11y-sortable-table';
+import 'a11y-sortable-table/styles.css';
+
+const table = document.querySelector('[data-a11y-sortable-table]');
+if (table instanceof HTMLTableElement) {
+  createSortableTable(table, { allowUnsort: true });
+}
+```
+
+## Required markup
+
+Use a real `<table>` with `<thead>` and `<tbody>`, column headers with `scope="col"`, and an accessible name from `<caption>`, `aria-label`, or `aria-labelledby`.
+
+```html
+<table class="a11y-sortable-table" data-a11y-sortable-table>
+  <caption>Invoices</caption>
+  <thead>
+    <tr>
+      <th scope="col">
+        <button type="button" class="a11y-sortable-table__button" data-sort-key="invoice">
+          Invoice <span class="a11y-sortable-table__icon" aria-hidden="true"></span>
+        </button>
+      </th>
+      <th scope="col" data-sort-key="amount" data-sort-type="number">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th scope="row">INV-1001</th><td data-sort-value="199.99">$199.99</td></tr>
+  </tbody>
+</table>
+```
+
+Author a native `button[data-sort-key]` for the clearest no-JavaScript label, or put `data-sort-key` on the `<th>` and let the plugin generate the button during enhancement. Generated and existing buttons are normalized to `type="button"`. Use `data-sort-type="number"` or `"date"`, and put `data-sort-value` on cells whose displayed text is formatted for people.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `headerSelector` | `thead th` | Finds sortable header cells or headers containing sort buttons. |
+| `buttonSelector` | `button[data-sort-key]` | Finds author-provided header buttons. |
+| `bodySelector` | `tbody` | Selects the row group that is reordered. |
+| `statusElement` | `null` | Existing element or selector for announcements; otherwise a polite region is created. |
+| `defaultSort` | `null` | Initial `{ key, direction? }` used when `sortOnInit` is enabled. |
+| `initialDirection` | `ascending` | First direction for ordinary text columns. |
+| `descendingFirstTypes` | `['number', 'date']` | Types that sort descending on first activation. |
+| `locale`, `numeric`, `caseFirst` | document/browser locale, `true`, `false` | Configure `Intl.Collator` text comparison. |
+| `emptyValuesLast` | `true` | Keeps missing values after populated values in either direction. |
+| `announce` | `true` | Enables polite sort announcements. |
+| `sortOnInit` | `true` | Applies `defaultSort` during initialization. |
+| `preserveOriginalOrder` | `true` | Stores row order so clearing a sort can restore it. |
+| `allowUnsort` | `false` | Adds a third activation state that clears sorting. |
+| `customParsers` | `{}` | Maps keys to functions that convert raw cell text into sortable values. |
+| `customSorters` | `{}` | Maps keys to complete row comparator functions. |
+| `labels` | built-in English strings | Overrides direction, action, and announcement text for localization. |
+
+Safe data attributes cover default sort, default direction, unsorting, descending-first types, empty-value placement, locale, numeric comparison, announcement, initialization, and original-order preservation. JavaScript options take precedence.
+
+## Runtime API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11ySortableTable` | Class implementing one table instance. |
+| `createSortableTable(table, options?)` | Initialize one `HTMLTableElement`. |
+| `initSortableTables(options?, root?)` | Initialize matching tables in a document or fragment. |
+| `sortBy(key, direction?, config?)` | Sort ascending or descending; `none` restores original order. |
+| `clearSort(config?)` | Clear an active sort. |
+| `refresh()` | Recollect headers and rows after markup changes. |
+| `getSortState()` | Return the active key, direction, and column index. |
+| `destroy()` | Remove listeners, generated controls/state, and a generated live region. |
+| `enhanceScrollableTableWrapper(wrapper)` | Add a named focusable region only while horizontal overflow exists; returns cleanup when enhanced. |
+
+`sortBy()` and `clearSort()` accept `announce` and `preserveFocus` controls. Stable fallback ordering keeps equal values in their original relative order.
+
+## Events
+
+Core events bubble from the table and include `detail.instance`.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-sortable-table:init` | Core enhancement completes. |
+| `a11y-sortable-table:sort` | Sort state or row order changes. |
+| `a11y-sortable-table:refresh` | Headers and rows are recollected. |
+| `a11y-sortable-table:destroy` | Managed behavior and generated state are removed. |
+
+Optional helpers also dispatch `a11y-sortable-table:filter`, `summary`, `reset`, `columns`, and `saved-view` events. Use the package declarations for each event's current detail shape rather than assuming all helpers emit the same fields.
+
+## Optional addons
+
+Each helper is an explicit public subpath and is absent from the core bundle unless imported.
+
+| Import | Purpose and lifecycle |
+| --- | --- |
+| `a11y-sortable-table/hash-state` | `syncSortableTableHashState()` reads and writes valid sort state in the URL hash and returns cleanup. |
+| `a11y-sortable-table/filter-state` | `syncSortableTableFilterState()` maps `filter-*` hash values to row visibility, reapplies sorting, and returns cleanup. Filtering is not core behavior. |
+| `a11y-sortable-table/summary-state` | `syncSortableTableSummaryState()` maintains one polite sentence describing sort, row count, and optionally visible columns; returns cleanup. |
+| `a11y-sortable-table/reset-state` | `createSortableTableReset()` wires a recovery control and returns a controller with `reset()` and `destroy()`. |
+| `a11y-sortable-table/column-visibility` | `createSortableTableColumnVisibility()` coordinates checkbox controls and whole columns, prevents hiding every column by default, and returns a controller. |
+| `a11y-sortable-table/saved-view` | `syncSortableTableSavedView()` opts into local, session, or custom storage and returns cleanup. |
+
+Hash and saved-view helpers change URL or storage state only after explicit import and initialization. A saved view stores only the key and direction, but that preference can still reveal a previous user's view on a shared device; choose session storage or avoid persistence when appropriate.
+
+## CSS customization
+
+The public stylesheet supplies table layout, sticky headers, sort indicators, focus styles, scroll wrappers, forced-colors adjustments, print behavior, and reduced-motion treatment. Customize documented `--a11y-sortable-table-*` and `--a11y-table-wrapper-*` properties rather than internal `--_*` variables.
+
+```css
+.billing-table {
+  --a11y-sortable-table-border-color: #94a3b8;
+  --a11y-sortable-table-header-bg: #f8fafc;
+  --a11y-sortable-table-header-active-bg: #bfdbfe;
+  --a11y-sortable-table-focus-ring: 3px solid #1d4ed8;
+  --a11y-sortable-table-cell-padding: 0.65rem 0.8rem;
+}
+
+.billing-table-wrapper {
+  --a11y-table-wrapper-min-width: 44rem;
+  --a11y-table-wrapper-max-height: 28rem;
+}
+```
+
+Preserve visible focus, distinguish the active sort without relying on color alone, and verify custom colors in forced-colors and dark modes.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move through native sort buttons and any interactive cell content in document order. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Activate the focused native header button and advance its sort state. |
+| Arrow keys, <kbd>Home</kbd>, <kbd>End</kbd> | No plugin behavior; the table is not converted into a grid. |
+| <kbd>Escape</kbd> | No core behavior. |
+
+Sorting preserves focus on the activated header button. Programmatic sorting can opt out through `preserveFocus: false`. The scroll-wrapper helper may add one tab stop only while the wrapper actually overflows horizontally; its cleanup restores the original attributes.
+
+## Progressive enhancement and accessibility notes
+
+Server-render the caption, headers, rows, human-readable values, and any fallback navigation. Without JavaScript, the authored table remains readable in its original order; author-provided sort buttons do nothing, so avoid wording that promises sorting before enhancement. If server-side sorting is essential, use links or form submission as the baseline and treat client sorting as an optional enhancement.
+
+Only the active header receives `aria-sort="ascending"` or `"descending"`; inactive sortable headers use `aria-sort="none"`. Announcements supplement the visible row change and sort indicator without moving focus. Test real tables with keyboard navigation, zoom/reflow, screen readers, forced colors, and the application's supported browser matrix.
+
+## Live example
+
+The demo imports the installed runtime, stylesheet, column-visibility helper, and reset helper through public exports. The missing response target exercises empty-value ordering; reset restores the original row order and visible columns.
+
+<SortableTableDemo />
+
+## Known limitations and browser support
+
+- Sorting is client-side and reorders rows in one selected `<tbody>`; the package does not fetch, paginate, virtualize, or perform server sorting.
+- It does not create an ARIA grid or provide cell-by-cell arrow-key navigation.
+- Custom parsers and sorters are application code and must handle invalid, localized, or mixed values safely.
+- Generated header buttons require JavaScript; author buttons provide clearer pre-enhancement labels but still need a working baseline if sorting is essential.
+- Hash filtering changes row visibility but is an optional integration, not core table filtering.
+- Saved-view storage is opt-in and unavailable when storage access is blocked; applications should tolerate that failure mode.
+- No explicit browser matrix is published. The package uses ESM, standard table/DOM APIs, `Intl.Collator`, and modern CSS including `:has()` and `color-mix()` in its default stylesheet; verify against the application's browser-support policy.
+- Responsive scrolling still needs a meaningful wrapper label and testing at 320 CSS pixels and high zoom.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained examples](https://github.com/vmitsaras/a11y-sortable-table)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-sortable-table)</Card>
+  <Card title="Interactive examples" icon="rocket">[Package-maintained demos](https://vmitsaras.github.io/a11y-sortable-table/)</Card>
+  <Card title="Related: Result Count" icon="document">[Announce filtered or paginated result totals](/plugins/a11y-result-count/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/).

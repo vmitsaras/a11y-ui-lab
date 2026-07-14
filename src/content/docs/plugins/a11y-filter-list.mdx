@@ -1,0 +1,215 @@
+---
+title: A11y Filter List
+description: Accessible text search and category filtering for semantic content lists and card grids.
+sidebar:
+  order: 6
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import FilterListDemo from '../../../components/FilterListDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Tables" variant="note" />
+
+`a11y-filter-list` progressively enhances a semantic list or grid with text search, pressed-state category filters, a visible result count, and an empty state. It is framework-agnostic, ESM-only, and leaves labels, controls, content, and localization in the host page.
+
+<Aside type="caution" title="Accessibility still depends on the integration">
+  The package supplies filtering behavior and state updates, not complete WCAG conformance. Keep the unenhanced content useful and test the finished search workflow with the browsers and assistive technologies your product supports.
+</Aside>
+
+## Use when
+
+- People need to narrow a server-rendered resource list, directory, table-adjacent list, or card grid locally.
+- Text search and mutually exclusive category buttons should work together.
+- Filtered items should leave the accessibility tree and keyboard order by default.
+- The host can author stable IDs, semantic controls, searchable metadata, count text, and an empty state.
+
+## Avoid when
+
+- Results must be fetched, ranked, paginated, or searched on a server.
+- The interface needs fuzzy matching, accent folding, stemming, synonyms, or translation.
+- A native page search or a submitted search form already meets the need.
+- Preserving row layout requires `inert` but the product's browser baseline does not support it.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">`npm install a11y-filter-list`</TabItem>
+  <TabItem label="pnpm">`pnpm add a11y-filter-list`</TabItem>
+  <TabItem label="Yarn">`yarn add a11y-filter-list`</TabItem>
+</Tabs>
+
+Import the public ESM entry and exported stylesheet. The package does not run until an instance is created.
+
+```js
+import { createFilterList } from 'a11y-filter-list';
+import 'a11y-filter-list/styles.css';
+
+const root = document.querySelector('[data-a11y-filter-list]');
+if (root instanceof HTMLElement) createFilterList(root);
+```
+
+Use `initFilterListsAll()` to initialize every `[data-a11y-filter-list]` or `<a11y-filter-list>` root in a document or container.
+
+## Required markup
+
+The controller references a required search input and list by ID. Count and empty-state targets are optional but strongly recommended. Items need the configured item hook and searchable attribute.
+
+```html
+<div data-a11y-filter-list
+  data-input="project-search"
+  data-list="project-list"
+  data-count="project-count"
+  data-empty="project-empty"></div>
+
+<form role="search" data-filter-form>
+  <label for="project-search">Search projects</label>
+  <input id="project-search" type="search" autocomplete="off">
+  <button type="button" data-filter-clear>Clear</button>
+</form>
+
+<div role="group" aria-label="Filter by type">
+  <button type="button" data-filter-category="all" aria-pressed="true">All</button>
+  <button type="button" data-filter-category="guide" aria-pressed="false">Guides</button>
+</div>
+
+<p id="project-count" aria-live="polite" aria-atomic="true">Showing all 2 projects</p>
+<ul id="project-list">
+  <li data-filter-item data-category="guide" data-filter-text="keyboard testing guide">Keyboard testing guide</li>
+  <li data-filter-item data-category="tool" data-filter-text="contrast review tool">Contrast review tool</li>
+</ul>
+<div id="project-empty" hidden>No matching projects.</div>
+```
+
+`<a11y-filter-list input="…" list="…">` is also a supported declarative controller. Category controls must be real buttons; the plugin manages their `aria-pressed` state. An initially pressed known category becomes the initial filter.
+
+## Options and attributes
+
+Pass options to `createFilterList(root, options)` or use the corresponding root attributes. JavaScript options can also accept element references.
+
+| Option | Attribute | Default or purpose |
+| --- | --- | --- |
+| `input` | `input`, `data-input`, `data-filter-input` | Required input ID or element. |
+| `list` | `list`, `data-list`, `data-filter-list` | Required list/grid ID or element. |
+| `count` / `empty` | `count` / `empty` and `data-*` aliases | Optional count and empty-state targets. |
+| `itemSelector` | `item-selector`, `data-item-selector` | `[data-filter-item]`. |
+| `filterAttribute` | `filter-attribute`, `data-filter-attribute` | `data-filter-text`. |
+| `filterAttributes` | `filter-attributes`, `data-filter-attributes` | One or more searchable attributes; overrides the single attribute. |
+| `minChars` | `min-chars`, `data-min-chars` | `0`; minimum query length before filtering. |
+| `debounceMs` | `debounce`, `data-debounce` | `0`; visual filtering delay in milliseconds. |
+| `announceDelayMs` | `announce-delay`, `data-announce-delay` | `0`; additional count-update delay. |
+| `caseSensitive` | `case-sensitive`, `data-case-sensitive` | `false`. |
+| `urlState` | `url-state`, `data-url-state` | `false`; syncs `?q=` and `?category=`. |
+| `hideMode` | `hide-mode`, `data-hide-mode` | `hidden`; alternative is `inert`. |
+| `mode` | `mode`, `data-mode` | `live`; alternative is `submit`. |
+| `matchMode` | `match`, `data-match` | `contains`; alternatives are `starts-with` and `words`. |
+| `preserveHidden` | `preserve-hidden`, `data-preserve-hidden` | `false`; keep initially hidden content hidden and uncounted. |
+| `locale` | nearest `lang` or JavaScript | Used for casing and number formatting. |
+| `countAllTemplate` / `countFilteredTemplate` | matching kebab-case attributes | Visible text with `{total}` and `{visible}` tokens. |
+| `formatCount` | JavaScript only | Callback for localized plural and grammar rules. |
+| `controlsRoot` | JavaScript only | Parent node used to scope author-owned controls. |
+
+Search does not remove accents automatically. Put suitable localized terms in the configured searchable attributes. Use `formatCount` with `Intl.PluralRules` when number substitution is insufficient for the language.
+
+## Runtime API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11yFilterList` | Instance class; duplicate roots reuse their existing instance. |
+| `createFilterList(root, options?)` | Preferred helper for one controller root. |
+| `initFilterListsAll(options?, root?)` | Initialize all roots under a document or container. |
+| `search(query)` | Set the input value and apply a query programmatically. |
+| `clear({ focusInput }?)` | Clear query and category; optionally return focus to the input. |
+| `refresh()` | Re-read managed items after the host changes the DOM. |
+| `getCategoryButtons()` | Return scoped category buttons. |
+| `getVisibleItems()` / `getHiddenItems()` | Read the current managed-item sets. |
+| `destroy()` | Remove listeners, timers, and managed state, then restore authored DOM state. |
+
+## Events
+
+Events bubble and are composed. Their detail contains `query`, `category`, `total`, `visible`, `hidden`, optional query-aware `categoryCounts`, and the `instance`.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-filter-list:init` / `ready` | Initialization starts / completes. |
+| `a11y-filter-list:change` | Query or active category changes. |
+| `a11y-filter-list:empty` | No managed items match. |
+| `a11y-filter-list:reset` | Query is empty and the all-category state is restored. |
+| `a11y-filter-list:destroy` | Teardown completes. |
+
+## Public addons
+
+Each addon is independently imported from its documented export; no private path is needed.
+
+| Export path | Factory | Behavior |
+| --- | --- | --- |
+| `/addons/active-filter-summary` | `createActiveFilterSummary(instance, options)` | Maintains a polite atomic summary and optional clear button. |
+| `/addons/did-you-mean` | `createDidYouMean(instance, options)` | Offers one conservative, local, single-word correction for empty searches. |
+| `/addons/empty-state-actions` | `createEmptyStateActions(instance, options)` | Connects author-owned empty-state controls; built-in `reset` clears filters and focuses the input. |
+| `/addons/facet-counts` | `createFacetCounts(instance, options?)` | Adds query-aware totals to category button names; optional empty-category disabling requires product judgment. |
+
+Addon instances expose `destroy()` and restore the authored target. Did-you-mean and facet counts also expose `refresh()` for dynamic content. The typo helper is not a spellchecker, synonym engine, or ranking system and performs no network request.
+
+## CSS customization
+
+The public stylesheet supplies the `.a11y-filter-list` BEM block, layout helpers, visible focus, pressed filters, forced-colors support, and reduced-motion handling. Override its public custom properties on your component root:
+
+```css
+.resource-filter {
+  --a11y-filter-list-gap: 1.25rem;
+  --a11y-filter-list-input-border: 2px solid #334155;
+  --a11y-filter-list-input-radius: 0.5rem;
+  --a11y-filter-list-focus-ring: 3px solid #2563eb;
+  --a11y-filter-list-empty-color: #7f1d1d;
+  --a11y-filter-list-filter-border: 1px solid #475569;
+  --a11y-filter-list-filter-radius: 999px;
+  --a11y-filter-list-filter-bg: transparent;
+  --a11y-filter-list-filter-bg-active: #1d4ed8;
+  --a11y-filter-list-filter-color-active: white;
+}
+```
+
+Do not override the semantic `[hidden]` behavior. Maintain visible focus and sufficient text, border, and selected-state contrast in every theme.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Native tab order through the input, clear button, category buttons, and visible result content. |
+| <kbd>Enter</kbd> | Submits a `data-filter-form` in submit mode; native button activation otherwise applies. |
+| <kbd>Space</kbd> | Activates focused clear, category, suggestion, or empty-state buttons natively. |
+| <kbd>Escape</kbd> in the search input | Clears query and category while focus remains in the input. |
+
+Filtering keeps focus in place. A clear button or `clear()` call returns focus only when configured to do so; the empty-state addon's built-in reset moves focus to the input before its containing state disappears. The did-you-mean suggestion does not receive focus automatically. Category buttons remain normal tab stops rather than implementing arrow-key selection.
+
+## Progressive enhancement and accessibility notes
+
+Server-render the full semantic content, a labeled search form, useful initial count text, and an empty state. Without JavaScript, people can still read the unfiltered list and submit the form if the server supports search. With JavaScript, the default `hidden` mode removes nonmatches from rendering, the accessibility tree, and keyboard order. `inert` preserves layout but depends on browser support.
+
+The plugin adds polite/atomic semantics to the count only when the author has not supplied them, preserves existing live-region attributes, and restores initial count, item visibility, button types, disabled state, `aria-disabled`, `aria-pressed`, `aria-hidden`, `inert`, and plugin data attributes on `destroy()`. `preserveHidden` prevents draft, permission-controlled, or server-hidden content from being revealed or counted.
+
+## Live example
+
+This demo imports the installed runtime, CSS, active-summary, empty-state-actions, and facet-count exports. It includes combined filters, a no-results state, a focus-safe reset, and responsive card content.
+
+<FilterListDemo />
+
+## Known limitations and browser support
+
+- Version 1.0.0 is ESM-only and states a Baseline 2024 modern-browser target; it does not publish a named browser/version matrix.
+- `inert` mode requires native `inert` support in the product's browser baseline.
+- Search has no fuzzy matching, accent folding, stemming, translation, server search, ranking, or pagination.
+- Count templates substitute numbers only; language-dependent grammar needs `formatCount`.
+- URL state uses the public query string and may not suit pages with an existing `q` or `category` contract.
+- The npm tarball lists nine maintained examples in `docs.examples`, but does not include their HTML. Inspect them in the source repository and test this integration against the installed public package.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained examples](https://github.com/vmitsaras/A11y-Filter-List)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-filter-list)</Card>
+  <Card title="Maintained examples" icon="rocket">[Basic, categories, card grid, CMS, large-list, and recovery examples](https://github.com/vmitsaras/A11y-Filter-List/tree/main/examples)</Card>
+  <Card title="Related: Result Count" icon="document">[Use a dedicated state/count layer for application-owned filtering and pagination](/plugins/a11y-result-count/)</Card>
+  <Card title="Related: Sortable Table" icon="document">[Add accessible sorting when the content is a semantic data table](/plugins/a11y-sortable-table/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/) to compare filtering with other table and result-list patterns.

@@ -1,0 +1,62 @@
+---
+import 'a11y-filter-summary/styles.css';
+---
+
+<section class="filter-demo" aria-labelledby="filter-demo-title">
+  <p class="eyebrow">Interactive example</p>
+  <h3 id="filter-demo-title">Find an accessible workspace</h3>
+  <p>Choose filters to update the results and removable active-filter summary. Try a combination with no matches.</p>
+  <form data-workspace-filters>
+    <div class="filters">
+      <label for="workspace-type">Workspace type</label>
+      <select id="workspace-type" name="type"><option value="">Any type</option><option value="Library">Library</option><option value="Coworking">Coworking space</option></select>
+      <fieldset><legend>Access features</legend><label><input type="checkbox" name="feature" value="Step-free" /> Step-free entrance</label><label><input type="checkbox" name="feature" value="Quiet" /> Quiet area</label></fieldset>
+    </div>
+    <section data-a11y-filter-summary aria-label="Active workspace filters"></section>
+    <p data-result-status role="status" aria-live="polite"></p>
+    <ul class="workspace-list" aria-label="Matching workspaces">
+      <li data-type="Library" data-features="Step-free Quiet"><strong>Central Library</strong><span>Library · Step-free · Quiet area</span></li>
+      <li data-type="Coworking" data-features="Step-free"><strong>Agora Works</strong><span>Coworking · Step-free</span></li>
+      <li data-type="Coworking" data-features="Quiet"><strong>Focus Yard</strong><span>Coworking · Quiet area</span></li>
+      <li data-type="Library" data-features=""><strong>Neighbourhood Reading Room</strong><span>Library</span></li>
+    </ul>
+    <p class="no-results" data-no-results hidden>No workspaces match this combination. Remove a filter or reset the example.</p>
+    <button type="reset">Reset example</button>
+  </form>
+</section>
+
+<script>
+  import { createFormFilterSummary } from 'a11y-filter-summary';
+  import { createIconTextAddon } from 'a11y-filter-summary/addons/icon-text';
+  const form = document.querySelector('[data-workspace-filters]');
+  if (form instanceof HTMLFormElement) {
+    const root = form.querySelector('[data-a11y-filter-summary]');
+    const cards = Array.from(form.querySelectorAll<HTMLElement>('[data-type]'));
+    const status = form.querySelector('[data-result-status]');
+    const noResults = form.querySelector('[data-no-results]');
+    if (root instanceof HTMLElement) {
+      const summary = createFormFilterSummary(root, form, { labels: { type: 'Type', feature: 'Feature' }, addons: [createIconTextAddon({ icons: { type: 'filter', feature: 'check' } })] });
+      const renderResults = () => {
+        const data = new FormData(form); const type = String(data.get('type') || ''); const features = data.getAll('feature').map(String); let matches = 0;
+        cards.forEach((card) => { const available = (card.dataset.features || '').split(' ').filter(Boolean); const visible = (!type || card.dataset.type === type) && features.every((feature) => available.includes(feature)); card.hidden = !visible; if (visible) matches += 1; });
+        if (noResults instanceof HTMLElement) noResults.hidden = matches !== 0;
+        if (status) status.textContent = `${matches} ${matches === 1 ? 'workspace matches' : 'workspaces match'}.`;
+      };
+      form.addEventListener('change', renderResults);
+      form.addEventListener('a11y-filter-summary:remove', () => queueMicrotask(renderResults));
+      form.addEventListener('a11y-filter-summary:clear', () => queueMicrotask(renderResults));
+      form.addEventListener('reset', () => queueMicrotask(() => { summary.update(); renderResults(); }));
+      renderResults();
+    }
+  }
+</script>
+
+<style>
+  .filter-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); --a11y-filter-summary-chip-background: var(--sl-color-gray-6); --a11y-filter-summary-chip-color: var(--sl-color-white); --a11y-filter-summary-chip-border: var(--sl-color-gray-4); --a11y-filter-summary-focus-ring: #60a5fa; }
+  h3 { margin-block: .25rem .5rem; } .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  form { display: grid; gap: 1.25rem; margin-block-start: 1.5rem; } .filters { display: grid; grid-template-columns: minmax(12rem, 1fr) minmax(16rem, 2fr); gap: .75rem 1.25rem; align-items: start; } .filters > label, legend { font-weight: 700; }
+  select { grid-column: 1; padding: .7rem; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; } fieldset { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; padding: .8rem 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; } fieldset label { display: flex; gap: .45rem; align-items: center; }
+  [data-result-status] { margin: 0; font-weight: 700; } .workspace-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem; padding: 0; list-style: none; } .workspace-list li { display: grid; gap: .35rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; background: var(--sl-color-gray-6); } .workspace-list span { color: var(--sl-color-gray-2); font-size: .9rem; }
+  .no-results { padding: 1rem; border-inline-start: .3rem solid var(--sl-color-orange); background: var(--sl-color-gray-6); } button { justify-self: start; margin: 0; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-white); background: transparent; font: inherit; font-weight: 700; cursor: pointer; } button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  @media (max-width: 38rem) { .filters { grid-template-columns: 1fr; } fieldset { grid-column: 1; grid-row: auto; } }
+</style>

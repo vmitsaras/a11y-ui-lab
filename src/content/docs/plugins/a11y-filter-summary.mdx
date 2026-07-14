@@ -1,0 +1,195 @@
+---
+title: A11y Filter Summary
+description: Removable active-filter chips with manual and form-driven state, predictable focus restoration, localization, and opt-in addons.
+sidebar:
+  order: 7
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import FilterSummaryDemo from '../../../components/FilterSummaryDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Tables" variant="note" />
+
+`a11y-filter-summary` renders active filters as a semantic list of removable chips. In manual mode the host owns state; in form-source mode the plugin reads labeled controls and updates them when actions are activated.
+
+<Aside type="caution" title="A summary does not implement filtering">
+  The package does not filter results, own application state, manage a filter drawer, or announce result counts. Test the complete host interface with target browsers and assistive technologies; the plugin does not guarantee WCAG conformance.
+</Aside>
+
+## Use when
+
+- Users need to review and remove several active filters without returning to every source control.
+- A semantic form can be the source of truth, or an application can respond to remove and clear intent events.
+- Predictable focus restoration and restrained status announcements are needed after chips disappear.
+
+## Avoid when
+
+- One obvious control already communicates the complete filter state.
+- Sensitive form values must not be repeated visibly.
+- The host cannot keep its results and summary state synchronized.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-filter-summary
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-filter-summary
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-filter-summary
+    ```
+  </TabItem>
+</Tabs>
+
+```js
+import { createFormFilterSummary } from 'a11y-filter-summary';
+import 'a11y-filter-summary/styles.css';
+
+createFormFilterSummary(
+  document.querySelector('[data-a11y-filter-summary]'),
+  document.querySelector('#filters'),
+);
+```
+
+## Required markup and modes
+
+Use a semantic region. In the default `replace` render mode, the plugin creates its heading, list, empty message, clear button, and polite status region.
+
+```html
+<form id="filters">
+  <!-- Labeled filter controls -->
+  <section data-a11y-filter-summary aria-label="Active filters"></section>
+</form>
+```
+
+For progressive enhancement with server-rendered UI, use `renderMode: 'sync-existing'` and provide `[data-a11y-filter-summary-heading]`, `-list`, `-empty`, `-clear`, and `-status` elements. The status should use `role="status"`, `aria-live="polite"`, and `aria-atomic="true"`. Add `data-a11y-filter-summary-ignore` to controls that must not become chips.
+
+Manual mode accepts an array or object map. It emits intent; the host changes state and calls `update()`.
+
+```js
+const summary = createFilterSummary(root);
+let filters = [{ name: 'type', value: 'Image', groupLabel: 'Type' }];
+root.addEventListener('a11y-filter-summary:remove', ({ detail }) => {
+  filters = filters.filter((item) => item.name !== detail.name || item.value !== detail.value);
+  summary.update(filters);
+});
+summary.update(filters);
+```
+
+## Options
+
+| Option | Purpose |
+| --- | --- |
+| `source`, `form`, `updateOn` | Select `manual` or `form` state, bind a form or selector, and reread on `change` or `input`. |
+| `labels`, `ignoredDefaults`, `formatFormValue` | Control form-derived group labels, default values omitted from the summary, and displayed values. |
+| `clearMode` | In form mode, use native `reset` or empty supported controls. |
+| `renderMode`, `showWhenEmpty`, `clearAll`, `headingLevel` | Configure generated or synchronized markup. |
+| `visuallyHideGroupLabels`, `formatFilterLabel` | Customize visible chip text while retaining meaningful accessible names. |
+| `restoreFocusAfterRemove`, `focusStrategy` | Restore focus to `next`, `previous`, `clear`, `root`, or `none` after removal. |
+| `announceUpdates`, `announcementClearDelay` | Enable transient summary announcements and choose their clearing delay. |
+| `locale`, `messages` | Select or customize generated English text; opt-in catalogs expose German, Spanish, Italian, French, and Greek. |
+| `disabled`, `addons` | Disable actions initially or register public lifecycle addons. |
+
+Equivalent data attributes cover scalar options. JavaScript options win; callbacks, message maps, labels, ignored defaults, and addons require JavaScript.
+
+Form mode reads common text, number, date, textarea, select, checkbox, and radio controls. It ignores disabled, empty, button, submit/reset, file, password, hidden, and explicitly ignored controls. It derives labels from configured labels, legends, explicit/wrapping labels, then humanized names.
+
+## API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11yFilterSummary` | Class with duplicate-initialization protection. |
+| `createFilterSummary(root, options?)` | Initialize manual mode or form mode through options. |
+| `createFormFilterSummary(root, form, options?)` | Initialize a form-source summary. |
+| `initFilterSummaryAll(options?)` | Initialize all matching roots. |
+| `update(filters?, context?)` | Render array/object input, or reread a bound form when input is omitted. |
+| `clear()` | Emit clear intent in manual mode; clear/reset and rerender in form mode. |
+| `setEmptyState(message?)` | Change the empty message. |
+| `enable()` / `disable()` | Toggle root `aria-disabled` and native button disabled states. |
+| `setLocale()` / `t()` | Switch generated language or format one message. |
+| `registerAddon()` / `unregisterAddon()` / `getAddon()` / `getAddons()` | Manage public addon hooks. |
+| `destroy()` | Remove listeners and generated state, restore original markup, clear timers, and release the root. |
+
+## Events
+
+All events bubble and include `instance`. `init`, `ready`, `update`, `empty`, and `destroy` describe lifecycle changes. `remove` includes `name`, `value`, `label`, normalized `item`, and the triggering button; `clear` includes its trigger. `error` exposes caught plugin errors, while `addon-error` also identifies the addon and hook.
+
+```txt
+a11y-filter-summary:init       a11y-filter-summary:ready
+a11y-filter-summary:update     a11y-filter-summary:remove
+a11y-filter-summary:clear      a11y-filter-summary:empty
+a11y-filter-summary:error      a11y-filter-summary:addon-error
+a11y-filter-summary:destroy
+```
+
+## Addons and localization
+
+- `a11y-filter-summary/addons/url-state` exports `createUrlStateAddon()`. It reads query parameters, supports allowlists/defaults/labels/value formatting, responds to `popstate`, and writes with push or replace history. URL data can leak through sharing, referrers, logs, and history; never store sensitive filters there.
+- `a11y-filter-summary/addons/range-groups` exports `createRangeGroupsAddon()`. It combines configured form fields into one formatted chip and clears all source controls when that chip is removed.
+- `a11y-filter-summary/addons/icon-text` exports `createIconTextAddon()`. It prepends decorative, `aria-hidden` SVG icons from a public icon-name set without replacing text or accessible names.
+
+Addon hook failures are isolated and dispatch `addon-error`. Public hooks cover before/after init, update, render, remove, clear, and destroy, plus `transformFilters` and `onError`. Locale catalogs are exported from `/locales/de`, `/es`, `/it`, `/fr`, and `/el`; set the document's `lang` and `dir` yourself.
+
+## CSS customization
+
+The stylesheet provides layout, chip and disabled states, visible focus, status hiding, a narrow-screen clear button, forced semantic button styling, and short transitions only when reduced motion is not requested.
+
+```css
+.product-filters {
+  --a11y-filter-summary-gap: .75rem;
+  --a11y-filter-summary-chip-background: #eef5ff;
+  --a11y-filter-summary-chip-color: #172033;
+  --a11y-filter-summary-chip-border: #6b7c99;
+  --a11y-filter-summary-focus-ring: #005fcc;
+}
+```
+
+Preserve contrast and the package's visible focus treatment when overriding `.a11y-filter-summary`, `__list`, `__item`, `__label`, `__remove`, `__clear`, `__empty`, or state classes.
+
+## Keyboard and focus behavior
+
+| Input | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Traverse native remove and clear buttons in DOM order. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Activate the focused native button. |
+| After removal | Focus can move to the next/previous chip, clear button, root, or nowhere according to `focusStrategy`. |
+| After clear all | If focus was inside the disappearing summary, it moves to a remaining clear button or the root fallback. |
+
+Ordinary `update()` calls do not move focus. The plugin does not add arrow-key, Escape, Home, or End behavior because the chips are actions in a normal tab sequence, not a composite widget.
+
+## Progressive enhancement and accessibility notes
+
+Server-render the filter form, current results, and a useful initial summary when state is known. Filtering and form submission should remain meaningful without JavaScript; enhancement then synchronizes removable chips. Remove buttons have descriptive names such as “Remove Type: Image,” group labels can be visually hidden without leaving accessible text, and short updates use a polite atomic status region. If another component announces result changes, disable summary announcements to avoid duplicate speech.
+
+## Live example
+
+The demo imports the installed runtime, public stylesheet, and public icon addon. Form controls remain the source of truth; the host owns filtering and its separate result status. The quiet+coworking+step-free combination demonstrates an empty state, and reset restores the baseline.
+
+<FilterSummaryDemo />
+
+## Known limitations and browser support
+
+- The package does not filter, fetch, render, paginate, or count results.
+- Range grouping, URL synchronization, and icons exist only through separately imported addons.
+- Form-source mode makes active values visible; do not bind sensitive controls.
+- Object-map keys are humanized, not translated; localized products should supply labels and values.
+- URL mode changes browser history and exposes query state outside the page.
+- No explicit browser matrix is published. Version 1.0.0 is ESM-only and relies on standard modern DOM, history, URL, `Intl.PluralRules`, and CSS `color-mix()` features; verify against product targets.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained examples](https://github.com/vmitsaras/A11y-Filter-Summary)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-filter-summary)</Card>
+  <Card title="Result Count" icon="document">[Announce and display changing result totals](/plugins/a11y-result-count/)</Card>
+  <Card title="Sortable Table" icon="document">[Add sorting behavior to semantic data tables](/plugins/a11y-sortable-table/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/) or combine the summary with [A11y Filter List](/plugins/a11y-filter-list/) when that package already owns list filtering.

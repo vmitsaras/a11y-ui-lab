@@ -1,0 +1,250 @@
+---
+title: A11y Form Validator
+description: Progressive enhancement for semantic forms with accessible errors, summaries, server errors, custom rules, and character counts.
+sidebar:
+  order: 1
+---
+
+import { Aside, Badge, Card, CardGrid, LinkButton, Tabs, TabItem } from '@astrojs/starlight/components';
+import FormValidatorDemo from '../../../components/FormValidatorDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-form-validator` enhances semantic HTML forms with native, custom, asynchronous, and server-side validation. It renders associated inline errors, can focus a linked error summary after a blocked submit, and removes its generated DOM and ARIA state when destroyed.
+
+<Aside type="caution" title="Accessibility is an integration outcome">
+  The package provides accessibility-oriented behavior, but it does not make every form WCAG conformant. Keep labels, instructions, groups, error copy, submission behavior, and application states usable, and test the completed flow with target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- You have native form controls and want consistent inline errors and submit recovery.
+- You need custom, cross-field, async, or server-provided errors without replacing semantic HTML.
+- You want an optional error summary, character count guidance, localization, or lifecycle events.
+- Your form is server-rendered or framework-managed and can be progressively enhanced after the markup exists.
+
+## Avoid when
+
+- The interface is not a semantic HTML form or replaces native controls with custom widgets.
+- Native constraint validation alone meets the product and accessibility requirements.
+- You cannot provide labels or stable `name`/`id` values for fields.
+- You need the validator to cancel in-flight remote validation requests; cancellation remains application-owned.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-form-validator
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-form-validator
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-form-validator
+    ```
+  </TabItem>
+</Tabs>
+
+Import the normal ESM entry through a bundler. Import the public stylesheet when you want the package's default error, summary, focus, pending, and character-count presentation.
+
+```js
+import { createDefaultPreset, createFormValidator } from 'a11y-form-validator';
+import 'a11y-form-validator/styles.css';
+
+const form = document.querySelector('[data-a11y-form-validator]');
+if (form instanceof HTMLFormElement) {
+  createFormValidator(form, createDefaultPreset());
+}
+```
+
+The public `a11y-form-validator/min` subpath is intended for direct-browser or CDN-style ESM usage. Bundled applications should use the default entry.
+
+## Required markup
+
+Start with a form that works before JavaScript loads. Use native controls, visible labels, `fieldset` and `legend` for related choices, and a stable `name` or `id` for every field.
+
+```html
+<form action="/contact" method="post" data-a11y-form-validator>
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" required />
+
+  <label for="message">Message</label>
+  <textarea
+    id="message"
+    name="message"
+    minlength="10"
+    maxlength="180"
+    required
+    data-character-count
+  ></textarea>
+
+  <fieldset>
+    <legend>Preferred reply method</legend>
+    <label><input name="replyMethod" type="radio" value="email" required /> Email</label>
+    <label><input name="replyMethod" type="radio" value="phone" required /> Phone</label>
+  </fieldset>
+
+  <button type="submit">Send</button>
+</form>
+```
+
+Native rules cover `required`, email type, `minlength`, `maxlength`, `pattern`, required checkboxes, radio groups, and checkbox groups. Add `data-validate="min-length:3 pattern:^[a-z0-9_]+$"` for declarative rules and `data-message-required="Choose a username."` for a field-level message.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `validateOn` | `['submit']` | One or more of `submit`, `blur`, `input`, or `change`. |
+| `focusOnError` | `'summary'` | Focus the `summary`, the `first-invalid` field, or do not move focus with `false`. |
+| `errorMode` | `'inline'` | Render `inline`, `native`, or `both` error modes. |
+| `useNativeRules` | `true` | Read supported HTML validation attributes. |
+| `disableNativeUI` | `true` | Add `novalidate` unless native-only behavior is selected. |
+| `validateHidden` | `false` | Include hidden fields when enabled. |
+| `ignore` | disabled and hidden fields | Configure `disabled`, `hidden`, and a custom `selector`. |
+| `debounce` | `150` | Delay input-triggered validation in milliseconds. |
+| `messages` | `{}` | Global, field-specific, or function-based messages. |
+| `locale` / `locales` | English fallback | Select an explicit locale and supply opt-in locale maps. |
+| `selectors.fields` | `input, select, textarea` | Controls collected by `refresh()`. |
+| `addons` | `[]` | Addon objects created through public addon exports. |
+| `renderer` | `null` | A custom `render()`, `clear()`, and optional `destroy()` implementation. |
+| `rules` | `{}` | Field rule configuration keyed by field `name` or `id`. |
+
+`createDefaultPreset()` validates on submit and blur, uses both inline and native messages, installs the error-summary addon, and focuses the summary after a blocked submit. `createNoSummaryPreset()` keeps that cadence but focuses the first invalid field and installs no addons. `createMinimalPreset()` validates on submit and focuses the first invalid field.
+
+## Methods
+
+| Method | Purpose |
+| --- | --- |
+| `validate(options?)` | Validate the complete form and resolve to its validity. |
+| `validateField(field, options?)` | Validate one field by controller, name, or element. |
+| `refresh()` | Recollect fields after dynamic markup changes. |
+| `reset()` | Reset plugin validation state. |
+| `clearErrors()` | Remove current rendered errors. |
+| `setErrors(errors)` | Apply field and form errors returned by a server. |
+| `getErrors()` / `getState()` | Read current errors or the validation-state snapshot. |
+| `enable()` / `disable()` | Toggle validation behavior without removing the instance. |
+| `focusOnError()` | Move focus according to the configured focus strategy. |
+| `registerRule()` / `unregisterRule()` | Manage custom synchronous or asynchronous rules. |
+| `destroy()` | Remove listeners, addons, generated DOM, classes, timers, and generated ARIA state. |
+
+Duplicate initialization of the same form returns its existing instance. After applying server errors, call `focusOnError()` when the summary or first invalid field should be announced immediately.
+
+```js
+validator.setErrors({
+  fields: { email: 'This email is already registered.' },
+  form: 'Your session expired. Reload the page and try again.',
+});
+validator.focusOnError();
+```
+
+## Events
+
+Events bubble from the enhanced form. Their detail includes `instance` and the compatibility alias `validator`.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-form-validator:init` | Fields, listeners, and addons are installed. |
+| `a11y-form-validator:before-validate` | Form validation is about to run. |
+| `a11y-form-validator:after-validate` | Validation completes with `valid` and `errors`. |
+| `a11y-form-validator:field-valid` | A field validates successfully. |
+| `a11y-form-validator:field-invalid` | A field fails with its field, message, and reason. |
+| `a11y-form-validator:form-valid` / `form-invalid` | The form result is known. |
+| `a11y-form-validator:submit-blocked` | Invalid submission has been prevented. |
+| `a11y-form-validator:destroy` | Cleanup completes. |
+
+## Addons and presets
+
+Both addons are opt-in public subpath exports. The default preset already includes the error summary; do not add it a second time.
+
+```js
+import { createFormValidator, createNoSummaryPreset } from 'a11y-form-validator';
+import { createErrorSummaryAddon } from 'a11y-form-validator/addons/error-summary';
+import { createCharacterCountAddon } from 'a11y-form-validator/addons/character-count';
+
+createFormValidator(form, {
+  ...createNoSummaryPreset(),
+  focusOnError: 'summary',
+  addons: [
+    createErrorSummaryAddon({ titleId: 'form-errors-title' }),
+    createCharacterCountAddon({ threshold: 40 }),
+  ],
+});
+```
+
+- `createErrorSummaryAddon()` prepends a focusable, labelled summary. Field errors become field-labelled links; form-level errors remain text.
+- `createCharacterCountAddon()` adds polite character guidance to controls with `maxlength`, `minlength`, or `data-character-count`. It accepts a selector, threshold, and custom `remaining`, `over`, and `minimum` messages.
+- Presets are available from the main entry and the public `/presets/default`, `/presets/no-summary`, and `/presets/minimal` subpaths.
+
+## CSS customization
+
+The stylesheet uses `.a11y-form-validator` as its root block and state classes including `.is-valid`, `.is-invalid`, `.is-pending`, `.is-touched`, `.is-dirty`, and `.is-disabled`.
+
+```css
+.checkout-form {
+  --a11y-form-validator-error-color: #9f1239;
+  --a11y-form-validator-border-color: #94a3b8;
+  --a11y-form-validator-focus-color: #1d4ed8;
+  --a11y-form-validator-success-color: #15803d;
+  --a11y-form-validator-pending-color: #7e22ce;
+  --a11y-form-validator-error-shadow: rgb(159 18 57 / 15%);
+  --a11y-form-validator-gap: 0.625rem;
+  --a11y-form-validator-radius: 0.5rem;
+  --a11y-form-validator-font-size: 0.95rem;
+  --a11y-form-validator-summary-background: #fff1f2;
+  --a11y-form-validator-character-count-color: #475569;
+}
+```
+
+The default styles are intentionally minimal. Preserve visible focus and sufficient contrast when adapting them. The package CSS disables meaningful scroll animation and shortens animations and transitions under `prefers-reduced-motion: reduce`.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move through native controls, summary links, and buttons in document order. |
+| <kbd>Enter</kbd> | Submit from text fields or activate a summary link. |
+| <kbd>Space</kbd> | Toggle native checkboxes and radio buttons. |
+
+On a blocked submit, focus moves to the error summary or first invalid field according to `focusOnError`. Summary links focus their invalid controls. Inline errors are connected with `aria-describedby` and `aria-errormessage`; existing `aria-describedby` values are preserved and restored. When summary focus is used, competing inline live-region announcements are muted for that blocked-submit batch.
+
+## Progressive enhancement
+
+Keep a real `action`, `method`, labels, instructions, and server-side validation so the form remains usable without JavaScript. The plugin adds `novalidate` by default only after initialization. If markup changes, call `refresh()`. If a form is removed or a client-side view unmounts, call `destroy()`. Server validation remains authoritative even when client validation improves recovery.
+
+## Live example
+
+This example imports the installed package entry, exported stylesheet, and both public addon subpaths. It includes grouped choices, a character count, invalid-submit recovery, success feedback, and reset behavior. It does not send data.
+
+<FormValidatorDemo />
+
+## Known limitations and browser support
+
+- Only controls collected through `selectors.fields` are validated; custom widgets require custom rules, a renderer, or integration code.
+- Async rules do not cancel requests. The application must handle cancellation and announce meaningful progress when `.is-pending` alone is insufficient.
+- Native validation messages vary between browsers and locales when native mode is used.
+- The package does not publish an explicit browser-support matrix. Its ESM distribution and standard DOM APIs require a modern browser and, for older targets, testing and an application-level transpilation/polyfill policy.
+- Locale JSON files are opt-in. Dynamic locale changes require destroying and recreating the instance.
+
+## Resources and related guides
+
+<CardGrid>
+  <Card title="Package source" icon="github">
+    Review releases, issues, and package examples in the [GitHub repository](https://github.com/vmitsaras/A11y-Form-Validator).
+  </Card>
+  <Card title="Published package" icon="seti:npm">
+    Inspect the current version and install metadata on [npm](https://www.npmjs.com/package/a11y-form-validator).
+  </Card>
+  <Card title="Demo gallery" icon="rocket">
+    Explore the package-maintained [interactive examples](https://vmitsaras.github.io/A11y-Form-Validator/), including server errors, remote validation, localization, and conditional fields.
+  </Card>
+  <Card title="Related: Password Strength Meter" icon="document">
+    [Add local, explainable password guidance](/plugins/a11y-password-strength-meter/).
+  </Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/) to explore the complete form-plugin collection.

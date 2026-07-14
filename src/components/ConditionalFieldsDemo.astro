@@ -1,0 +1,103 @@
+<section class="conditional-demo" aria-labelledby="conditional-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="conditional-demo-title">Plan workshop accommodations</h3>
+    <p>Choose only the support you need. Try hiding a section after entering a value, or press Escape from inside an open section.</p>
+  </div>
+
+  <form data-conditional-fields-demo data-a11y-conditional-fields data-collapse-on-escape="true">
+    <label class="choice" for="access-support-toggle">
+      <input id="access-support-toggle" type="checkbox" data-condition-toggle="access-support" />
+      I need access support at the venue
+    </label>
+
+    <section id="access-support" class="target" data-condition-target hidden aria-labelledby="access-support-title">
+      <h4 id="access-support-title">Access support</h4>
+      <label for="support-type">What would help?</label>
+      <select id="support-type" name="supportType" data-required-when-visible>
+        <option value="">Choose support</option>
+        <option>Step-free route</option>
+        <option>Reserved seating</option>
+        <option>Sign-language interpreter</option>
+      </select>
+    </section>
+
+    <fieldset>
+      <legend>How will you attend?</legend>
+      <label><input type="radio" name="attendance" value="venue" data-condition-show="arrival-details" checked /> At the venue</label>
+      <label><input type="radio" name="attendance" value="remote" data-condition-show="remote-details" /> Remotely</label>
+    </fieldset>
+
+    <section id="arrival-details" class="target" data-condition-target hidden aria-labelledby="arrival-title">
+      <h4 id="arrival-title">Arrival details</h4>
+      <label for="arrival-time">Approximate arrival time</label>
+      <input id="arrival-time" name="arrivalTime" type="time" data-required-when-visible />
+    </section>
+
+    <section id="remote-details" class="target" data-condition-target hidden aria-labelledby="remote-title">
+      <h4 id="remote-title">Remote access</h4>
+      <label for="caption-language">Caption language</label>
+      <select id="caption-language" name="captionLanguage" data-required-when-visible>
+        <option value="">Choose a language</option>
+        <option>English</option>
+        <option>Greek</option>
+      </select>
+    </section>
+
+    <p class="plugin-status" data-condition-status></p>
+    <div class="actions">
+      <button type="submit">Review request</button>
+      <button type="reset" class="secondary">Reset example</button>
+    </div>
+    <p class="demo-status" data-demo-status role="status"></p>
+  </form>
+</section>
+
+<script>
+  import { createConditionalFields } from 'a11y-conditional-fields';
+
+  const form = document.querySelector('[data-conditional-fields-demo]');
+  if (form instanceof HTMLFormElement) {
+    const status = form.querySelector('[data-demo-status]');
+    const conditionalFields = createConditionalFields(form, {
+      announceChanges: true,
+      disableWhenHidden: true,
+      collapseOnEscape: true,
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      if (status) status.textContent = 'Request reviewed. No data was sent.';
+    });
+    form.addEventListener('reset', () => {
+      queueMicrotask(() => {
+        conditionalFields.refresh();
+        if (status) status.textContent = 'Example reset.';
+      });
+    });
+  }
+</script>
+
+<style>
+  .conditional-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading { max-width: 44rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; }
+  form { display: grid; gap: 1.1rem; max-width: 42rem; margin-block-start: 1.5rem; }
+  .choice, fieldset label { display: flex; align-items: center; gap: .55rem; }
+  label, legend { font-weight: 650; }
+  fieldset { display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; }
+  fieldset legend { padding-inline: .35rem; }
+  .target { display: grid; gap: .5rem; padding: 1rem; border-inline-start: .3rem solid var(--sl-color-accent-high); background: var(--sl-color-gray-6); }
+  .target[hidden] { display: none !important; }
+  .target h4 { margin: 0 0 .25rem; }
+  input[type='time'], select { width: 100%; padding: .7rem .8rem; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .actions button { margin: 0; }
+  button { padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; background: var(--sl-color-accent-high); color: var(--sl-color-black); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--sl-color-white); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .plugin-status, .demo-status { min-height: 1.5rem; margin: 0; }
+  .demo-status { font-weight: 650; }
+</style>

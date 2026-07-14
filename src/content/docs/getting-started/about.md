@@ -3,8 +3,6 @@ title: About A11y UI
 description: Learn how A11y UI documents focused, framework-independent JavaScript plugins for accessible interface behavior.
 ---
 
-# About A11y UI
-
 A11y UI is a documentation hub for small, focused JavaScript plugins that improve common interface patterns without replacing the HTML you already have.
 
 The collection covers practical problems such as form errors, asynchronous feedback, navigation, disclosures, dialogs, loading states, filtering, and other interaction patterns that often need more than static markup alone.

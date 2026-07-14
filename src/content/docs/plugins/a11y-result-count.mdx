@@ -1,0 +1,193 @@
+---
+title: A11y Result Count
+description: Visible result totals and restrained live announcements for filtered, paginated, loading, empty, and error states.
+sidebar:
+  order: 4
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import ResultCountDemo from '../../../components/ResultCountDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-result-count` keeps visible count text and transient live-region announcements synchronized with state supplied by a filtering, pagination, search, or load-more interface. It deliberately does not fetch, filter, paginate, render results, or own application state.
+
+<Aside type="caution" title="The host interface still determines accessibility">
+  The package provides count formatting and announcement behavior, not complete WCAG conformance. Use semantic controls and results, preserve useful no-JavaScript content, and test the finished workflow with target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- A search, filter, pagination, or load-more flow needs a persistent visible count.
+- Meaningful state changes should be announced without moving focus.
+- Rapid changes need debouncing so only the latest useful result state is spoken.
+- The application already owns result data and can pass normalized counts to the plugin.
+
+## Avoid when
+
+- The interface needs a component to fetch, filter, paginate, or render its results.
+- A static count never changes after the page loads.
+- The root must be a list or table structural element and you cannot author explicit sibling live regions.
+- The product cannot test live-region timing with its supported assistive technologies.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-result-count
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-result-count
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-result-count
+    ```
+  </TabItem>
+</Tabs>
+
+Import the ESM runtime and public stylesheet. The package does not auto-initialize.
+
+```js
+import { createResultCount } from 'a11y-result-count';
+import 'a11y-result-count/styles.css';
+
+const resultCount = createResultCount('[data-a11y-result-count]');
+resultCount.update({ visibleCount: 12, filteredCount: 12, totalCount: 48, mode: 'filtered' });
+```
+
+## Required markup
+
+Server-render a useful visible count. Explicit, empty announcement buffers are recommended because they keep the DOM predictable; they are not hidden duplicates of the persistent text.
+
+```html
+<p class="a11y-result-count" data-a11y-result-count>
+  <span class="a11y-result-count__text" data-a11y-result-count-text>
+    Showing 12 of 48 results
+  </span>
+  <span class="a11y-result-count__status" data-a11y-result-count-status
+    role="status" aria-live="polite" aria-atomic="true"></span>
+  <span class="a11y-result-count__status" data-a11y-result-count-assertive
+    aria-live="assertive" aria-atomic="true"></span>
+</p>
+```
+
+The root must resolve to an `HTMLElement`. If regions are omitted, the package generates visually hidden `span` elements. When the root is also the text target, generated regions are inserted after it rather than inside its visible text.
+
+## Options
+
+| Option | Default or purpose |
+| --- | --- |
+| `locale` | Locale passed to `Intl.NumberFormat`. |
+| `messages` | Partial overrides for `one`, `many`, `showing`, `showingFiltered`, `empty`, `loading`, `error`, `loadedMore`, `filtered`, and `initial`. |
+| `announceChanges` | Enables normal state-change announcements. |
+| `announceDelay` | Debounce delay before writing the latest transient announcement. |
+| `politeness` | Normal announcement channel: `polite` or `assertive`. |
+| `assertiveErrors` | Enables the separate assertive error region. |
+| `format` | `simple`, `showing`, `loaded`, or `custom`. |
+| `customFormat` | Function receiving normalized state plus translation, number-formatting, and plural helpers. |
+| `addons` | Array of objects implementing the public `ResultCountAddon` lifecycle contract. |
+
+Equivalent `data-a11y-result-count-*` attributes configure locale, announcements, delay, politeness, assertive errors, format, initial counts, `has-more`, mode, and messages. JavaScript options win. Parsing rejects negative, decimal, partial, empty, or invalid enum values and falls back safely.
+
+## State and methods
+
+Pass `visibleCount`, `filteredCount`, `totalCount`, `loadedCount`, `pageSize`, `hasMore`, `mode`, an optional `message`, optional `announce`, and application-owned `meta` through `update()`.
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11yResultCount` | Class implementing one result-count instance with duplicate-initialization protection. |
+| `createResultCount(root, options?)` | Create and initialize one instance. |
+| `initResultCountAll(options?)` | Initialize all matching roots in the document. |
+| `update(state)` | Normalize state, update visible text and classes, and optionally announce. |
+| `announce(message, politeness?)` | Debounce and write a transient message to the selected region. |
+| `setLoading(message?)` / `setEmpty(message?)` / `setError(message?)` | Apply a named state with its visible text and announcement behavior. |
+| `setLocale(locale, messages?)` | Replace number formatting and merge message overrides. |
+| `reset()` | Restore initial state and clear timers and announcement buffers. |
+| `t(key, params?)` / `formatNumber(value)` | Use the instance's configured messages and locale formatting. |
+| `registerAddon()` / `unregisterAddon()` / `getAddon()` / `getAddons()` | Manage public lifecycle addons. |
+| `destroy()` | Remove timers, generated DOM, state classes, live-region changes, and addon cleanup. |
+
+Destroyed instances are final: active methods throw after `destroy()`. Call `createResultCount(root)` again to create a new instance.
+
+## Events
+
+Events bubble from the root and include `instance`; state-specific events may include normalized `state`, message, politeness, addon, hook, or error data.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-result-count:init` / `ready` | Initialization starts / completes. |
+| `a11y-result-count:update` | Visible state has updated. |
+| `a11y-result-count:announce` | A live-region message has been written. |
+| `a11y-result-count:loading` / `empty` / `error` | The corresponding method is called. |
+| `a11y-result-count:reset` | Initial normalized state is restored. |
+| `a11y-result-count:addon-error` | An addon hook or cleanup throws; the error is isolated. |
+| `a11y-result-count:destroy` | Instance cleanup completes. |
+
+## Addons and integrations
+
+Version 1.0.0 exports the `ResultCountAddon` TypeScript contract from the main entry, but publishes no ready-made addon subpaths. Addons can implement `setup`, cleanup, `destroy`, `onError`, and before/after hooks for initialization, update, announcement, loading, empty, error, reset, and destruction. Register them through `addons` or `registerAddon()`; do not deep-import internals.
+
+Filtering and pagination integrations should call the public instance methods or listen for lifecycle events. Keep analytics, network work, and result state in the host application.
+
+## CSS customization
+
+The stylesheet exposes the `.a11y-result-count` block, `__text` and visually hidden `__status` elements, plus `--loading`, `--empty`, `--error`, and `.is-initialized` states.
+
+```css
+.search-count {
+  --a11y-result-count-color: #172033;
+  --a11y-result-count-muted-color: #5b667a;
+  --a11y-result-count-error-color: #b3261e;
+  --a11y-result-count-gap: 0.5rem;
+}
+```
+
+Preserve sufficient contrast. The package has no animation, keeps scroll behavior instant under reduced-motion preferences, and uses system colors in forced-colors mode.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | The plugin adds no tab stops; host controls retain document order. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | No plugin handler; native host buttons and links keep their standard activation. |
+| <kbd>Escape</kbd>, arrows, <kbd>Home</kbd>, <kbd>End</kbd> | No plugin behavior; use these only when the host pattern requires them. |
+
+The plugin never moves focus. Filtering, loading, empty, error, reset, and locale changes communicate through visible text and live regions, so focus remains on the initiating control unless the host has a separate documented reason to move it.
+
+## Progressive enhancement and accessibility notes
+
+Server-render the initial visible count, results, semantic filter controls, and working navigation or submission behavior. JavaScript should enhance that baseline and call `update()` after application state changes. Call `destroy()` when its view unmounts.
+
+Announcements are debounced, repeated messages are cleared before rewriting, and announcement buffers are cleared after use to reduce stale duplicate browse content. Assertive errors are opt-in. These choices still require manual screen-reader testing because announcement timing varies by browser and assistive technology.
+
+## Live example
+
+The example imports the installed public runtime and stylesheet. It includes filtering, load-more loading, an empty result, an assertive error, and reset behavior; it does not fetch or send data.
+
+<ResultCountDemo />
+
+## Known limitations and browser support
+
+- The package does not filter, fetch, paginate, render, persist, or own results.
+- Live-region timing varies between browser and assistive-technology combinations.
+- Invalid count values fall back rather than representing negative or fractional results.
+- Explicit regions are recommended, especially when structural list or table elements might otherwise be used as roots.
+- The published tarball links to its maintained basic example but does not include the example HTML.
+- No explicit browser matrix is published. The ESM build uses standard DOM APIs and `Intl.NumberFormat`; test against the application's modern-browser support policy.
+- The package stores state only in memory and performs no network, analytics, storage, clipboard, or URL operations.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained example](https://github.com/vmitsaras/A11y-Result-Count)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-result-count)</Card>
+  <Card title="Maintained example" icon="rocket">[Basic resource-list example source](https://github.com/vmitsaras/A11y-Result-Count/tree/main/examples/basic)</Card>
+  <Card title="Related: Conditional Fields" icon="document">[Reveal relevant form content progressively](/plugins/a11y-conditional-fields/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/) or pair result counts with [form validation](/plugins/a11y-form-validator/) when a search form needs separate error handling.

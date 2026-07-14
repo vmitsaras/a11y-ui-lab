@@ -1,0 +1,194 @@
+---
+title: A11y Conditional Fields
+description: Progressive enhancement for semantic conditional form sections with managed visibility, submission state, announcements, and focus recovery.
+sidebar:
+  order: 2
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import ConditionalFieldsDemo from '../../../components/ConditionalFieldsDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-conditional-fields` connects native checkbox, radio, select, and button triggers to semantic form sections. It manages hidden, inert, disabled, required, announcement, and trigger state while leaving markup, validation UI, and visual design to the application.
+
+<Aside type="caution" title="Accessibility is an integration outcome">
+  The plugin manages conditional-section state; it does not prove the surrounding form, instructions, validation, or data handling are accessible. Test the completed flow with target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- A form should reveal follow-up questions only when they are relevant.
+- Hidden controls must be excluded from keyboard navigation and normal submission.
+- You want progressive enhancement built on native controls and semantic sections.
+- Dynamic forms need a refreshable, destroyable lifecycle.
+
+## Avoid when
+
+- CSS-only disclosure is sufficient and no field state needs managing.
+- The disclosure is not part of a form; a native `<details>` element may be simpler.
+- Your custom widget does not provide equivalent native semantics and keyboard behavior.
+- Hidden values must always be submitted without application-level filtering.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-conditional-fields
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-conditional-fields
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-conditional-fields
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only and does not auto-initialize. Most bundlers should use the default entry; `a11y-conditional-fields/min` exposes the same API as pre-minified ESM. There is no CSS export.
+
+```js
+import { createConditionalFields } from 'a11y-conditional-fields';
+
+const form = document.querySelector('[data-a11y-conditional-fields]');
+if (form instanceof HTMLFormElement) {
+  createConditionalFields(form, { collapseOnEscape: true });
+}
+```
+
+## Required markup
+
+Give every target a unique `id`; triggers reference one or more IDs. Begin targets with `hidden` so they remain hidden before JavaScript initializes.
+
+```html
+<form action="/register" method="post" data-a11y-conditional-fields>
+  <label>
+    <input type="checkbox" data-condition-toggle="travel-details" />
+    I need travel support
+  </label>
+
+  <section id="travel-details" data-condition-target hidden aria-labelledby="travel-title">
+    <h2 id="travel-title">Travel support</h2>
+    <label for="station">Arrival station</label>
+    <input id="station" name="station" data-required-when-visible />
+  </section>
+
+  <p data-condition-status></p>
+  <button type="submit">Continue</button>
+</form>
+```
+
+Supported triggers are checkboxes and buttons with `data-condition-toggle`, radios with `data-condition-show`, and selects with `data-condition-select` whose options use `data-condition-show`. Checkbox and button toggles may contain space-separated target IDs.
+
+Useful target and field attributes include `data-required-when-visible`, `data-disable-when-hidden`, `data-clear-when-hidden`, `data-condition-preserve`, `data-focus-first`, `data-focus-when-shown`, and `data-error`. Mark validation messages with `data-error` so hiding a target also hides them and disconnects their error descriptions.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `clearWhenHidden` | `false` | Clear managed fields when their section hides, except preserved fields. |
+| `disableWhenHidden` | `true` | Disable hidden controls so keyboard navigation, `FormData`, and native submission skip them. |
+| `announceChanges` | `true` | Announce short show/hide updates through a polite status region. |
+| `focusFirstOnShow` | `false` | Move focus into a newly shown target. Prefer the default unless movement clearly reduces effort. |
+| `validateOnHide` | `false` | Call `checkValidity()` after fields are hidden. |
+| `collapseOnEscape` | `false` | Hide the containing controlled target on Escape and restore focus to its trigger. |
+
+The same options can be declared on the form, for example `data-clear-when-hidden="true"`. JavaScript options take precedence.
+
+## API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createConditionalFields(form, options?)` | Enhance one form and return its instance. Duplicate initialization returns the managed instance. |
+| `initConditionalFieldsAll(options?, root?)` | Enhance matching forms in a document or subtree. |
+| `A11yConditionalFields` | Class export for direct construction; it is also the default export. |
+| `refresh()` | Rescan targets and triggers after dynamic markup changes. |
+| `show(id)` / `hide(id)` | Show or hide a known target and return whether the operation succeeded. |
+| `toggle(id, visible)` | Set a known target to an explicit visibility state. |
+| `isVisible(id)` | Read the current state of a known target. |
+| `destroy()` | Remove listeners and restore managed trigger, target, and field state. |
+
+## Events
+
+Lifecycle events bubble from the form and include `event.detail.instance`.
+
+| Event | Detail |
+| --- | --- |
+| `a11y-conditional-fields:init` | Initial enhancement completed. |
+| `a11y-conditional-fields:refresh` | Targets and triggers were rescanned. |
+| `a11y-conditional-fields:show` / `hide` | A target changed visibility. |
+| `a11y-conditional-fields:change` | Conditional state changed. |
+| `a11y-conditional-fields:destroy` | Managed state was restored and listeners removed. |
+
+Show, hide, and change events additionally expose `targetId`, `target`, `trigger`, and `visible`.
+
+## Addons and integration
+
+The package publishes no addon subpaths. Compose it through lifecycle events and its public instance methods. Its package-maintained validator example integrates with [`a11y-form-validator`](/plugins/a11y-form-validator/) so only visible follow-up fields participate in validation.
+
+## CSS customization
+
+There is no package stylesheet or package-owned class contract. Style your semantic form and `[data-condition-target]` elements directly, and always provide visible focus and sufficient contrast.
+
+```css
+[data-condition-target] {
+  margin-block: 1rem;
+  padding: 1rem;
+  border-inline-start: 0.25rem solid #2563eb;
+}
+
+:where(button, input, select, textarea):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+```
+
+Do not override the `[hidden]` attribute with a broad display rule.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Follow native document order; hidden managed controls are skipped. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Use native trigger behavior. |
+| Arrow keys | Use native radio-group and select behavior. |
+| <kbd>Escape</kbd> | With `collapseOnEscape`, hide the visible containing target and return focus to its controlling trigger. |
+
+Focus stays on the trigger by default. `data-focus-first`, `data-focus-when-shown`, or `focusFirstOnShow` opt into moving focus. Triggers receive managed `aria-controls` and `aria-expanded`; show/hide announcements use a polite status region when enabled.
+
+## Progressive enhancement and submission
+
+Use a real form action, method, labels, server validation, and initially hidden targets. Without JavaScript, users can still submit the baseline form, though initially hidden conditional questions will remain unavailable; decide whether that fallback fits the task or provide a non-JavaScript route.
+
+Hidden values are preserved by default but their controls are disabled, so native submission and `new FormData(form)` omit them. `clearWhenHidden` erases stale values. With `disableWhenHidden: false` or `data-condition-preserve`, a hidden named control may remain submit-eligible; filter or intentionally accept that data server-side.
+
+Call `refresh()` after adding conditional markup and `destroy()` when removing the form or unmounting its view.
+
+## Live example
+
+This example imports only `createConditionalFields` from the installed package. It covers checkbox and radio triggers, conditional required fields, native invalid submission, Escape focus recovery, live updates, and reset behavior.
+
+<ConditionalFieldsDemo />
+
+## Known limitations and browser support
+
+- The plugin does not create form markup, validation summaries, or custom validation UI.
+- Targets without IDs are ignored.
+- Native controls keep their native arrow-key behavior; no custom widget keyboard model is added.
+- Live-region output is deliberately short and still needs manual screen-reader verification.
+- There is no CSS export or explicit browser-support matrix. The ESM build and DOM APIs target modern browsers; test your supported browser and assistive-technology combinations.
+- Package examples are described by public docs metadata and available in the repository, but are not included in the published tarball.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained examples](https://github.com/vmitsaras/a11y-conditional-fields)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-conditional-fields)</Card>
+  <Card title="Maintained demos" icon="rocket">[Interactive package examples](https://vmitsaras.github.io/a11y-conditional-fields/)</Card>
+  <Card title="Related: Form Validator" icon="document">[Add inline errors and an error summary](/plugins/a11y-form-validator/)</Card>
+</CardGrid>

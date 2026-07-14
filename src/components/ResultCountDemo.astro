@@ -1,0 +1,102 @@
+---
+import 'a11y-result-count/styles.css';
+---
+
+<section class="result-demo" aria-labelledby="result-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="result-demo-title">Browse accessibility resources</h3>
+    <p>Filter the list, load another page, or simulate a failed refresh. Focus stays on the control you use.</p>
+  </div>
+
+  <div class="toolbar">
+    <label for="resource-topic">Topic</label>
+    <select id="resource-topic" data-resource-filter>
+      <option value="all">All topics</option>
+      <option value="forms">Forms</option>
+      <option value="testing">Testing</option>
+      <option value="content">Content</option>
+      <option value="missing">No-match example</option>
+    </select>
+  </div>
+
+  <p class="a11y-result-count result-count" data-a11y-result-count>
+    <span class="a11y-result-count__text" data-a11y-result-count-text>Showing 4 of 8 resources</span>
+    <span class="a11y-result-count__status" data-a11y-result-count-status role="status" aria-live="polite" aria-atomic="true"></span>
+    <span class="a11y-result-count__status" data-a11y-result-count-assertive aria-live="assertive" aria-atomic="true"></span>
+  </p>
+
+  <ul class="resource-list" data-resource-list aria-label="Accessibility resources">
+    <li data-topic="forms">Accessible form error patterns</li>
+    <li data-topic="testing">Keyboard test checklist</li>
+    <li data-topic="content">Writing useful link text</li>
+    <li data-topic="forms">Labeling grouped controls</li>
+    <li data-topic="testing" hidden>Screen reader smoke tests</li>
+    <li data-topic="content" hidden>Plain-language instructions</li>
+    <li data-topic="forms" hidden>Progressive enhancement guide</li>
+    <li data-topic="testing" hidden>Zoom and reflow checks</li>
+  </ul>
+
+  <div class="actions">
+    <button type="button" data-load-more>Load 4 more</button>
+    <button type="button" class="secondary" data-error>Simulate refresh error</button>
+    <button type="button" class="secondary" data-reset>Reset example</button>
+  </div>
+</section>
+
+<script>
+  import { createResultCount } from 'a11y-result-count';
+
+  const demo = document.querySelector('.result-demo');
+  if (demo instanceof HTMLElement) {
+    const root = demo.querySelector('[data-a11y-result-count]');
+    const filter = demo.querySelector('[data-resource-filter]');
+    const items = Array.from(demo.querySelectorAll<HTMLElement>('[data-topic]'));
+    const loadMore = demo.querySelector('[data-load-more]');
+    const errorButton = demo.querySelector('[data-error]');
+    const resetButton = demo.querySelector('[data-reset]');
+
+    if (root instanceof HTMLElement && filter instanceof HTMLSelectElement && loadMore instanceof HTMLButtonElement && errorButton instanceof HTMLButtonElement && resetButton instanceof HTMLButtonElement) {
+      const counter = createResultCount(root, { assertiveErrors: true, announceDelay: 150 });
+      let loaded = 4;
+
+      const render = () => {
+        const topic = filter.value;
+        const matching = items.filter((item) => topic === 'all' || item.getAttribute('data-topic') === topic);
+        items.forEach((item, index) => { item.hidden = index >= loaded || !matching.includes(item); });
+        const visibleCount = matching.filter((item) => !item.hidden).length;
+        loadMore.hidden = loaded >= items.length || topic !== 'all';
+        if (visibleCount === 0) {
+          counter.setEmpty('No resources match this topic.');
+        } else {
+          counter.update({ visibleCount, filteredCount: matching.length, totalCount: items.length, loadedCount: loaded, pageSize: 4, hasMore: loaded < items.length && topic === 'all', mode: topic === 'all' ? 'initial' : 'filtered' });
+        }
+      };
+
+      filter.addEventListener('change', render);
+      loadMore.addEventListener('click', () => {
+        counter.setLoading('Loading more resources.');
+        window.setTimeout(() => { loaded = items.length; render(); }, 500);
+      });
+      errorButton.addEventListener('click', () => counter.setError('Resources could not be refreshed. Try again.'));
+      resetButton.addEventListener('click', () => { loaded = 4; filter.value = 'all'; counter.reset(); render(); });
+      render();
+    }
+  }
+</script>
+
+<style>
+  .result-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); --a11y-result-count-color: var(--sl-color-white); --a11y-result-count-muted-color: var(--sl-color-gray-2); --a11y-result-count-error-color: #ff8a80; }
+  .demo-heading { max-width: 44rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .toolbar { display: grid; gap: .4rem; max-width: 24rem; margin-block: 1.5rem 1rem; }
+  label { font-weight: 700; }
+  select { padding: .7rem .8rem; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; }
+  .result-count { display: block; margin-block: 1rem; font-weight: 700; }
+  .resource-list { display: grid; gap: .5rem; padding-inline-start: 1.5rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block-start: 1.25rem; }
+  button { margin: 0; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { color: var(--sl-color-white); background: transparent; }
+  button:focus-visible, select:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+</style>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="favicon-title">
+  <title id="favicon-title">A11y UI Lab</title>
+  <defs>
+    <linearGradient id="background" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#background)"/>
+
+  <path
+    d="M22 22v12.5c0 5.4 3.2 8.5 8.5 8.5S39 39.9 39 34.5V22h-5v12.2c0 2.8-1.1 4.1-3.5 4.1S27 37 27 34.2V22h-5Zm20 0v21h5V22h-5Z"
+    fill="#fff"
+    transform="translate(32 32) scale(1.18) translate(-34.5 -32.5)"
+  />
+</svg>
