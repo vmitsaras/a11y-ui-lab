@@ -1,0 +1,217 @@
+---
+title: A11y Async Button
+description: Accessible loading, success, error, lock, announcement, and reset state management for semantic buttons.
+sidebar:
+  order: 9
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import AsyncButtonDemo from '../../../components/AsyncButtonDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-async-button` progressively enhances real buttons with loading, success, error, disabled, and reset states. It prevents duplicate activation, manages busy and disabled semantics, can announce state changes, and restores authored state when destroyed.
+
+<Aside type="caution" title="Async state is only one part of the workflow">
+  The package manages button feedback, not the network request, persistence, authorization, validation, or complete error recovery. Keep application outcomes visible, specific, and recoverable, and test the finished flow with target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- A semantic button starts work that does not finish immediately.
+- People need clear loading, success, and error feedback without losing focus.
+- Repeat activation should be blocked while an action is running.
+- A project needs consistent form, retry, status, preset, or diagnostic helpers.
+
+## Avoid when
+
+- The action is synchronous and immediate.
+- The control navigates to another resource; use a link instead.
+- An arbitrary element is being styled as a button instead of using `<button>`.
+- The surrounding workflow cannot expose meaningful error recovery or final outcome feedback.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-async-button
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-async-button
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-async-button
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only and does not auto-initialize. Import the public stylesheet for its baseline state colors, focus treatment, width preservation, and reduced-motion handling.
+
+```js
+import { createAsyncButton } from 'a11y-async-button';
+import 'a11y-async-button/styles.css';
+
+const button = document.querySelector('[data-a11y-async-button]');
+if (button instanceof HTMLButtonElement) {
+  createAsyncButton(button, {
+    onAction: async () => {
+      await saveChanges();
+    },
+  });
+}
+```
+
+With `onAction`, the plugin enters loading before invoking the callback and then enters success or error according to the returned promise.
+
+## Required markup
+
+Start with a real button that has an accessible name and an explicit `type`. A dedicated text span lets state copy change without replacing decorative content.
+
+```html
+<button
+  class="a11y-async-button"
+  type="button"
+  data-a11y-async-button
+  data-loading-text="Saving..."
+  data-success-text="Saved"
+  data-error-text="Could not save"
+  data-reset-delay="2000"
+>
+  <span class="a11y-async-button__text" data-a11y-async-button-text>
+    Save changes
+  </span>
+</button>
+```
+
+For form submission, use `type="submit"` and the public form addon. Keep application validation and server-side validation authoritative.
+
+## Options and attributes
+
+| Option | Attribute | Purpose |
+| --- | --- | --- |
+| `loadingText`, `successText`, `errorText`, `idleText` | matching `data-*-text` | Visible and announced copy for each state. |
+| `resetDelay` | `data-reset-delay` | Milliseconds before success or error returns to idle; `0` disables timed reset. |
+| `preventDoubleClick` | `data-prevent-double-click` | Block repeat activation while loading; defaults to `true`. |
+| `preserveWidth` | `data-preserve-width` | Preserve the initial rendered width as labels change. |
+| `useNativeDisabled` | `data-use-native-disabled` | Use native `disabled` instead of the default focus-preserving `aria-disabled`. |
+| `announce` / `announceLoading` | matching data attributes | Control live announcements generally or for loading specifically. |
+| `liveRegion` | `data-live-region` | Reuse an external live-region element or selector. |
+| `liveRegionPoliteness` | `data-live-region-politeness` | Choose `polite`, `assertive`, or `off`. |
+| state class options | JavaScript only | Override loading, success, error, and disabled class names. |
+| `renderText` | JavaScript only | Customize visible rendering while retaining package state management. |
+| lifecycle callbacks | JavaScript only | Respond to loading, success, error, reset, or every state change. |
+| `onAction` | JavaScript only | Run promise-based work with automatic loading and completion states. |
+
+Prefer concise state copy that describes the current action. Use assertive announcements sparingly; most non-destructive updates should remain polite.
+
+## Runtime API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createAsyncButton(element, options?)` | Enhance one `HTMLButtonElement`; duplicate initialization reuses its instance. |
+| `initAsyncButtons(options?, root?)` | Enhance every `[data-a11y-async-button]` in a document or subtree. |
+| `A11yAsyncButton` | Class used by the creation helper. |
+| `loading(message?)` | Enter loading and busy state. |
+| `success(message?)` / `error(message?)` | Enter a completion state, optionally with custom text. |
+| `reset()` | Restore idle text, state, and lock attributes. |
+| `setState(state, message?)` / `getState()` | Set or read `idle`, `loading`, `success`, `error`, or `disabled`. |
+| `lock()` / `unlock()` | Block activation manually, then restore idle state without stale busy semantics. |
+| `prefersReducedMotion()` | Read the user’s reduced-motion preference. |
+| `destroy()` | Remove listeners, timers, owned live regions, classes, changed attributes, and instance tracking. |
+
+## Events
+
+Core events bubble from the button. Applicable event detail includes `instance`, `state`, `previousState`, and `message`.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-async-button:init` | Enhancement completes. |
+| `a11y-async-button:loading` | Async work enters loading. |
+| `a11y-async-button:success` / `error` | Work reaches a completion state. |
+| `a11y-async-button:reset` | Authored idle state is restored. |
+| `a11y-async-button:state-change` | Any managed state transition occurs. |
+| `a11y-async-button:lock` / `unlock` | Manual activation locking changes. |
+| `a11y-async-button:destroy` | Cleanup completes. |
+
+## Public addons
+
+Every addon is opt-in through its public export path.
+
+| Export path | Main factory | Behavior |
+| --- | --- | --- |
+| `/addons/form` | `createAsyncButtonForm(form, options)` | Hands valid form submission to an async handler and coordinates button and visible status states. |
+| `/addons/retry` | `createAsyncButtonRetry(button, options)` | Runs recoverable attempts with retry copy, a maximum-attempt limit, and final failure state. |
+| `/addons/status` | `createAsyncButtonStatus(button, options?)` | Mirrors button state into an existing persistent status element. |
+| `/addons/presets` | `createAsyncButtonPreset(button, options?)` | Applies named `save`, `submit`, `send`, `delete`, `upload`, `download`, `copy`, or `refresh` defaults, or project presets. |
+| `/addons/debug` | `createAsyncButtonDebugReport(root?, options?)` | Returns structured development findings without changing the DOM. |
+
+The form addon accepts a required `onSubmit` handler plus button, status, validation, and state-text options. The retry addon requires `onAttempt` and accepts `maxAttempts`, `retryText`, and `finalErrorText`. The status addon can configure target, role, live politeness, atomicity, and per-state messages. Addon instances expose `destroy()`; retry additionally exposes `run()` and `reset()`, and status exposes `setStatus()` and `sync()`.
+
+Addon lifecycle events use their own prefixes, including `a11y-async-button-form:*`, `a11y-async-button-retry:*`, `a11y-async-button-status:*`, and `a11y-async-button-preset:*`. The debug addon reports missing names/types/state copy, invalid attributes or selectors, duplicate IDs, and incomplete form-addon markup.
+
+## CSS customization
+
+The public stylesheet uses `.a11y-async-button`, state classes such as `.is-loading`, `.is-success`, and `.is-error`, and BEM descendants including `__text`, `__icon`, and `__status`.
+
+```css
+.profile-save {
+  --a11y-async-button-gap: 0.5rem;
+  --a11y-async-button-radius: 0.5rem;
+  --a11y-async-button-padding-x: 1rem;
+  --a11y-async-button-padding-y: 0.625rem;
+  --a11y-async-button-idle-background: #1d4ed8;
+  --a11y-async-button-idle-border: #1e40af;
+  --a11y-async-button-loading-background: #0369a1;
+  --a11y-async-button-success-background: #15803d;
+  --a11y-async-button-error-background: #b91c1c;
+  --a11y-async-button-focus-ring: #111827;
+}
+```
+
+State must not rely on color alone: keep meaningful visible text. If omitting package CSS, provide visible focus, adequate state contrast, and reduced-motion treatment yourself.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Use native button activation. Repeat activation is blocked while loading or locked by default. |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Follow native document order. The default `aria-disabled` strategy keeps the active button in the tab order. |
+
+Focus remains on the activated button while its label and state change. Native `disabled` is available through `useNativeDisabled`, but can remove the button from sequential focus navigation; choose it only when that interaction is intended. Addons do not introduce a custom keyboard model.
+
+## Progressive enhancement and accessibility notes
+
+Author a real, named button and useful surrounding status or instructions before JavaScript loads. Without enhancement, the button retains native semantics and can still participate in an application-owned click or form-submit flow. Initialize only after the browser DOM exists, and call `destroy()` when a view unmounts.
+
+During loading the plugin sets `aria-busy`, prevents repeated activation, and uses `aria-disabled` by default. Managed or external live regions announce loading, success, and error copy. Cleanup restores original ARIA state and removes package-owned live regions. These semantics support an accessible integration but are not a universal WCAG-conformance claim.
+
+## Live example
+
+This demo imports the installed public stylesheet and status addon. It provides deterministic success and failure paths, persistent polite feedback, repeat-click protection, visible focus, and explicit reset behavior.
+
+<AsyncButtonDemo />
+
+## Known limitations and browser support
+
+- The package only enhances real buttons and does not convert arbitrary elements into controls.
+- It does not perform network requests, persistence, validation, or authorization; callbacks and application code own those outcomes.
+- Retry, form coordination, status mirroring, presets, and diagnostics require their respective opt-in addons.
+- Instances require a browser DOM. Server-rendered applications must defer initialization until matching elements exist in the browser.
+- The package targets Baseline Widely Available browsers with standard DOM, `CustomEvent`, `WeakMap`, and `matchMedia`; older browsers and embedded webviews are outside its stated support target.
+- The module is ESM-only. Package tooling declares Node.js 22 or newer.
+- Public docs metadata lists seven maintained examples, but their HTML is not included in the npm tarball; they remain available in the repository and hosted documentation.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained examples](https://github.com/vmitsaras/A11y-Async-Button)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-async-button)</Card>
+  <Card title="Maintained demos" icon="rocket">[Basic, form, retry, status, preset, icon, and debug examples](https://vmitsaras.github.io/A11y-Async-Button/)</Card>
+  <Card title="Related: Form Validator" icon="document">[Coordinate inline errors and error-summary focus before async submission](/plugins/a11y-form-validator/)</Card>
+  <Card title="Related: Error Summary" icon="document">[Provide linked validation recovery before an async action runs](/plugins/a11y-error-summary/)</Card>
+</CardGrid>

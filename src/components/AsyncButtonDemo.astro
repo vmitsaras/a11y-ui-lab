@@ -1,0 +1,84 @@
+---
+import 'a11y-async-button/styles.css';
+---
+
+<section class="async-demo" aria-labelledby="async-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="async-demo-title">Sync notification preferences</h3>
+    <p>Choose a simulated response, activate the save button, and observe loading, success, or recovery feedback. No request is sent.</p>
+  </div>
+
+  <div class="field">
+    <label for="async-demo-result">Simulated service response</label>
+    <select id="async-demo-result" data-async-demo-result>
+      <option value="success">Save successfully</option>
+      <option value="error">Return a temporary error</option>
+    </select>
+  </div>
+
+  <div class="actions">
+    <button
+      class="a11y-async-button"
+      type="button"
+      data-async-demo-button
+      data-a11y-async-button
+      data-a11y-async-status-button
+      data-status-target="#async-demo-status"
+      data-loading-text="Saving..."
+      data-success-text="Preferences saved"
+      data-error-text="Save failed"
+      data-reset-delay="0"
+      data-preserve-width="true"
+    >
+      <span class="a11y-async-button__text" data-a11y-async-button-text>Save preferences</span>
+    </button>
+    <button class="secondary" type="button" data-async-demo-reset>Reset example</button>
+  </div>
+
+  <p id="async-demo-status" class="demo-status" data-a11y-async-status>Ready to save notification preferences.</p>
+</section>
+
+<script>
+  import { createAsyncButtonStatus } from 'a11y-async-button/addons/status';
+
+  const button = document.querySelector('[data-async-demo-button]');
+  const resetButton = document.querySelector('[data-async-demo-reset]');
+  const result = document.querySelector('[data-async-demo-result]');
+
+  if (button instanceof HTMLButtonElement && result instanceof HTMLSelectElement) {
+    const status = createAsyncButtonStatus(button, {
+      idleStatusText: 'Ready to save notification preferences.',
+      loadingStatusText: 'Saving notification preferences...',
+      successStatusText: 'Notification preferences were saved.',
+      errorStatusText: 'Preferences could not be saved. Choose another response or try again.',
+      resetDelay: 0,
+      preserveWidth: true,
+      onAction: async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        if (result.value === 'error') throw new Error('Simulated temporary service error');
+      },
+    });
+
+    resetButton?.addEventListener('click', () => {
+      status.asyncButton.reset();
+      result.value = 'success';
+      button.focus();
+    });
+  }
+</script>
+
+<style>
+  .async-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); --a11y-async-button-idle-background: var(--sl-color-accent-high); --a11y-async-button-idle-border: var(--sl-color-accent-high); --a11y-async-button-idle-color: var(--sl-color-black); --a11y-async-button-focus-ring: #60a5fa; }
+  .demo-heading { max-width: 46rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .field { display: grid; gap: .4rem; max-width: 28rem; margin-block-start: 1.5rem; }
+  label { font-weight: 700; }
+  select { padding: .7rem .8rem; border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; color: var(--sl-color-white); background: var(--sl-color-black); font: inherit; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block-start: 1.25rem; }
+  .actions button { margin: 0; }
+  .secondary { padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-white); background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+  .secondary:focus-visible, select:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .demo-status { min-height: 1.5rem; margin-block: 1rem 0; font-weight: 650; }
+</style>

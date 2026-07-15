@@ -6,6 +6,7 @@ import { docs as sortableTableDocs } from 'a11y-sortable-table/docs';
 import { docs as filterListDocs } from 'a11y-filter-list/docs';
 import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
+import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -93,5 +94,15 @@ export const plugins = [
     demo: '/plugins/a11y-error-summary/#live-example',
     related: ['a11y-form-validator'],
     docs: errorSummaryDocs,
+  },
+  {
+    slug: 'a11y-async-button',
+    packageName: 'a11y-async-button',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-async-button',
+    demo: '/plugins/a11y-async-button/#live-example',
+    related: ['a11y-form-validator', 'a11y-error-summary'],
+    docs: asyncButtonDocs,
   },
 ];

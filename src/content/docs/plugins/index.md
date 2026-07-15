@@ -39,6 +39,12 @@ Summarize native constraint-validation or application-provided form errors as pe
 
 **Status:** Stable · **Package:** `a11y-error-summary`
 
+### [A11y Async Button](/plugins/a11y-async-button/)
+
+Manage loading, success, error, lock, announcement, and reset states on semantic buttons, with opt-in helpers for forms, retry flows, persistent status messages, presets, and development diagnostics.
+
+**Status:** Stable · **Package:** `a11y-async-button`
+
 ## Tables
 
 ### [A11y Sortable Table](/plugins/a11y-sortable-table/)
