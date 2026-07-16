@@ -10,6 +10,7 @@ import * as filterSummaryRuntime from 'a11y-filter-summary';
 import * as errorSummaryRuntime from 'a11y-error-summary';
 import * as asyncButtonRuntime from 'a11y-async-button';
 import * as loadMoreRuntime from 'a11y-load-more';
+import * as characterCountRuntime from 'a11y-character-count';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -20,6 +21,7 @@ import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
 import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 import { docs as loadMoreDocs } from 'a11y-load-more/docs';
+import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { createBusyRegionAddon } from 'a11y-load-more/addons/busy-region';
 import { createFocusContinuityAddon } from 'a11y-load-more/addons/focus-continuity';
 import { createResultCountAddon } from 'a11y-load-more/addons/result-count';
@@ -178,4 +180,16 @@ test('a11y-load-more exposes the documented public contract', () => {
   assert.equal(loadMoreDocs.packageName, 'a11y-load-more');
   assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-load-more')?.docs, loadMoreDocs);
   assert.match(import.meta.resolve('a11y-load-more/styles.css'), /a11y-load-more\/dist\/styles\.css$/);
+});
+
+test('a11y-character-count exposes the documented public contract', () => {
+  assert.ok(Object.keys(characterCountRuntime).length > 0);
+  assert.equal(typeof characterCountRuntime.createCharacterCount, 'function');
+  assert.equal(typeof characterCountRuntime.initCharacterCounts, 'function');
+  assert.equal(typeof characterCountRuntime.A11yCharacterCount, 'function');
+  assert.equal(characterCountDocs.packageName, 'a11y-character-count');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-character-count')?.docs,
+    characterCountDocs,
+  );
 });

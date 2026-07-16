@@ -51,6 +51,12 @@ Coordinate loading, retry, completion, count, and announcement states for a sema
 
 **Status:** Stable · **Package:** `a11y-load-more`
 
+### [A11y Character Count](/plugins/a11y-character-count/)
+
+Enhance a native textarea with a persistent count, warning and limit states, configurable minimum-validation timing, and restrained transition announcements.
+
+**Status:** Stable · **Package:** `a11y-character-count`
+
 ## Tables
 
 ### [A11y Sortable Table](/plugins/a11y-sortable-table/)

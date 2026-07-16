@@ -8,6 +8,7 @@ import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
 import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 import { docs as loadMoreDocs } from 'a11y-load-more/docs';
+import { docs as characterCountDocs } from 'a11y-character-count/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -115,5 +116,16 @@ export const plugins = [
     demo: '/plugins/a11y-load-more/#live-example',
     related: ['a11y-result-count', 'a11y-async-button'],
     docs: loadMoreDocs,
+  },
+  {
+    slug: 'a11y-character-count',
+    packageName: 'a11y-character-count',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-character-count',
+    demo: '/plugins/a11y-character-count/#live-example',
+    related: ['a11y-form-validator'],
+    notes: 'The published docs metadata omits keyboard guidance; the page derives it from the public README and example.',
+    docs: characterCountDocs,
   },
 ];

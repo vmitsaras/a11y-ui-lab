@@ -1,0 +1,97 @@
+<section class="character-count-demo" aria-labelledby="character-count-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="character-count-demo-title">Write a community profile</h3>
+    <p>Write between 20 and 120 characters. The example warns near the limit, permits a recoverable over-limit state, and checks the minimum only when you submit the draft.</p>
+  </div>
+
+  <form data-character-count-demo action="#" method="post">
+    <div class="field">
+      <label for="community-profile">Short profile</label>
+      <textarea
+        id="community-profile"
+        name="profile"
+        rows="5"
+        aria-describedby="community-profile-help"
+      ></textarea>
+      <p id="community-profile-help" class="help">Use 20–120 characters. The soft limit lets you review and shorten an overlong draft.</p>
+      <output
+        class="a11y-character-count character-count"
+        data-a11y-character-count
+        for="community-profile"
+        data-min="20"
+        data-max="120"
+        data-warning-at="90"
+        data-show-remaining
+        data-validate-min="manual"
+      ></output>
+    </div>
+
+    <div class="actions">
+      <button type="submit">Check draft</button>
+      <button type="reset" class="secondary">Reset example</button>
+    </div>
+    <p class="demo-status" data-demo-status role="status">The draft has not been checked.</p>
+  </form>
+</section>
+
+<script>
+  import { createCharacterCount } from 'a11y-character-count';
+
+  const form = document.querySelector('[data-character-count-demo]');
+  if (form instanceof HTMLFormElement) {
+    const textarea = form.querySelector('#community-profile');
+    const root = form.querySelector('[data-a11y-character-count]');
+    const status = form.querySelector('[data-demo-status]');
+
+    if (textarea instanceof HTMLTextAreaElement && root instanceof HTMLElement && status instanceof HTMLElement) {
+      const counter = createCharacterCount(root);
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const result = counter.validate();
+        if (!result.valid) {
+          status.textContent = result.state === 'too-long'
+            ? 'The draft is over 120 characters. Shorten it before continuing.'
+            : 'The draft needs at least 20 characters before continuing.';
+          textarea.focus();
+          return;
+        }
+        status.textContent = 'The draft is ready for the application to submit. Nothing was sent in this example.';
+      });
+
+      form.addEventListener('reset', () => {
+        requestAnimationFrame(() => {
+          counter.update();
+          status.textContent = 'Example reset. The draft has not been checked.';
+        });
+      });
+    }
+  }
+</script>
+
+<style>
+  .character-count-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading { max-width: 44rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  form { display: grid; gap: 1.25rem; max-width: 42rem; margin-block-start: 1.5rem; }
+  .field { display: grid; gap: .45rem; }
+  label { font-weight: 700; }
+  textarea { width: 100%; min-height: 9rem; padding: .75rem .85rem; resize: vertical; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; }
+  textarea:focus-visible, button:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .help, .demo-status { margin: 0; }
+  .help { color: var(--sl-color-gray-2); }
+  .character-count { display: grid; gap: .25rem; min-height: 3rem; padding: .75rem; border-inline-start: 4px solid var(--sl-color-gray-4); background: var(--sl-color-gray-6); }
+  :global(.character-count-demo .a11y-character-count__counter) { font-weight: 700; }
+  :global(.character-count-demo .a11y-character-count__message) { color: var(--sl-color-gray-2); }
+  :global(.character-count-demo [data-state="warning"]) { border-inline-start-color: #fbbf24; }
+  :global(.character-count-demo [data-state="too-short"]), :global(.character-count-demo [data-state="too-long"]) { border-inline-start-color: #fb7185; }
+  :global(.character-count-demo [data-state="too-short"] .a11y-character-count__message), :global(.character-count-demo [data-state="too-long"] .a11y-character-count__message) { color: #fda4af; }
+  :global(.character-count-demo .a11y-character-count__announcement) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  button { min-height: 3rem; margin: 0; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { color: var(--sl-color-white); background: transparent; }
+  .demo-status { min-height: 1.5rem; font-weight: 650; }
+  @media (forced-colors: active) { textarea, button, .character-count { border-color: CanvasText; } }
+</style>

@@ -1,0 +1,225 @@
+---
+title: A11y Character Count
+description: Persistent textarea counts, warning and limit states, configurable minimum validation, and restrained live announcements.
+sidebar:
+  order: 11
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import CharacterCountDemo from '../../../components/CharacterCountDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-character-count` progressively enhances a native `textarea` with a persistent count, optional remaining count, warning and limit messages, configurable minimum-length validation timing, and concise announcements for meaningful state transitions. It preserves the authored label and textarea instead of replacing them with a custom control.
+
+<Aside type="caution" title="The surrounding form still owns validation">
+  The plugin reports its own length state and manages `aria-invalid`, but it does not submit forms, render an error summary, or choose a focus-recovery policy. Keep server validation authoritative and test the completed form with target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- A native textarea needs a visible count and understandable limit feedback.
+- Warning, invalid, recovery, and reset transitions should be announced without speaking every keystroke.
+- A product needs a soft limit, or an optional native `maxlength` hard limit.
+- Minimum-length feedback should begin on input, blur, or an application-controlled validation action.
+
+## Avoid when
+
+- The target is a text input, rich-text editor, or `contenteditable` region; only textareas are supported.
+- User-perceived characters, emoji, or grapheme clusters must each count as one; version 1.0.0 uses JavaScript string length.
+- [`a11y-form-validator`](/plugins/a11y-form-validator/) already supplies the character-count behavior needed by the same form.
+- The application cannot make delayed submission errors discoverable through focus management or an error summary.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-character-count
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-character-count
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-character-count
+    ```
+  </TabItem>
+</Tabs>
+
+Import the ESM runtime. The package does not auto-initialize and intentionally ships no CSS.
+
+```js
+import { initCharacterCounts } from 'a11y-character-count';
+
+initCharacterCounts();
+```
+
+## Required markup
+
+Give the textarea a unique ID and place a sibling plugin root after it. The root's `for` attribute identifies the textarea.
+
+```html
+<label for="message">Message</label>
+<textarea id="message" name="message"></textarea>
+<output
+  class="a11y-character-count"
+  data-a11y-character-count
+  for="message"
+  data-min="10"
+  data-max="300"
+></output>
+```
+
+Initialization replaces the root's contents with a visible counter, visible message, and separate transient live region. It links the visible counter and message to the textarea through `aria-describedby` without removing existing description IDs.
+
+Prefer the documented `data-*` configuration attributes. Older unprefixed configuration attributes remain available for backward compatibility, but `for` is the appropriate native attribute for the output target.
+
+## Options
+
+JavaScript options override root attributes. Non-negative integer options also accept numeric strings; invalid values fall back to their defaults.
+
+| Option | Default | HTML attribute | Purpose |
+| --- | --- | --- | --- |
+| `for` | Root `for` or `data-for`, then `""` | `for` / `data-for` | Target textarea ID. |
+| `max` | `null` | `data-max` | Maximum length. |
+| `min` | `null` | `data-min` | Minimum length. |
+| `warningAt` | `null` | `data-warning-at` | Exact warning threshold; overrides `warningPercent`. |
+| `warningPercent` | `80` | `data-warning-percent` | Percentage of `max` where warning begins. |
+| `hardLimit` | `false` | `data-hard-limit` | Adds `maxlength` when the textarea does not already have it. |
+| `showRemaining` | `false` | `data-show-remaining` | Adds remaining characters to the visible count. |
+| `live` | `polite` | `data-live` | `off`, `polite`, or `assertive` transition announcements. |
+| `validateMin` | `input` | `data-validate-min` | Begin minimum validation on `input`, `blur`, or `manual` validation. |
+| `messageTooLong` | Generated | `data-message-too-long` | Too-long message template. |
+| `messageTooShort` | Generated | `data-message-too-short` | Too-short message template. |
+| `messageWarning` | Generated | `data-message-warning` | Warning message template. |
+| `messageEmpty` | Empty string | `data-message-empty` | Empty-state message template. |
+
+Message templates may use `{length}`, `{max}`, `{min}`, `{remaining}`, `{overLimitBy}`, and `{underMinBy}`. Translate authored labels and help text as well as generated message templates.
+
+## API, results, and states
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11yCharacterCount` | Class implementing one character-count instance. |
+| `createCharacterCount(root, options?)` | Initialize one root; duplicate initialization reuses its instance. |
+| `initCharacterCounts(options?)` | Initialize every `[data-a11y-character-count]` root. |
+| `update()` | Recompute and render state; returns the result or `null` without a target or after teardown. |
+| `validate()` | Activate minimum validation and return `{ valid, state }`. |
+| `getCount()` | Read value and count fields without changing validation timing. |
+| `destroy()` | Remove listeners, output, timers, and plugin-managed attributes. |
+
+`update()` returns the current `value`, `length`, normalized `max` and `min`, `remaining`, `overLimitBy`, `underMinBy`, `state`, and `valid`. The root exposes the same state through `data-state`.
+
+| State | Meaning |
+| --- | --- |
+| `empty` | Empty without an active minimum failure. |
+| `valid` | Within configured limits. |
+| `warning` | At or above the warning threshold without exceeding `max`. |
+| `too-short` / `too-long` | An active minimum failure or maximum failure. |
+| `disabled` / `readonly` | The textarea has the matching native state. |
+| Empty string | No connected textarea or the post-destroy fallback. |
+
+## Events
+
+Events bubble from the root and include `detail.instance`. Result-bearing events also include all `CharacterCountResult` fields.
+
+| Event | Detail | When it fires |
+| --- | --- | --- |
+| `a11y-character-count:init` | `{ instance }` | Initial connection and update complete. |
+| `a11y-character-count:update` | `{ instance, ...CharacterCountResult }` | Any successful update completes. |
+| `a11y-character-count:valid` / `invalid` | `{ instance, ...CharacterCountResult }` | Validity changes after the initial result. |
+| `a11y-character-count:warning` | `{ instance, ...CharacterCountResult }` | State enters `warning`. |
+| `a11y-character-count:limit-exceeded` | `{ instance, ...CharacterCountResult }` | State enters `too-long`. |
+| `a11y-character-count:error` | `{ instance, reason }` | The target ID is missing or does not resolve to a textarea. |
+| `a11y-character-count:destroy` | `{ instance }` | Teardown completes. |
+
+## Addons and integrations
+
+Version 1.0.0 publishes no addon subpaths. Integrate through the main runtime exports and bubbling events rather than deep-importing package files.
+
+For a full-form workflow, call `validate()` during submission, then move focus to the textarea or provide an error summary when the result is invalid. If the existing form already uses `a11y-form-validator`, compare its public character-count addon before adding a second counter to the same field.
+
+## CSS customization
+
+The package includes no stylesheet. Style its public elements and state attributes in the host application. The announcement element must remain visually hidden rather than `display: none`.
+
+```css
+.a11y-character-count {
+  display: grid;
+  gap: 0.25rem;
+  border-inline-start: 0.25rem solid currentColor;
+  padding-inline-start: 0.75rem;
+}
+
+[data-a11y-character-count][data-state="warning"] {
+  border-inline-start-color: #8a4b08;
+}
+
+[data-a11y-character-count][data-state="too-long"] {
+  border-inline-start-color: #b42318;
+}
+
+.a11y-character-count__announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+```
+
+The generated hooks are `.a11y-character-count__counter`, `__message`, and `__announcement`. Do not hide the entire root, because doing so also removes the described count, message, and live region from assistive technologies. Preserve sufficient contrast and use visible words rather than color alone.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move to and from the native textarea in document order; generated output adds no tab stop. |
+| Arrow keys, <kbd>Home</kbd>, <kbd>End</kbd> | Keep the textarea's native text-editing behavior. |
+| <kbd>Enter</kbd> | Inserts a line break in the textarea. |
+
+The plugin never moves focus. If a manual validation action blocks submission, the host should keep the visible error described by the textarea and move focus or expose an error summary so the failure is discoverable.
+
+## Progressive enhancement and accessibility notes
+
+Author the textarea label, help text, and any server-required limits in HTML. Without JavaScript, the form should still submit to authoritative server validation. After initialization, the plugin preserves the native control, appends its counter and message IDs to `aria-describedby`, manages `aria-invalid` only for invalid states, and restores application-owned ARIA values during teardown.
+
+Routine keystrokes update visible text without live announcements. The managed live region announces concise warning, invalid, recovery, and reset transitions, then clears them to reduce stale content. Setting `live` to `off` disables those announcements while keeping the visible description.
+
+For `validateMin: "manual"`, call `validate()` during the host form's submit flow. Direct assignments to `textarea.value` do not emit `input`; call `update()` afterward. Do not disable textarea resizing, and retain a high-contrast `:focus-visible` indicator in host styles.
+
+## Live example
+
+The example imports the installed public runtime and supplies host-owned CSS. It demonstrates warning, soft-limit failure, manual minimum validation, focus recovery, success, and reset behavior without sending or storing the text.
+
+<CharacterCountDemo />
+
+## Known limitations and browser support
+
+- Counts use JavaScript string length, so some emoji and combined Unicode characters count as more than one.
+- Only textarea targets are supported.
+- Options are normalized at initialization; destroy and recreate the instance to change configuration.
+- `hardLimit` adds `maxlength` only when the textarea does not already have one.
+- `destroy()` clears root children and does not restore content authored inside the root before initialization.
+- No explicit browser matrix is published. The ESM package uses standard DOM APIs; test against the application's supported modern browsers and assistive technologies.
+- The package performs no network, analytics, storage, clipboard, or URL operations.
+
+<Aside type="note" title="Published metadata gap">
+  The version 1.0.0 `./docs` export omits its optional repository, npm, keyboard, and example metadata fields. This guide derives those sections from the public README, declarations, changelog, and repository-maintained example; the registry still consumes the unmodified published `docs` object.
+</Aside>
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and maintained example](https://github.com/vmitsaras/A11y-Character-Count)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-character-count)</Card>
+  <Card title="Maintained demo" icon="rocket">[Interactive package demo](https://vmitsaras.github.io/A11y-Character-Count/)</Card>
+  <Card title="Related: Form Validator" icon="document">[Coordinate full-form validation and error recovery](/plugins/a11y-form-validator/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/) or choose the form validator's character-count addon when counting is part of a broader validation workflow.
