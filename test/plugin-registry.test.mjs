@@ -9,6 +9,7 @@ import * as filterListRuntime from 'a11y-filter-list';
 import * as filterSummaryRuntime from 'a11y-filter-summary';
 import * as errorSummaryRuntime from 'a11y-error-summary';
 import * as asyncButtonRuntime from 'a11y-async-button';
+import * as loadMoreRuntime from 'a11y-load-more';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -18,6 +19,11 @@ import { docs as filterListDocs } from 'a11y-filter-list/docs';
 import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
 import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
+import { docs as loadMoreDocs } from 'a11y-load-more/docs';
+import { createBusyRegionAddon } from 'a11y-load-more/addons/busy-region';
+import { createFocusContinuityAddon } from 'a11y-load-more/addons/focus-continuity';
+import { createResultCountAddon } from 'a11y-load-more/addons/result-count';
+import { createUrlSyncAddon } from 'a11y-load-more/addons/url-sync';
 import { createAsyncButtonDebugReport } from 'a11y-async-button/addons/debug';
 import { createAsyncButtonForm } from 'a11y-async-button/addons/form';
 import { createAsyncButtonPreset } from 'a11y-async-button/addons/presets';
@@ -158,4 +164,18 @@ test('a11y-async-button exposes the documented public contract', () => {
   assert.equal(asyncButtonDocs.packageName, 'a11y-async-button');
   assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-async-button')?.docs, asyncButtonDocs);
   assert.match(import.meta.resolve('a11y-async-button/styles.css'), /a11y-async-button\/dist\/styles\.css$/);
+});
+
+test('a11y-load-more exposes the documented public contract', () => {
+  assert.ok(Object.keys(loadMoreRuntime).length > 0);
+  assert.equal(typeof loadMoreRuntime.createLoadMore, 'function');
+  assert.equal(typeof loadMoreRuntime.initLoadMoreAll, 'function');
+  assert.equal(typeof loadMoreRuntime.A11yLoadMore, 'function');
+  assert.equal(typeof createBusyRegionAddon, 'function');
+  assert.equal(typeof createFocusContinuityAddon, 'function');
+  assert.equal(typeof createResultCountAddon, 'function');
+  assert.equal(typeof createUrlSyncAddon, 'function');
+  assert.equal(loadMoreDocs.packageName, 'a11y-load-more');
+  assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-load-more')?.docs, loadMoreDocs);
+  assert.match(import.meta.resolve('a11y-load-more/styles.css'), /a11y-load-more\/dist\/styles\.css$/);
 });

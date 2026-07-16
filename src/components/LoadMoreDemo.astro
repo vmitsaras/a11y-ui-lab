@@ -1,0 +1,119 @@
+---
+import 'a11y-load-more/styles.css';
+---
+
+<section class="load-more-demo" aria-labelledby="load-more-demo-title" data-load-more-demo>
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="load-more-demo-title">Browse inclusive design resources</h3>
+    <p>The first request fails so you can try the retry state. Later requests reveal the remaining resources.</p>
+  </div>
+
+  <ul class="resource-grid" aria-label="Inclusive design resources" data-results>
+    <li><strong>Keyboard test plan</strong><span>Practical checks for focus order and activation.</span></li>
+    <li><strong>Accessible names guide</strong><span>Patterns for clear control and landmark labels.</span></li>
+    <li><strong>Error recovery checklist</strong><span>Ways to make validation specific and actionable.</span></li>
+    <li hidden><strong>Zoom and reflow review</strong><span>Checks for content at 400% zoom and narrow widths.</span></li>
+    <li hidden><strong>Live-region decision tree</strong><span>Choose when and how dynamic updates should be announced.</span></li>
+    <li hidden><strong>Reduced-motion patterns</strong><span>Respect preferences without hiding essential feedback.</span></li>
+    <li hidden><strong>Forms with progressive enhancement</strong><span>Keep submission useful before scripts initialize.</span></li>
+    <li hidden><strong>Forced-colors test notes</strong><span>Review controls and states in high-contrast modes.</span></li>
+    <li hidden><strong>Screen reader smoke tests</strong><span>A focused pass for headings, controls, and status updates.</span></li>
+  </ul>
+
+  <div class="a11y-load-more" data-a11y-load-more>
+    <button class="a11y-load-more__button" type="button" data-a11y-load-more-button>
+      <span data-a11y-load-more-text>Load more resources</span>
+    </button>
+    <p class="a11y-load-more__status" data-a11y-load-more-status role="status" aria-live="polite" aria-atomic="true"></p>
+    <p class="a11y-load-more__count" data-a11y-load-more-count>Showing 3 of 9 resources</p>
+  </div>
+
+  <button class="reset-button" type="button" data-reset>Reset example</button>
+</section>
+
+<script>
+  import { createLoadMore } from 'a11y-load-more';
+  import { createBusyRegionAddon } from 'a11y-load-more/addons/busy-region';
+  import { createFocusContinuityAddon } from 'a11y-load-more/addons/focus-continuity';
+
+  const demo = document.querySelector<HTMLElement>('[data-load-more-demo]');
+  if (demo) {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-load-more]');
+    const results = demo.querySelector<HTMLElement>('[data-results]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-reset]');
+    const items = Array.from(demo.querySelectorAll<HTMLElement>('[data-results] > li'));
+
+    if (root && results && resetButton) {
+      const pageSize = 3;
+      let failNextRequest = true;
+      let pendingTimer = 0;
+      const loadMore = createLoadMore(root, {
+        page: 1,
+        pageSize,
+        loadedCount: pageSize,
+        totalCount: items.length,
+        messages: {
+          label: 'Load more resources',
+          loading: 'Loading more resources',
+          retry: 'Try loading again',
+          complete: 'All resources are visible',
+          error: 'Resources could not be loaded. Try again.',
+          showing: 'Showing {loadedCount} of {totalCount} resources',
+          loadedMore: 'Loaded {loadedDelta} more resources. Showing {loadedCount} of {totalCount}.',
+        },
+        addons: [createBusyRegionAddon(results), createFocusContinuityAddon()],
+      });
+
+      root.addEventListener('a11y-load-more:request', (event) => {
+        const request = event as CustomEvent<{ nextPage: number }>;
+        loadMore.setLoading();
+        window.clearTimeout(pendingTimer);
+        pendingTimer = window.setTimeout(() => {
+          if (failNextRequest) {
+            failNextRequest = false;
+            loadMore.setError();
+            return;
+          }
+
+          const loadedCount = Math.min(request.detail.nextPage * pageSize, items.length);
+          items.forEach((item, index) => { item.hidden = index >= loadedCount; });
+          const hasMore = loadedCount < items.length;
+          loadMore.setState({
+            page: request.detail.nextPage,
+            pageSize,
+            loadedCount,
+            totalCount: items.length,
+            hasMore,
+            loading: false,
+            error: false,
+            mode: hasMore ? 'idle' : 'complete',
+          });
+        }, 650);
+      });
+
+      resetButton.addEventListener('click', () => {
+        window.clearTimeout(pendingTimer);
+        failNextRequest = true;
+        items.forEach((item, index) => { item.hidden = index >= pageSize; });
+        loadMore.reset();
+      });
+    }
+  }
+</script>
+
+<style>
+  .load-more-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); --a11y-load-more-button-background: var(--sl-color-accent-high); --a11y-load-more-button-color: var(--sl-color-black); --a11y-load-more-button-border: var(--sl-color-accent-high); --a11y-load-more-focus-ring: #60a5fa; --a11y-load-more-status-color: var(--sl-color-gray-2); }
+  .demo-heading { max-width: 46rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .resource-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: .75rem; margin-block: 1.5rem; padding: 0; list-style: none; }
+  .resource-grid li { display: grid; gap: .35rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; background: var(--sl-color-black); }
+  .resource-grid li[hidden] { display: none; }
+  .resource-grid span { color: var(--sl-color-gray-2); font-size: .9rem; }
+  .a11y-load-more { align-items: flex-start; }
+  .a11y-load-more__button, .reset-button { margin: 0; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; font: inherit; font-weight: 700; cursor: pointer; }
+  .reset-button { margin-block-start: .75rem; color: var(--sl-color-white); background: transparent; }
+  .reset-button:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .a11y-load-more__status, .a11y-load-more__count { margin-block: .65rem 0; }
+</style>

@@ -45,6 +45,12 @@ Manage loading, success, error, lock, announcement, and reset states on semantic
 
 **Status:** Stable · **Package:** `a11y-async-button`
 
+### [A11y Load More](/plugins/a11y-load-more/)
+
+Coordinate loading, retry, completion, count, and announcement states for a semantic load-more button while the host application retains ownership of fetching and rendering results.
+
+**Status:** Stable · **Package:** `a11y-load-more`
+
 ## Tables
 
 ### [A11y Sortable Table](/plugins/a11y-sortable-table/)

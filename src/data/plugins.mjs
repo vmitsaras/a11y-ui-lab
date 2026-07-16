@@ -7,6 +7,7 @@ import { docs as filterListDocs } from 'a11y-filter-list/docs';
 import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
 import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
+import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -104,5 +105,15 @@ export const plugins = [
     demo: '/plugins/a11y-async-button/#live-example',
     related: ['a11y-form-validator', 'a11y-error-summary'],
     docs: asyncButtonDocs,
+  },
+  {
+    slug: 'a11y-load-more',
+    packageName: 'a11y-load-more',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-load-more',
+    demo: '/plugins/a11y-load-more/#live-example',
+    related: ['a11y-result-count', 'a11y-async-button'],
+    docs: loadMoreDocs,
   },
 ];

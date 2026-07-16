@@ -1,0 +1,217 @@
+---
+title: A11y Load More
+description: Accessible load-more state and request coordination for reveal-based and remotely paginated result lists.
+sidebar:
+  order: 10
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import LoadMoreDemo from '../../../components/LoadMoreDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-load-more` progressively enhances a real button with request, loading, retry, completion, count, and announcement states. The host application still fetches or reveals results and passes normalized pagination state back to the plugin.
+
+<Aside type="caution" title="The host owns the result workflow">
+  The package does not fetch, cache, append, sort, virtualize, or remove results. It supports an accessible integration but cannot guarantee WCAG conformance for the surrounding content, loading behavior, fallback navigation, or announcements.
+</Aside>
+
+## Use when
+
+- A reveal-based or remotely paginated list needs a consistent load-more control.
+- The application needs visible loading, retry, count, and complete states.
+- Loading state should prevent duplicate requests.
+- Results and control state need separate, opt-in coordination for busy, focus, URL, or result-count behavior.
+
+## Avoid when
+
+- Numbered pagination or a next-page link better supports navigation and sharing.
+- Results should load automatically through infinite scrolling without a user-operated control.
+- The host cannot provide authoritative page, count, error, and completion state.
+- A JavaScript-only button would remove a required no-JavaScript path and no server-rendered fallback is available.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-load-more
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-load-more
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-load-more
+    ```
+  </TabItem>
+</Tabs>
+
+Import the public runtime and default stylesheet. Listen for the request event, perform application-owned work, then return the complete state to the instance.
+
+```js
+import { createLoadMore } from 'a11y-load-more';
+import 'a11y-load-more/styles.css';
+
+const root = document.querySelector('[data-a11y-load-more]');
+if (root instanceof HTMLElement) {
+  const loadMore = createLoadMore(root, {
+    page: 1,
+    pageSize: 6,
+    loadedCount: 6,
+    totalCount: 18,
+  });
+
+  root.addEventListener('a11y-load-more:request', async (event) => {
+    loadMore.setLoading();
+    const result = await fetchNextPage(event.detail.nextPage);
+    appendResults(result.items);
+    loadMore.setState(result.pagination);
+  });
+}
+```
+
+## Required markup
+
+The root and a real button are required. The text target, status region, and persistent count are optional. Give the results collection its own stable label outside this component.
+
+```html
+<div class="a11y-load-more" data-a11y-load-more>
+  <button class="a11y-load-more__button" type="button" data-a11y-load-more-button>
+    <span data-a11y-load-more-text>Load more</span>
+  </button>
+  <p class="a11y-load-more__status" data-a11y-load-more-status role="status" aria-live="polite" aria-atomic="true"></p>
+  <p class="a11y-load-more__count" data-a11y-load-more-count></p>
+</div>
+```
+
+The root can also read data attributes such as `data-a11y-load-more-page-size="12"` and `data-a11y-load-more-hide-when-complete="true"`.
+
+## Options and state
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `page` | `1` | Current one-based page. |
+| `pageSize` | `10` | Expected results per request. |
+| `loadedCount` / `totalCount` | `0` | Current visible progress. |
+| `hasMore` | `true` | Whether another request is available. |
+| `disabled` | `false` | Start with request activation disabled. |
+| `hideWhenComplete` | `false` | Hide the complete control instead of leaving its button disabled. |
+| `announceStatus` | `true` | Use the component's polite status output. |
+| `preventDoubleRequest` | `true` | Ignore repeat requests while loading. |
+| `locale` / `messages` | English defaults | Select a locale identifier and override label, loading, retry, count, and completion copy. |
+| `addons` | `[]` | Install public synchronous lifecycle addons. |
+
+`setState()` accepts the complete `page`, `pageSize`, `loadedCount`, `totalCount`, `hasMore`, `loading`, `error`, and `mode` state. `mode` is one of `idle`, `loading`, `complete`, or `error`; optional `message` and `meta` fields can carry host context.
+
+## Runtime API
+
+| Export or method | Purpose |
+| --- | --- |
+| `createLoadMore(root, options?)` | Create and initialize one instance. |
+| `initLoadMoreAll(options?)` | Initialize every matching root. |
+| `A11yLoadMore` | Class behind the creation helper. |
+| `request()` | Emit an application-facing request through the API. |
+| `setState(state)` | Apply authoritative pagination state from the host. |
+| `setLoading(message?)` | Enter loading and busy state. |
+| `setComplete(message?)` / `setError(message?)` | Apply a terminal or retryable outcome. |
+| `reset()` | Restore the initial pagination and DOM state. |
+| `enable()` / `disable()` | Change whether requests are available. |
+| `setLocale(locale, messages?)` / `t(key, params?)` | Change or resolve localized messages. |
+| `registerAddon()` / `unregisterAddon()` | Manage optional lifecycle hooks. |
+| `destroy()` | Remove listeners, addons, generated markup, attributes, and classes. |
+
+## Events
+
+Events bubble from the root and include the instance and state in `detail`.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-load-more:init` / `ready` | Initialization begins and finishes. |
+| `a11y-load-more:before-request` | A cancelable request is about to be emitted. |
+| `a11y-load-more:request` | The host should load or reveal the requested page. |
+| `a11y-load-more:loading` | Loading state is applied. |
+| `a11y-load-more:complete` / `error` | A terminal or retryable outcome is applied. |
+| `a11y-load-more:reset` | Initial state is restored. |
+| `a11y-load-more:disabled` / `enabled` | Request availability changes. |
+| `a11y-load-more:addon-error` | An addon hook throws; other addon and core work remains isolated. |
+| `a11y-load-more:destroy` | Cleanup completes. |
+
+Request details include `page`, `nextPage`, `pageSize`, `loadedCount`, `totalCount`, `hasMore`, and whether the trigger was the button or API.
+
+## Public addons
+
+| Export path | Factory | Behavior |
+| --- | --- | --- |
+| `/addons/busy-region` | `createBusyRegionAddon(region)` | Synchronizes `aria-busy` on one host-owned results region and restores its authored value on cleanup. |
+| `/addons/focus-continuity` | `createFocusContinuityAddon(options?)` | Guardedly restores a button-triggered request after eligible idle or error states. |
+| `/addons/url-sync` | `createUrlSyncAddon({ toUrl })` | Replaces the current same-origin URL after confirmed progress or reset. |
+| `/addons/result-count` | `createResultCountAddon(instance, options?)` | Coordinates state with an installed `a11y-result-count` instance. |
+
+The result-count bridge has an optional `a11y-result-count` peer dependency. Its announcement mode defaults to `auto`, so Result Count only announces when the load-more component's own announcements are disabled. Keep a single owner for each spoken transition.
+
+The URL addon uses `history.replaceState()` and does not restore content itself. Map only nonsensitive pagination state and ensure every generated URL renders equivalent content after refresh.
+
+## CSS customization
+
+The public stylesheet provides baseline layout, wrapping, visible focus, reduced-motion handling, and forced-colors support.
+
+```css
+.resource-loader {
+  --a11y-load-more-gap: 0.75rem;
+  --a11y-load-more-button-background: #1d4ed8;
+  --a11y-load-more-button-color: #fff;
+  --a11y-load-more-button-border: #1e3a8a;
+  --a11y-load-more-focus-ring: #0f172a;
+  --a11y-load-more-status-color: #475569;
+}
+```
+
+Loading, error, and complete states remain visible and do not rely on color alone. Preserve those distinctions and a strong `:focus-visible` treatment when replacing the default styles.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move to and away from the native button in document order. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Activate an available button and emit a request. |
+| Arrow keys, <kbd>Home</kbd>, <kbd>End</kbd>, <kbd>Escape</kbd> | No plugin behavior; the control is not a composite widget or overlay. |
+
+The core does not move focus into newly appended content. Its native button is disabled during loading, which can temporarily release focus in some browsers. Use the focus-continuity addon only when returning to that button is appropriate; it yields when a person or the host deliberately focuses another target and never restores focus after completion or reset.
+
+If `hideWhenComplete` hides a root that still contains focus, the plugin blurs the button rather than leaving focus on hidden content. Test where focus lands in the completed page layout.
+
+## Progressive enhancement and accessibility notes
+
+For a no-JavaScript path, render real next-page links or server pagination first, then replace that navigation only after enhancement succeeds. Keep server responses and URLs authoritative. The optional URL addon does not provide this fallback or handle browser history navigation.
+
+The idle status starts empty to avoid repeating the persistent visible count. Later idle increases use the `loadedMore` message unless the host supplies a more specific state message. Loading sets `aria-busy` on the control; the busy-region addon can separately expose the results collection's update state without adding another live region.
+
+## Live example
+
+This deterministic demo imports the installed runtime and stylesheet. It includes an initial error, retry recovery, loading and completion states, results-region busy state, guarded focus continuity, and a full reset.
+
+<LoadMoreDemo />
+
+## Known limitations and browser support
+
+- The package does not fetch, append, cache, virtualize, or remove list items.
+- Infinite scrolling, intersection observers, and find-in-page behavior for unloaded content remain application concerns.
+- The busy-region addon assumes no other component concurrently owns the same `aria-busy` attribute.
+- Focus continuity only tracks button requests that promptly enter loading; it cannot infer intent after a longer asynchronous gap.
+- URL synchronization replaces one history entry and does not make Back or Forward undo loaded batches.
+- Automated DOM tests do not prove the timing or quality of real screen reader announcements; test supported browser and assistive-technology combinations manually.
+- The ESM package uses standard modern DOM, `CustomEvent`, URL, and History APIs. Confirm compatibility against the browsers and embedded webviews your product supports.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, examples, and accessibility QA](https://github.com/vmitsaras/A11y-Load-More)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-load-more)</Card>
+  <Card title="Maintained demos" icon="rocket">[Basic, fallback, retry, localization, addon, and batch-boundary examples](https://vmitsaras.github.io/A11y-Load-More/)</Card>
+  <Card title="Related: Result Count" icon="document">[Coordinate persistent counts and richer single-owner announcements](/plugins/a11y-result-count/)</Card>
+  <Card title="Related: Async Button" icon="document">[Manage promise-driven button feedback when pagination is not the primary pattern](/plugins/a11y-async-button/)</Card>
+</CardGrid>
