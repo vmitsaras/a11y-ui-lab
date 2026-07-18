@@ -9,6 +9,7 @@ import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
 import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 import { docs as characterCountDocs } from 'a11y-character-count/docs';
+import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -24,7 +25,7 @@ export const plugins = [
     docsPath: 'plugins/a11y-form-validator',
     demo: '/plugins/a11y-form-validator/#live-example',
     featured: true,
-    related: [],
+    related: ['a11y-tag-input'],
     docs: formValidatorDocs,
   },
   {
@@ -124,8 +125,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-character-count',
     demo: '/plugins/a11y-character-count/#live-example',
-    related: ['a11y-form-validator'],
+    related: ['a11y-form-validator', 'a11y-tag-input'],
     notes: 'The published docs metadata omits keyboard guidance; the page derives it from the public README and example.',
     docs: characterCountDocs,
+  },
+  {
+    slug: 'a11y-tag-input',
+    packageName: 'a11y-tag-input',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-tag-input',
+    demo: '/plugins/a11y-tag-input/#live-example',
+    related: ['a11y-form-validator', 'a11y-character-count'],
+    notes: 'The package publishes addon-style recipes rather than addon subpath exports; its docs metadata omits the npm URL and one stylesheet token, and version 1.0.0 has a verified native-reset desynchronization bug.',
+    docs: tagInputDocs,
   },
 ];

@@ -1,0 +1,281 @@
+---
+title: A11y Tag Input
+description: Progressive enhancement for labelled native controls with synchronized tag values, validation, keyboard removal, focus recovery, and polite status feedback.
+sidebar:
+  order: 12
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import TagInputDemo from '../../../components/TagInputDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-tag-input` progressively enhances a labelled native `input` or `textarea` into a tag editor. It keeps a native form value synchronized while adding plain-text tag chips, real removal buttons, validation feedback, a polite status region, and a typed API for parsing, transforms, validation, serialization, hooks, and cleanup.
+
+<Aside type="caution" title="Accessibility still depends on the completed form">
+  The plugin supplies a documented interaction model and accessible relationships, but it does not establish complete WCAG conformance or universal assistive-technology support. Keep server validation authoritative and test the integrated form, visual theme, localization, browser support, and screen-reader behavior.
+</Aside>
+
+## Use when
+
+- A form needs several short, plain-text values in one labelled field.
+- The submitted value should remain a normal input or textarea value.
+- Users need keyboard access to review and remove committed tags.
+- The application needs custom parsing, validation, transformations, messages, or serialization without a framework dependency.
+
+## Avoid when
+
+- A native multi-select, group of checkboxes, or separate repeatable fields would make the available choices clearer.
+- Tags need rich markup, editing in place, reordering, or an autocomplete listbox; the package renders plain text and does not provide those patterns.
+- Values require quoted CSV, escaped delimiters, or locale-aware tokenization and the application cannot supply a custom parser and serializer.
+- The application cannot provide a usable labelled native control as its no-JavaScript baseline.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-tag-input
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-tag-input
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-tag-input
+    ```
+  </TabItem>
+</Tabs>
+
+Import the ESM runtime and optional public stylesheet. Importing the package does not initialize controls automatically.
+
+```js
+import { createTagInput } from 'a11y-tag-input';
+import 'a11y-tag-input/styles.css';
+
+const source = document.querySelector('[data-a11y-tag-input]');
+
+if (source instanceof HTMLInputElement || source instanceof HTMLTextAreaElement) {
+  createTagInput(source, {
+    maxTags: 10,
+    separators: [',', ';', 'Enter'],
+    lowercase: true,
+  });
+}
+```
+
+Use `initTagInputs({ root, selector })` to enhance every matching control inside a document or fragment.
+
+## Required markup
+
+Start with a labelled input or textarea inside a plugin root. Keep the source control usable as ordinary form markup: its initial delimited text becomes the initial tags and remains the synchronized submission value.
+
+```html
+<div class="a11y-tag-input" data-a11y-tag-input-root>
+  <label for="post-tags">Topics</label>
+  <p id="post-tags-help">Add up to five short topics.</p>
+  <textarea
+    id="post-tags"
+    name="tags"
+    required
+    aria-describedby="post-tags-help"
+    data-a11y-tag-input
+    data-max-tags="5"
+    data-lowercase="true"
+    placeholder="Add a topic"
+  >accessibility,forms</textarea>
+</div>
+```
+
+The supported source selectors are `input[data-a11y-tag-input]`, `textarea[data-a11y-tag-input]`, and the legacy `data-tag-input` equivalents. Mark the wrapper with `data-a11y-tag-input-root` or `.a11y-tag-input`.
+
+After initialization, the source is hidden from interaction but stays synchronized for submission. Associated explicit and wrapping labels are retargeted to the generated text field. Authored `aria-label`, `aria-labelledby`, descriptions, `required`, disabled, and read-only state are carried into the enhanced experience and restored on `destroy()`.
+
+## Options and data attributes
+
+JavaScript options override the corresponding safe `data-*` attributes.
+
+| Option | Default | HTML attribute | Purpose |
+| --- | --- | --- | --- |
+| `separators` | `[",", ";", "Enter"]` | `data-separators` | Characters or keys that commit typed or pasted tags. |
+| `maxTags` | `Infinity` | `data-max-tags` | Maximum committed tags before new character input is blocked. |
+| `allowDuplicates` | `false` | `data-allow-duplicates` | Permit repeated tag values. |
+| `trim` | `true` | `data-trim` | Trim candidates before validation. |
+| `lowercase` | `false` | `data-lowercase` | Lowercase candidates before validation. |
+| `readonly` | `false` | `data-readonly` | Prevent edits and disable removal controls. |
+| `disabled` | `false` | `data-disabled` | Disable the generated field and synchronized source. |
+| `autocomplete` | `"off"` | `data-autocomplete` | Set the generated text field's autocomplete value. |
+| `inputMode` | `"text"` | `data-input-mode` | Set the generated field's input mode. |
+| `outputFormat` | `"csv"` | `data-output-format` | Serialize as `csv`, `json`, `newline`, or `array`; form values use JSON for array output. |
+| `minLength` | `1` | `data-min-length` | Minimum tag length. |
+| `maxLength` | `50` | `data-max-length` | Maximum tag length; the source control's `maxLength` can cap it. |
+| `invalidChars` | `null` | `data-invalid-chars` | Pattern that rejects matching candidates. |
+| `parser` | `defaultParser` | — | Custom typed, pasted, and initial-value parser. |
+| `serializer` | `null` | — | Custom synchronized-value serializer. |
+| `transforms` | `[]` | — | Custom candidate transformations. |
+| `validators` | `[]` | — | Custom validation functions with direct or keyed error messages. |
+| `messages` | `defaultMessages` | `data-messages` | Partial message overrides; the attribute accepts a JSON object. |
+| `hooks` | `{}` | — | Callbacks around add, validate, render, remove, and serialize steps. |
+| `valueElement` | Source control | `data-output-target` | Alternate input/textarea or selector inside the component root for synchronized output. |
+
+If submitted values may contain commas or other separators, choose JSON or provide matching parser and serializer functions. The default delimiter parser does not implement quoted or escaped CSV.
+
+## API and methods
+
+| Export | Purpose |
+| --- | --- |
+| `createTagInput(source, options?)` | Enhance one input or textarea; repeated initialization returns its existing instance. |
+| `initTagInputs(options?)` | Enhance matching controls in a document or supplied root. |
+| `A11yTagInput` | Instance class; `A11yTagInput.getInstance(source)` retrieves an existing instance. |
+| `defaultMessages` / `builtinTransforms` | Default message catalog and the `trim`, `lowercase`, and `normalizeWhitespace` transforms. |
+| `formatMessage()` / `parseSeparators()` | Message-token interpolation and separator normalization helpers. |
+| `defaultParser()` / `serializeTags()` | Default parsing and CSV, JSON, newline, or array serialization helpers. |
+| `runTransforms()` / `runValidators()` | Apply built-in and application-supplied candidate processing. |
+
+Every instance exposes its `source`, `root`, normalized `options`, `messages`, `state`, generated `field`, `control`, and tag `list` as read-only references.
+
+| Instance method | Purpose |
+| --- | --- |
+| `getTags()` | Return a copy of current tags. |
+| `setTags(tags)` | Replace tags and synchronize the form value. |
+| `addTag(value, meta?)` | Add a tag when state, hooks, cancelable events, transforms, and validators allow it. |
+| `removeTag(indexOrValue, meta?)` | Remove by index or value when state, hooks, and events allow it. |
+| `clear()` | Remove all tags and clear validation state. |
+| `focus()` | Move focus to the generated text field. |
+| `validate()` | Validate the enhanced required empty state. |
+| `setValidationError(message)` | Set or clear the existing visible and semantic error without adding an automatic announcement. |
+| `disable()` / `enable()` | Change disabled state on the generated and synchronized controls. |
+| `readonly(value?)` | Set or clear read-only state. |
+| `destroy()` | Remove generated UI and listeners, restore labels and source state, and reveal the source control. |
+
+`addTag()` and `removeTag()` return `false` when the mutation is rejected. `setValidationError()` is useful for form-level validation that already owns the summary or announcement strategy.
+
+## Hooks and events
+
+Hook names are `beforeAdd`, `beforeValidate`, `afterValidate`, `afterAdd`, `beforeRemove`, `afterRemove`, `beforeRender`, `afterRender`, `beforeSerialize`, and `afterSerialize`. Before hooks may replace or reject values where their types permit; after hooks observe the completed step.
+
+Events bubble from the original source control. Their detail includes the instance and current `tags` array.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-tag-input:init` | Generated UI and initial tags are ready. |
+| `a11y-tag-input:before-add` | Before addition; cancelable. |
+| `a11y-tag-input:add` | A tag was added. |
+| `a11y-tag-input:invalid` | Validation rejected a candidate. |
+| `a11y-tag-input:limit` | The maximum rejected a candidate. |
+| `a11y-tag-input:before-remove` | Before removal; cancelable. |
+| `a11y-tag-input:remove` | A tag was removed. |
+| `a11y-tag-input:render` | Tags finished rendering. |
+| `a11y-tag-input:change` | An add or remove changed the list. |
+| `a11y-tag-input:destroy` | Immediately before generated UI is removed. |
+
+## Addons, recipes, and development inspection
+
+Version 1.0.0 exports no addon subpaths. The repository's character count, clear confirmation, duplicate feedback, presets, recent tags, validation hints, and visible counter examples are addon-style recipes built from the main runtime's methods, hooks, and events; they are not separately installable modules.
+
+The package does publish one non-runtime subpath for authoring diagnostics:
+
+```js
+import { inspectTagInputs } from 'a11y-tag-input/dev';
+
+const diagnostics = inspectTagInputs({ root: document });
+```
+
+Run the inspector before initialization. It reports structured static-markup diagnostics such as missing accessible names, duplicate IDs, nested roots, broken `aria-labelledby` references, invalid output targets, malformed message JSON, conflicting disabled/read-only configuration, and contradictory length limits. It does not mutate markup, log automatically, replace runtime tests, or prove WCAG conformance.
+
+## CSS customization
+
+`a11y-tag-input/styles.css` supplies baseline layout, visible focus, tag chips, validation styling, forced-colors adjustments, narrow-container wrapping, 44px generated targets, and reduced-motion handling. Override public custom properties on `.a11y-tag-input` rather than broadly restyling generated internals.
+
+| Custom property | Purpose |
+| --- | --- |
+| `--a11y-tag-input-gap` | Space between chips and the editable field. |
+| `--a11y-tag-input-radius` | Control, chip, and remove-button radius. |
+| `--a11y-tag-input-border-color` | Default control border. |
+| `--a11y-tag-input-background` | Control background. |
+| `--a11y-tag-input-chip-background` / `--a11y-tag-input-chip-color` | Chip background and text/removal color. |
+| `--a11y-tag-input-error-color` / `--a11y-tag-input-error-background` | Invalid border/text and error-message background. |
+| `--a11y-tag-input-focus-ring` | Focus outline color. |
+| `--a11y-tag-input-disabled-background` | Disabled, read-only, and limit background. |
+| `--a11y-tag-input-muted-color` | Placeholder and supporting text. |
+| `--a11y-tag-input-min-target-size` | Generated field and remove-button minimum target size. |
+
+```css
+.article-topics {
+  --a11y-tag-input-border-color: #475569;
+  --a11y-tag-input-chip-background: #dbeafe;
+  --a11y-tag-input-focus-ring: #1d4ed8;
+  --a11y-tag-input-error-color: #b42318;
+  --a11y-tag-input-error-background: #fef3f2;
+}
+```
+
+Public state classes are `.a11y-tag-input--invalid`, `--disabled`, `--readonly`, and `--limit-reached`. Recheck contrast, focus visibility, target size, forced-colors behavior, and reflow after changing package tokens.
+
+## Keyboard interaction
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Enter or leave through the editor's current single tab stop; the generated input is the initial stop. |
+| <kbd>Enter</kbd> | Commit the draft after any active IME composition ends. |
+| Configured character separators | Commit the draft after IME composition ends. |
+| <kbd>Backspace</kbd> in an empty field | Move focus to the final tag's remove button. |
+| <kbd>ArrowLeft</kbd> / <kbd>ArrowRight</kbd> on remove buttons | Move between remove buttons, or from the final button back to the input. |
+| <kbd>Home</kbd> / <kbd>End</kbd> on remove buttons | Move to the first removal button or back to the input. |
+| <kbd>Delete</kbd> / <kbd>Backspace</kbd> on a remove button | Remove its tag. |
+| <kbd>Escape</kbd> in the input | Clear the uncommitted draft. |
+| Character input at the maximum | Prevent new draft text, retain focus, and update the status message. |
+
+Tab is not intercepted. Only one generated control participates in the page tab sequence at a time, so users can traverse tags with the documented internal keys without tabbing through every removal button.
+
+## Focus and announcements
+
+Initialization does not move focus. The generated input is the initial tab stop; empty-field Backspace transfers focus to the final removal button, while arrows, Home, and End manage the internal roving stop. At the tag limit the field becomes read-only rather than disabled, retaining a focusable recovery path to removal controls. `focus()` is available for deliberate host-managed validation recovery.
+
+The generated group connects its label, instructions, counter, and validation message. Tags are a labelled list with real removal buttons. Add, remove, duplicate, paste, limit, and validation feedback use one persistent polite status region. Repeated identical feedback is refreshed deliberately, paste feedback is summarized once, and repeated typing at the limit does not continually rewrite the same message.
+
+## Progressive enhancement, form values, and reset
+
+Without JavaScript, the labelled input or textarea remains available and submits its authored value. After enhancement, the source stays synchronized as CSV by default or in the configured format. Keep server-side parsing and validation aligned with the selected serializer.
+
+The package documents automatic native reset reconciliation without forced focus or an extra reset announcement. Browser testing of the published version 1.0.0 found a contract bug: the native source value returns to its authored default, but the plugin can retain stale visible tags and stale `getTags()` state. This hub does not add a reconciliation workaround. Do not rely on native reset until the package fixes and releases this behavior. Programmatic assignments outside native reset also require `setTags()` to keep rendered tags and submitted values aligned.
+
+For required fields, the generated focusable field owns native constraint validation while enhanced, and the source's original `required` state is restored on teardown. Form-level rules can call `setValidationError()` and `focus()` while retaining one intentional error-summary or live-region strategy.
+
+## Live example
+
+The example imports `createTagInput` and the package's public stylesheet. It demonstrates initial CSV values, lowercase normalization, external suggestion buttons through `addTag()`, duplicate and invalid-character rejection, a recoverable five-tag limit, host-owned minimum-count validation, and synchronized submission values. Its native Reset action also exposes the published version 1.0.0 reset desynchronization instead of hiding it with local reconciliation code.
+
+<TagInputDemo />
+
+With JavaScript unavailable, the example falls back to the labelled textarea and its comma-delimited initial value.
+
+## Known limitations and browser support
+
+- Tag content is plain text; there is no rich chip template, tag editing, reordering, or autocomplete listbox.
+- The default parser is delimiter-based and does not understand quoted CSV or escaped delimiters.
+- Alternate output selectors resolve only inside the tag-input root.
+- Published version 1.0.0 can leave visible tags and `getTags()` stale after native reset even though the submitted source value resets; no local workaround is applied here.
+- Reset listening is scoped to the source's owning form, or the alternate value element's form when the source has none.
+- The development inspector is a static authoring aid, not a complete audit or assistive-technology test.
+- No explicit browser-support matrix is published. The ESM runtime uses modern DOM APIs, and the default stylesheet uses modern CSS including `color-mix()` for a hover treatment; test supported browsers, 200% zoom, narrow layouts, real forced-colors mode, touch keyboards, and target assistive technologies.
+- The package performs no automatic network, storage, or analytics work, but applications that persist recent or suggested tags must define their own privacy behavior.
+
+<Aside type="note" title="Published metadata gaps">
+  The version 1.0.0 `docs` object omits its optional npm URL, although the package name provides the canonical npm route. Its CSS metadata and README omit `--a11y-tag-input-error-background`, which is present and consumed by the public stylesheet. The examples are referenced by metadata but are repository assets rather than files in the npm tarball. No addon exports or browser matrix are published.
+</Aside>
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, QA artifacts, and maintained examples](https://github.com/vmitsaras/a11y-tag-input)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-tag-input)</Card>
+  <Card title="Maintained demos" icon="rocket">[Interactive package examples](https://vmitsaras.github.io/a11y-tag-input/)</Card>
+  <Card title="Related: Form Validator" icon="document">[Coordinate tag-field errors with form validation and summary recovery](/plugins/a11y-form-validator/)</Card>
+  <Card title="Related: Character Count" icon="document">[Add persistent length feedback to native textareas](/plugins/a11y-character-count/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/).

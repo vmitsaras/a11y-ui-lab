@@ -1,0 +1,124 @@
+---
+import 'a11y-tag-input/styles.css';
+---
+
+<section class="tag-input-demo" aria-labelledby="tag-input-demo-title" data-tag-input-demo>
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="tag-input-demo-title">Choose topics for an article</h3>
+    <p>Add two to five short topics. Use Enter, a comma, or a semicolon to commit a tag. Try a duplicate, a tag containing a space, or a sixth tag to review recoverable error states.</p>
+  </div>
+
+  <form action="#" method="post">
+    <div class="a11y-tag-input tag-field" data-a11y-tag-input-root>
+      <label for="article-topics">Article topics</label>
+      <p id="article-topics-help" class="help">Each topic must contain 2–20 characters with no spaces. The form requires at least two topics.</p>
+      <textarea
+        id="article-topics"
+        name="topics"
+        rows="3"
+        required
+        aria-describedby="article-topics-help"
+        data-a11y-tag-input
+      >accessibility,forms</textarea>
+    </div>
+
+    <fieldset class="suggestions">
+      <legend>Suggested topics</legend>
+      <div class="suggestion-buttons">
+        <button type="button" class="suggestion" data-suggested-tag="inclusive-design">Inclusive design</button>
+        <button type="button" class="suggestion" data-suggested-tag="research">Research</button>
+        <button type="button" class="suggestion" data-suggested-tag="plain-language">Plain language</button>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit">Review topics</button>
+      <button type="reset" class="secondary">Reset example</button>
+    </div>
+    <p class="demo-status" data-demo-status role="status"></p>
+  </form>
+</section>
+
+<script>
+  import { createTagInput } from 'a11y-tag-input';
+
+  const demo = document.querySelector('[data-tag-input-demo]');
+  if (demo instanceof HTMLElement) {
+    const form = demo.querySelector('form');
+    const source = demo.querySelector('[data-a11y-tag-input]');
+    const status = demo.querySelector('[data-demo-status]');
+
+    if (
+      form instanceof HTMLFormElement
+      && source instanceof HTMLTextAreaElement
+      && status instanceof HTMLElement
+    ) {
+      const tagInput = createTagInput(source, {
+        maxTags: 5,
+        minLength: 2,
+        maxLength: 20,
+        lowercase: true,
+        invalidChars: /\s/,
+        messages: {
+          invalidChars: 'Use one word or a hyphenated phrase for each topic.',
+        },
+      });
+
+      for (const button of demo.querySelectorAll('[data-suggested-tag]')) {
+        button.addEventListener('click', () => {
+          const value = button.getAttribute('data-suggested-tag');
+          if (value) tagInput.addTag(value);
+        });
+      }
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const tags = tagInput.getTags();
+        if (tags.length < 2) {
+          tagInput.setValidationError('Add at least two topics before reviewing the article.');
+          status.textContent = 'The article needs at least two topics.';
+          tagInput.focus();
+          return;
+        }
+
+        tagInput.setValidationError(null);
+        status.textContent = `Ready to submit ${tags.length} topics: ${tags.join(', ')}. Nothing was sent.`;
+      });
+
+      form.addEventListener('reset', () => {
+        requestAnimationFrame(() => {
+          const visibleValue = tagInput.getTags().join(',');
+          status.textContent = visibleValue === source.value
+            ? ''
+            : 'Published version 1.0.0 reset the submitted value but left the visible tags stale. This demo does not patch around the package issue.';
+        });
+      });
+
+      document.addEventListener('astro:before-swap', () => tagInput.destroy(), { once: true });
+    }
+  }
+</script>
+
+<style>
+  .tag-input-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading { max-width: 46rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  form { display: grid; gap: 1.25rem; max-width: 44rem; margin-block-start: 1.5rem; }
+  .tag-field { --a11y-tag-input-focus-ring: #2563eb; --a11y-tag-input-error-color: #b42318; display: grid; gap: .5rem; }
+  label, legend { font-weight: 700; }
+  .help, .demo-status { margin: 0; }
+  .help { color: var(--sl-color-gray-2); }
+  textarea { width: 100%; min-height: 7rem; padding: .75rem; resize: vertical; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; }
+  .suggestions { padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; }
+  .suggestions legend { padding-inline: .35rem; }
+  .suggestion-buttons, .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  button { min-height: 2.75rem; margin: 0; padding: .6rem .9rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary, button.suggestion { color: var(--sl-color-white); background: transparent; }
+  button:focus-visible, textarea:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .demo-status { min-height: 1.5rem; font-weight: 650; }
+  @media (forced-colors: active) { textarea, button, .suggestions { border-color: CanvasText; } }
+  @media (max-width: 28rem) { .suggestion-buttons, .actions { align-items: stretch; flex-direction: column; } button { width: 100%; } }
+  @media (prefers-reduced-motion: reduce) { .tag-input-demo *, .tag-input-demo *::before, .tag-input-demo *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; } }
+</style>

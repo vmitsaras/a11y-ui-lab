@@ -11,6 +11,7 @@ import * as errorSummaryRuntime from 'a11y-error-summary';
 import * as asyncButtonRuntime from 'a11y-async-button';
 import * as loadMoreRuntime from 'a11y-load-more';
 import * as characterCountRuntime from 'a11y-character-count';
+import * as tagInputRuntime from 'a11y-tag-input';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -22,6 +23,8 @@ import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
 import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 import { docs as characterCountDocs } from 'a11y-character-count/docs';
+import { docs as tagInputDocs } from 'a11y-tag-input/docs';
+import { inspectTagInputs } from 'a11y-tag-input/dev';
 import { createBusyRegionAddon } from 'a11y-load-more/addons/busy-region';
 import { createFocusContinuityAddon } from 'a11y-load-more/addons/focus-continuity';
 import { createResultCountAddon } from 'a11y-load-more/addons/result-count';
@@ -192,4 +195,18 @@ test('a11y-character-count exposes the documented public contract', () => {
     plugins.find(({ packageName }) => packageName === 'a11y-character-count')?.docs,
     characterCountDocs,
   );
+});
+
+test('a11y-tag-input exposes the documented public contract', () => {
+  assert.ok(Object.keys(tagInputRuntime).length > 0);
+  assert.equal(typeof tagInputRuntime.createTagInput, 'function');
+  assert.equal(typeof tagInputRuntime.initTagInputs, 'function');
+  assert.equal(typeof tagInputRuntime.A11yTagInput, 'function');
+  assert.equal(typeof inspectTagInputs, 'function');
+  assert.equal(tagInputDocs.packageName, 'a11y-tag-input');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-tag-input')?.docs,
+    tagInputDocs,
+  );
+  assert.match(import.meta.resolve('a11y-tag-input/styles.css'), /a11y-tag-input\/dist\/styles\.css$/);
 });

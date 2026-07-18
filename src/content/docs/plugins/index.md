@@ -57,6 +57,12 @@ Enhance a native textarea with a persistent count, warning and limit states, con
 
 **Status:** Stable · **Package:** `a11y-character-count`
 
+### [A11y Tag Input](/plugins/a11y-tag-input/)
+
+Progressively enhance a labelled input or textarea into a tag editor with synchronized form values, typed validation and serialization hooks, keyboard removal, focus recovery, and polite status feedback.
+
+**Status:** Stable · **Package:** `a11y-tag-input`
+
 ## Tables
 
 ### [A11y Sortable Table](/plugins/a11y-sortable-table/)
