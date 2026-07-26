@@ -12,6 +12,7 @@ import * as asyncButtonRuntime from 'a11y-async-button';
 import * as loadMoreRuntime from 'a11y-load-more';
 import * as characterCountRuntime from 'a11y-character-count';
 import * as tagInputRuntime from 'a11y-tag-input';
+import * as menuButtonRuntime from 'a11y-menu-button';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -24,7 +25,15 @@ import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
+import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { inspectTagInputs } from 'a11y-tag-input/dev';
+import { enhanceAsyncMenuState } from 'a11y-menu-button/addons/async-menu-state';
+import { enhanceCommandMenu } from 'a11y-menu-button/addons/command-menu';
+import { enhanceFilterableMenu } from 'a11y-menu-button/addons/filterable-menu';
+import { attachMenuFeedback } from 'a11y-menu-button/addons/menu-feedback';
+import { attachMenuHints } from 'a11y-menu-button/addons/menu-hints';
+import { enhanceRecentActions } from 'a11y-menu-button/addons/recent-actions';
+import { enhanceRichMenuItems } from 'a11y-menu-button/addons/rich-menu-items';
 import { createBusyRegionAddon } from 'a11y-load-more/addons/busy-region';
 import { createFocusContinuityAddon } from 'a11y-load-more/addons/focus-continuity';
 import { createResultCountAddon } from 'a11y-load-more/addons/result-count';
@@ -209,4 +218,33 @@ test('a11y-tag-input exposes the documented public contract', () => {
     tagInputDocs,
   );
   assert.match(import.meta.resolve('a11y-tag-input/styles.css'), /a11y-tag-input\/dist\/styles\.css$/);
+});
+
+test('a11y-menu-button exposes the documented public contract', () => {
+  assert.ok(Object.keys(menuButtonRuntime).length > 0);
+  assert.equal(typeof menuButtonRuntime.createMenuButton, 'function');
+  assert.equal(typeof menuButtonRuntime.initMenuButtons, 'function');
+  assert.equal(typeof menuButtonRuntime.A11yMenuButton, 'function');
+  assert.equal(typeof menuButtonRuntime.addMenuButtonEventListener, 'function');
+  assert.equal(typeof enhanceAsyncMenuState, 'function');
+  assert.equal(typeof enhanceCommandMenu, 'function');
+  assert.equal(typeof enhanceFilterableMenu, 'function');
+  assert.equal(typeof attachMenuFeedback, 'function');
+  assert.equal(typeof attachMenuHints, 'function');
+  assert.equal(typeof enhanceRecentActions, 'function');
+  assert.equal(typeof enhanceRichMenuItems, 'function');
+  assert.equal(menuButtonDocs.packageName, 'a11y-menu-button');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-menu-button')?.docs,
+    menuButtonDocs,
+  );
+  assert.match(import.meta.resolve('a11y-menu-button/styles.css'), /a11y-menu-button\/dist\/styles\.css$/);
+  assert.match(
+    import.meta.resolve('a11y-menu-button/styles/addons/command-menu.css'),
+    /a11y-menu-button\/dist\/styles\/addons\/command-menu\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('a11y-menu-button/styles/themes/a11y-menu-button-elevated.css'),
+    /a11y-menu-button\/dist\/styles\/themes\/a11y-menu-button-elevated\.css$/,
+  );
 });

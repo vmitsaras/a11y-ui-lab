@@ -1,0 +1,280 @@
+---
+import 'a11y-menu-button/styles.css';
+import 'a11y-menu-button/styles/themes/a11y-menu-button-elevated.css';
+---
+
+<section class="menu-button-demo" aria-labelledby="menu-button-demo-title" data-menu-button-demo>
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="menu-button-demo-title">Review project actions</h3>
+    <p>
+      Open the action panel, filter its native controls, or type <code>captions</code> to reach the
+      no-results state. “Export report” is deliberately unavailable.
+    </p>
+  </div>
+
+  <div class="demo-workspace">
+    <div class="project-summary">
+      <span aria-hidden="true">A11Y-42</span>
+      <strong>Checkout accessibility review</strong>
+      <small>6 findings · updated today</small>
+    </div>
+
+    <div
+      class="a11y-menu-button project-menu"
+      data-a11y-menu-button
+      data-menu-filterable="true"
+      data-placement="bottom-end"
+    >
+      <button
+        class="a11y-menu-button__trigger"
+        type="button"
+        aria-expanded="false"
+        aria-controls="project-action-panel"
+      >
+        Project actions
+      </button>
+
+      <div class="a11y-menu-button__panel" id="project-action-panel" hidden>
+        <p data-menu-filter-status></p>
+        <button
+          class="a11y-menu-button__item"
+          type="button"
+          data-menu-close
+          data-project-action="Accessibility review opened."
+        >
+          Review findings
+        </button>
+        <button
+          class="a11y-menu-button__item"
+          type="button"
+          data-menu-close
+          data-project-action="A share link was prepared locally."
+        >
+          Share audit findings
+        </button>
+        <button class="a11y-menu-button__item" type="button" disabled>
+          Export report (unavailable)
+        </button>
+        <div class="a11y-menu-button__separator" role="separator"></div>
+        <label class="a11y-menu-button__item menu-option" for="compact-project-view">
+          <input id="compact-project-view" type="checkbox" data-compact-view />
+          Compact project view
+        </label>
+        <p
+          class="a11y-menu-button__empty"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          data-menu-empty
+          hidden
+        >
+          No project actions match that filter.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-controls">
+    <button class="reset-button" type="button" data-menu-demo-reset>Reset example</button>
+    <p class="demo-status" role="status" aria-live="polite" data-menu-demo-status>
+      No project action has been selected.
+    </p>
+  </div>
+</section>
+
+<script>
+  import {
+    MENU_BUTTON_EVENTS,
+    addMenuButtonEventListener,
+    createMenuButton,
+  } from 'a11y-menu-button/core';
+  import { enhanceFilterableMenu } from 'a11y-menu-button/addons/filterable-menu';
+
+  const demo = document.querySelector<HTMLElement>('[data-menu-button-demo]');
+
+  if (demo) {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-menu-button]');
+    const emptyState = demo.querySelector<HTMLElement>('[data-menu-empty]');
+    const compactView = demo.querySelector<HTMLInputElement>('[data-compact-view]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-menu-demo-reset]');
+    const status = demo.querySelector<HTMLElement>('[data-menu-demo-status]');
+
+    if (root) {
+      const menu = createMenuButton(root);
+      const filter = enhanceFilterableMenu(root, {
+        ...(emptyState ? { emptyState } : {}),
+        label: 'Filter project actions',
+        emptyMessage: 'No project actions match that filter.',
+        announceResultCount: true,
+        formatResultCount: ({ count }) =>
+          count === 1 ? '1 project action available' : `${count} project actions available`,
+      });
+
+      addMenuButtonEventListener(root, MENU_BUTTON_EVENTS.itemClick, (event) => {
+        const message = event.detail.item.dataset.projectAction;
+        if (message && status) status.textContent = message;
+      });
+
+      compactView?.addEventListener('change', () => {
+        if (status) {
+          status.textContent = compactView.checked
+            ? 'Compact project view enabled.'
+            : 'Compact project view disabled.';
+        }
+      });
+
+      resetButton?.addEventListener('click', () => {
+        if (filter) {
+          filter.input.value = '';
+          filter.filter();
+        }
+        if (compactView) compactView.checked = false;
+        menu.close({ reason: 'programmatic', returnFocus: false });
+        if (status) status.textContent = 'Example reset. No project action has been selected.';
+      });
+    }
+  }
+</script>
+
+<style>
+  .menu-button-demo {
+    position: relative;
+    z-index: 1;
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 48rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: .25rem .5rem;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .demo-workspace {
+    display: flex;
+    min-height: 15rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-block-start: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .65rem;
+    background: var(--sl-color-black);
+  }
+
+  .project-summary {
+    display: grid;
+    gap: .2rem;
+    min-width: 0;
+  }
+
+  .project-summary span,
+  .project-summary small {
+    color: var(--sl-color-gray-2);
+  }
+
+  .project-menu {
+    flex: none;
+    --a11y-menu-button-panel-min-width: min(19rem, calc(100vw - 4rem));
+    --a11y-menu-button-item-danger-color: #9f1239;
+  }
+
+  .a11y-menu-button__trigger,
+  .reset-button {
+    min-height: 2.75rem;
+    margin: 0;
+    padding: .65rem 1rem;
+    border: 2px solid var(--sl-color-accent-high);
+    border-radius: .45rem;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .a11y-menu-button__trigger {
+    color: var(--sl-color-black);
+    background: var(--sl-color-accent-high);
+  }
+
+  .a11y-menu-button__panel {
+    border: 1px solid #d1d5db;
+  }
+
+  .a11y-menu-button__item {
+    margin: 0;
+    padding: .55rem .65rem;
+    border: 0;
+    border-radius: .35rem;
+    color: inherit;
+    background: transparent;
+    font: inherit;
+    text-align: start;
+  }
+
+  .menu-option {
+    cursor: pointer;
+  }
+
+  .menu-option input {
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    margin: 0 .35rem 0 0;
+  }
+
+  .a11y-menu-button__empty {
+    margin: .35rem 0 0;
+  }
+
+  .demo-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    margin-block-start: 1rem;
+  }
+
+  .reset-button {
+    flex: none;
+    color: var(--sl-color-white);
+    background: transparent;
+  }
+
+  .demo-status {
+    min-height: 1.5rem;
+    margin: 0;
+    font-weight: 650;
+  }
+
+  .a11y-menu-button__trigger:focus-visible,
+  .reset-button:focus-visible {
+    outline: 3px solid var(--sl-color-accent-high);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 38rem) {
+    .demo-workspace {
+      min-height: 20rem;
+      flex-direction: column;
+    }
+
+    .project-menu {
+      align-self: stretch;
+    }
+  }
+</style>

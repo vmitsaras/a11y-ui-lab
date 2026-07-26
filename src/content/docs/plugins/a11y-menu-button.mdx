@@ -1,0 +1,271 @@
+---
+title: A11y Menu Button
+description: Disclosure-style action panels with native controls, keyboard movement, typeahead, focus-aware closing, positioning, and optional addons.
+sidebar:
+  order: 13
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import MenuButtonDemo from '../../../components/MenuButtonDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Navigation & disclosure" variant="note" />
+
+`a11y-menu-button` enhances a real button and a flat disclosure panel containing native links, buttons, and form controls. It coordinates open state, four placements, Arrow-key movement, typeahead, focus-aware closing, typed lifecycle events, and complete cleanup without converting the panel into an ARIA application menu.
+
+<Aside type="caution" title="This is a disclosure pattern, not an ARIA menu">
+  The package deliberately keeps document semantics and native Tab order. Do not add `role="menu"`, `role="menuitem"`, or menu-item checkbox roles unless the product implements the complete application-menu interaction model independently. For ordinary site navigation, a visible list of links or a native disclosure may be simpler.
+</Aside>
+
+## Use when
+
+- A compact action button reveals a short, flat collection of native controls.
+- Account, project, notification, or edit actions need predictable open and close behavior.
+- Arrow keys and typeahead should supplement, rather than replace, native Tab navigation.
+- The integration needs cancelable transition hooks, optional filtering, async state, hints, feedback, or richer item presentation.
+
+## Avoid when
+
+- Essential actions must remain available when JavaScript fails and no separate fallback is provided.
+- The content is nested navigation, a mega menu, a command palette, or a focus-trapped dialog.
+- A native `<details>` disclosure or an always-visible list would meet the need.
+- The interface requires a full ARIA `menu` widget rather than a disclosure containing native controls.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-menu-button
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-menu-button
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-menu-button
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only and never initializes the DOM as an import side effect. Prefer the core entry when only the disclosure behavior is needed, and import the public stylesheet separately.
+
+```js
+import { createMenuButton } from 'a11y-menu-button/core';
+import 'a11y-menu-button/styles.css';
+
+const root = document.querySelector('[data-a11y-menu-button]');
+if (root instanceof HTMLElement) {
+  const menu = createMenuButton(root);
+  // menu.destroy() removes behavior and restores package-owned DOM state.
+}
+```
+
+The root `a11y-menu-button` entry remains a supported compatibility export containing core and addon factories.
+
+## Required markup
+
+Supply one marked root, one real button trigger, and one panel whose `id` matches the trigger’s `aria-controls`.
+
+```html
+<div
+  class="a11y-menu-button"
+  data-a11y-menu-button
+  data-placement="bottom-end"
+>
+  <button
+    class="a11y-menu-button__trigger"
+    type="button"
+    aria-expanded="false"
+    aria-controls="account-actions"
+  >
+    Account actions
+  </button>
+
+  <div class="a11y-menu-button__panel" id="account-actions" hidden>
+    <a class="a11y-menu-button__item" href="/profile" data-menu-close>
+      Profile
+    </a>
+    <button class="a11y-menu-button__item" type="button" data-menu-close>
+      Sign out
+    </button>
+  </div>
+</div>
+```
+
+Keep native elements native. `data-menu-close` requests closure after that item activates. Without it, a native checkbox, toggle, or other in-panel control can remain open. Prefer native `disabled`; `aria-disabled="true"` communicates state but does not stop link navigation or application handlers.
+
+Replacing the trigger or panel after initialization is not supported by `refresh()`. Destroy the instance, update the authored markup, and initialize it again.
+
+## Options and data attributes
+
+JavaScript options win over matching `data-*` attributes, which win over defaults. Invalid booleans, integers, and placements fall back safely.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `closeOnEscape` | `true` | Close when Escape is pressed. |
+| `closeOnOutsidePointer` | `true` | Close after a pointer action finishes outside the component. |
+| `closeOnFocusOut` | `true` | Close when focus leaves the component. |
+| `closeOnItemClick` | `false` | Close for every enabled item rather than only items marked `data-menu-close`. |
+| `focusFirstOnOpen` | `false` | Move focus to the first enabled visible control after opening. |
+| `returnFocusOnEscape` | `true` | Return focus to the trigger after Escape closes the panel. |
+| `matchTriggerWidth` | `false` | Match the panel width to the trigger. |
+| `placement` | `"bottom-end"` | Use `bottom-start`, `bottom-end`, `top-start`, or `top-end`. |
+| `flipOnOverflow` | `true` | Flip vertically when the preferred side lacks viewport space. |
+| `maxPanelHeight` | `true` | Constrain the panel to the available viewport height. |
+| `observeVisibility` | `true` | Refresh placement or close when root visibility changes. |
+| `typeahead` | `true` | Find controls by the start of their accessible label. |
+| `typeaheadTimeout` | `700` | Reset the accumulated typeahead query after this many milliseconds. |
+
+Matching attributes include `data-close-on-escape`, `data-close-on-outside-pointer`, `data-close-on-focus-out`, `data-close-on-item-click`, `data-focus-first-on-open`, `data-return-focus-on-escape`, `data-match-trigger-width`, `data-placement`, `data-flip-on-overflow`, `data-max-panel-height`, `data-observe-visibility`, `data-typeahead`, and `data-typeahead-timeout`.
+
+## Runtime API and instance methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createMenuButton(root, options?)` | Enhance one root; duplicate initialization returns the existing instance. |
+| `initMenuButtons(root?, options?)` | Enhance every `[data-a11y-menu-button]` descendant in a document or subtree. |
+| `A11yMenuButton` | Public class used by the factory. |
+| `open({ reason? })` | Open an effectively closed panel. |
+| `close({ reason?, returnFocus? })` | Close an open panel and optionally return focus. |
+| `toggle({ reason?, returnFocus? })` | Switch the current open state. |
+| `isOpen()` | Read the synchronized state. |
+| `refresh()` | Recollect current items and update placement without replacing trigger or panel. |
+| `updatePlacement()` | Recalculate placement immediately. |
+| `destroy()` | Remove listeners, timers, observers, frames, instance tracking, and package-owned DOM changes. |
+| `addMenuButtonEventListener()` | Register a typed listener and receive a cleanup function. |
+| `MENU_BUTTON_EVENTS` | Reuse supported event names without repeating strings. |
+
+Programmatic transition reasons are typed as `trigger`, `keyboard`, `escape`, `outside-pointer`, `focusout`, `item-click`, `programmatic`, or `visibility-change`.
+
+## Events
+
+Core events bubble from the component root and are `composed: false`, so delegation works inside the same document or shadow root but does not cross a Shadow DOM boundary. Only the two `before-*` hooks are cancelable.
+
+| Event | Cancelable | When it fires |
+| --- | --- | --- |
+| `menu-button:init` | No | Initialization and the first DOM synchronization complete. |
+| `menu-button:before-open` | Yes | Immediately before an effective closed-to-open transition. |
+| `menu-button:open` | No | Open state, placement, listeners, and optional first-item focus settle. |
+| `menu-button:before-close` | Yes | Immediately before an effective open-to-closed transition. |
+| `menu-button:close` | No | Closed state, listener cleanup, and eligible focus restoration settle. |
+| `menu-button:item-click` | No | An enabled panel action activates, before any item-driven close sequence. |
+| `menu-button:refresh` | No | `refresh()` completes. |
+| `menu-button:async-state` | No | The async-state addon applies a caller-supplied state. |
+| `menu-button:filter` | No | User input causes the filter addon to apply a query. |
+| `menu-button:destroy` | No | Teardown starts after the instance becomes inactive. |
+
+Core event detail includes `instance`, `open`, `previousOpen`, `nextOpen`, `trigger`, `panel`, `item`, and `reason`. Async-state and filter events use their declared controller, state/query, target, and reason fields. Calls that do not change open state emit no transition event; recursive transitions inside a `before-*` listener are ignored until the active transition settles.
+
+## Public addons
+
+Install core first, retain each returned controller, then destroy addons in reverse installation order before destroying core. Core cannot clean up independently installed addons.
+
+| Export path | Main exports | Behavior and controller |
+| --- | --- | --- |
+| `/addons/async-menu-state` | `enhanceAsyncMenuState`, `enhanceAsyncMenuStates`, `setAsyncMenuLoading` | Applies `loading`, `empty`, `error`, or `ready`, `aria-busy`, state content, and optional skeletons. The controller exposes `setState()`, convenience state methods, and `destroy()`. |
+| `/addons/command-menu` | `enhanceCommandMenu`, `enhanceCommandMenus` | Adds group-label, description, and decorative shortcut presentation. Options accept `panel` and `force`; the controller exposes `refresh()` and `destroy()`. |
+| `/addons/filterable-menu` | `enhanceFilterableMenu`, `enhanceFilterableMenus` | Adds local flat-text filtering, an empty state, and opt-in delayed result-count announcements. Options can supply the input, empty state, labels, messages, and formatter; the controller exposes `filter()` and `destroy()`. |
+| `/addons/menu-feedback` | `attachMenuFeedback` | Adds polite, non-modal activation feedback with configurable region and duration. The controller exposes `clear()` and `destroy()`. |
+| `/addons/menu-hints` | `attachMenuHints`, `attachMenuHintsToMenus` | Shows visual keyboard hints with optional timeout, opening limit, and persistence. The controller exposes `show()`, `hide()`, `dismiss()`, `clearDismissal()`, and `destroy()`. |
+| `/addons/recent-actions` | `enhanceRecentActions`, `enhanceRecentActionMenus` | Clones recently used actions by stable ID with optional label, maximum, and persistence. The controller exposes `render()`, `clear()`, and `destroy()`. |
+| `/addons/rich-menu-items` | `enhanceRichMenuItems` | Adds decorative icon, description, shortcut, and danger hooks to selected items. The controller exposes `refresh()` and `destroy()`. |
+
+Filtering is local text matching, not fuzzy search or remote search. Result-count announcements are off by default; when enabled they wait for a 250 ms quiet period, skip identical messages, and defer zero-result messaging to the empty state. Custom formatters receive the raw query, so do not forward sensitive input into telemetry, remote services, or unnecessarily verbose announcements.
+
+Hints and recent actions do not write to `localStorage` unless persistence is explicitly enabled. Recent actions store stable identifiers, not arbitrary item content. The async addon only reflects application-supplied state; the application owns requests, cancellation, stale-response protection, trusted rendering, and retry controls.
+
+## CSS and customization
+
+Import `a11y-menu-button/styles.css` for panel layout, placement, item states, addon UI, visible focus, forced-colors boundaries, and reduced-motion handling. The integration still owns its product-specific trigger and item appearance.
+
+```css
+.project-actions {
+  --a11y-menu-button-panel-min-width: 16rem;
+  --a11y-menu-button-panel-offset: 0.5rem;
+  --a11y-menu-button-panel-radius: 0.75rem;
+  --a11y-menu-button-panel-padding: 0.5rem;
+  --a11y-menu-button-panel-shadow: 0 1rem 2.5rem rgb(15 23 42 / 0.18);
+  --a11y-menu-button-panel-bg: #ffffff;
+  --a11y-menu-button-panel-color: #172033;
+  --a11y-menu-button-item-hover-bg: #eef2ff;
+  --a11y-menu-button-item-active-bg: #e0e7ff;
+  --a11y-menu-button-item-gap: 0.25rem;
+  --a11y-menu-button-item-danger-color: #b42318;
+  --a11y-menu-button-error-color: #b42318;
+}
+```
+
+Optional public CSS exports provide command-menu layout and Soft, Compact, Elevated, and Command variable presets:
+
+```js
+import 'a11y-menu-button/styles/addons/command-menu.css';
+import 'a11y-menu-button/styles/themes/a11y-menu-button-elevated.css';
+```
+
+Load one theme after the core stylesheet. Recheck text, background, hover, active, danger, focus, reflow, and target-size contrast in the finished product. In forced-colors mode the core stylesheet applies a `CanvasText` panel border because a shadow may disappear; test any product border override with a Windows Contrast theme.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Trigger | Use native button activation to toggle the panel. |
+| <kbd>ArrowDown</kbd> / <kbd>ArrowUp</kbd> | Trigger | Open and focus the first or last enabled visible control. |
+| <kbd>ArrowDown</kbd> / <kbd>ArrowUp</kbd> | Open panel | Move through enabled visible controls with wrapping. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Open panel | Focus the first or last enabled visible control. |
+| Printable characters | Open panel, outside editable controls | Move to the next control whose `data-menu-label`, ARIA name, native label, or text starts with the query. |
+| <kbd>Escape</kbd> | Open component | Close and return focus to the trigger when configured. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Native button item | Run the native action; item-driven closing conditionally restores trigger focus. |
+| <kbd>Enter</kbd> | Native link item | Follow native link activation. Same-document or intercepted actions use the same conditional close behavior. |
+| <kbd>Space</kbd> | Native checkbox | Toggle the checkbox and leave the disclosure open; Enter keeps native non-activation behavior. |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Anywhere | Follow normal document order; focus is not trapped. |
+
+Disabled and hidden controls are skipped by managed Arrow, Home, End, and typeahead movement. Editable controls retain printable keys for text entry.
+
+## Focus behavior
+
+By default, trigger activation opens without moving focus. Arrow-key opening or `focusFirstOnOpen` moves focus into the panel. Escape can return focus to the trigger, while focus-out and outside-pointer closing are configurable.
+
+When `data-menu-close` or `closeOnItemClick` closes a panel, focus returns to the trigger only if focus is still inside the panel after synchronous application listeners finish. If an item or `before-close` listener deliberately moves focus to a dialog or another destination outside the panel, the plugin preserves that destination. Canceling `before-close` keeps the panel and current focus in place.
+
+This guard observes synchronous focus changes. An application scheduling a later asynchronous move must coordinate that focus transition with its destination lifecycle.
+
+## Progressive enhancement and accessibility notes
+
+The trigger and panel controls retain native semantics after enhancement, and the plugin synchronizes `aria-expanded`, `aria-controls`, placement state, and `hidden`. It does not trap focus or add application-menu roles. `destroy()` restores package-owned attributes and inline styles and removes managed behavior.
+
+A panel authored with `hidden` requires JavaScript to reveal it. If those actions are essential without JavaScript, provide a separate visible fallback or choose a native disclosure such as `<details>` and `<summary>`. Do not claim complete accessibility from package installation alone: labels, action outcomes, error recovery, application focus changes, colors, responsive layout, and assistive-technology testing remain integration responsibilities.
+
+## Live example
+
+This example imports the installed core, stylesheet, Elevated theme, event constants, and filter addon through public package exports. It includes native action buttons, an unavailable action, a checkbox that keeps the panel open, a filterable no-results state, delayed result-count announcements, focus-aware closing, visible focus, and a full reset.
+
+<MenuButtonDemo />
+
+## Known limitations and browser support
+
+- Panels are flat; nested menus and mega menus are outside the package scope.
+- The package does not implement ARIA application-menu roles or a focus trap.
+- Positioning supports four placements and vertical flipping, not a portal or general collision engine.
+- The integration owns application markup, confirmation flows, action labels, navigation outcomes, and authorization.
+- Full-page link navigation replaces the document context; conditional focus restoration primarily benefits actions handled in the current document.
+- Addons are independent and must be destroyed before the core instance.
+- The async-state addon reports state but does not start, cancel, sequence, or secure requests.
+- The compatibility policy targets modern ES2022 module browsers and Baseline Widely Available platform features at release time. No polyfills are shipped.
+- `IntersectionObserver` is feature-detected; visibility observation degrades when it is absent.
+- The package publishes no completed browser or screen-reader test matrix. Verify current Chromium, Firefox, and Safari plus the assistive-technology combinations supported by the product.
+
+<Aside type="note" title="Published metadata gaps">
+  Version 1.0.0 is published and installable, but its `docs` object omits the optional npm URL. The docs metadata and README reference maintained examples that are available in the repository and hosted site but excluded from the npm tarball. The published README also retains a pre-publication sentence that conflicts with the installed npm release. This guide uses the package export map, declarations, metadata, changelog, README, and repository examples without private imports or a local adapter.
+</Aside>
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, declarations, and maintained examples](https://github.com/vmitsaras/A11y-Menu-Button)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-menu-button)</Card>
+  <Card title="Maintained demos" icon="rocket">[Account, edit, filter, async, checkbox, and lifecycle examples](https://vmitsaras.github.io/A11y-Menu-Button/)</Card>
+  <Card title="Related: Async Button" icon="document">[Manage loading, success, retry, and error states for an action button](/plugins/a11y-async-button/)</Card>
+</CardGrid>

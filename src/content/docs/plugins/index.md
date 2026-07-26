@@ -7,6 +7,14 @@ sidebar:
 
 Browse published accessibility plugins by the interface problem they solve. Each guide uses the npm package as its implementation boundary and documents the public API, markup, interaction behavior, limitations, and a working example.
 
+## Navigation and disclosure
+
+### [A11y Menu Button](/plugins/a11y-menu-button/)
+
+Add disclosure-style action panels to real buttons while keeping native links, buttons, and form controls, with Arrow-key movement, typeahead, focus-aware closing, positioning, and opt-in menu enhancements.
+
+**Status:** Stable · **Package:** `a11y-menu-button`
+
 ## Forms
 
 ### [A11y Form Validator](/plugins/a11y-form-validator/)

@@ -10,9 +10,11 @@ import { docs as asyncButtonDocs } from 'a11y-async-button/docs';
 import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
+import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 
 export const pluginCategories = {
   form: 'Forms',
+  navigation: 'Navigation and disclosure',
   table: 'Tables',
 };
 
@@ -105,7 +107,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-async-button',
     demo: '/plugins/a11y-async-button/#live-example',
-    related: ['a11y-form-validator', 'a11y-error-summary'],
+    related: ['a11y-form-validator', 'a11y-error-summary', 'a11y-menu-button'],
     docs: asyncButtonDocs,
   },
   {
@@ -139,5 +141,16 @@ export const plugins = [
     related: ['a11y-form-validator', 'a11y-character-count'],
     notes: 'The package publishes addon-style recipes rather than addon subpath exports; its docs metadata omits the npm URL and one stylesheet token, and version 1.0.0 has a verified native-reset desynchronization bug.',
     docs: tagInputDocs,
+  },
+  {
+    slug: 'a11y-menu-button',
+    packageName: 'a11y-menu-button',
+    category: 'navigation',
+    status: 'stable',
+    docsPath: 'plugins/a11y-menu-button',
+    demo: '/plugins/a11y-menu-button/#live-example',
+    related: ['a11y-async-button'],
+    notes: 'Version 1.0.0 docs metadata omits the npm URL, the npm tarball excludes its referenced examples, and the published README retains pre-publication wording.',
+    docs: menuButtonDocs,
   },
 ];
