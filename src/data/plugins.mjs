@@ -11,6 +11,7 @@ import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
+import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -149,8 +150,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-menu-button',
     demo: '/plugins/a11y-menu-button/#live-example',
-    related: ['a11y-async-button'],
+    related: ['a11y-async-button', 'a11y-command-menu-button'],
     notes: 'Version 1.0.0 docs metadata omits the npm URL, the npm tarball excludes its referenced examples, and the published README retains pre-publication wording.',
     docs: menuButtonDocs,
+  },
+  {
+    slug: 'a11y-command-menu-button',
+    packageName: 'a11y-command-menu-button',
+    category: 'navigation',
+    status: 'stable',
+    docsPath: 'plugins/a11y-command-menu-button',
+    demo: '/plugins/a11y-command-menu-button/#live-example',
+    related: ['a11y-menu-button', 'a11y-async-button'],
+    notes: 'Version 1.0.0 ships complete docs metadata and a separate public checkable-command adapter; maintained examples remain repository-hosted rather than package exports.',
+    docs: commandMenuButtonDocs,
   },
 ];

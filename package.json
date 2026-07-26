@@ -15,6 +15,7 @@
     "@astrojs/starlight": "^0.41.3",
     "a11y-async-button": "^1.0.0",
     "a11y-character-count": "^1.0.0",
+    "a11y-command-menu-button": "^1.0.0",
     "a11y-conditional-fields": "^1.0.1",
     "a11y-error-summary": "^1.0.0",
     "a11y-filter-list": "^1.0.0",

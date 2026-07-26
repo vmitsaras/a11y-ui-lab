@@ -1,0 +1,346 @@
+---
+title: A11y Command Menu Button
+description: Application-style command menus with roving focus, one-level submenus, typeahead, disabled and busy states, optional announcements, and checkable commands.
+sidebar:
+  order: 14
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import CommandMenuButtonDemo from '../../../components/CommandMenuButtonDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Navigation & disclosure" variant="note" />
+
+`a11y-command-menu-button` enhances a real button and an application-style `menu` of commands. It manages roving focus, Arrow-key and typeahead navigation, one submenu level, disabled and busy commands, optional mobile-sheet and portal presentation, typed completion events, and deterministic cleanup. A separate public adapter adds host-owned checkbox and radio commands.
+
+<Aside type="caution" title="Use this only for application commands">
+  This package implements the ARIA menu-button interaction model. It is not a replacement for ordinary site navigation or a disclosure containing form controls. Use [`a11y-menu-button`](/plugins/a11y-menu-button/) when native Tab order and document semantics are the better fit.
+</Aside>
+
+## Use when
+
+- A compact toolbar or application control must reveal a short set of actions.
+- Roving focus, Arrow-key movement, Home, End, typeahead, and predictable dismissal are expected.
+- One command needs one level of related submenu actions.
+- Disabled or loading commands should remain discoverable while activation is blocked.
+- The application needs typed command and lifecycle events or small checkable command sets.
+
+## Avoid when
+
+- The content is ordinary website navigation, a disclosure, a form, or a mixed collection of native controls.
+- Commands must be usable without JavaScript and no always-visible fallback is available.
+- The interface needs nested submenus, a command palette with search, a mega menu, or a focus-trapped dialog.
+- A native button group, `<select>`, `<details>`, or visible list of links would be simpler.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-command-menu-button
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-command-menu-button
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-command-menu-button
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only and has no runtime dependencies. Import the runtime and the public stylesheet separately:
+
+```js
+import { createCommandMenuButton } from 'a11y-command-menu-button';
+import 'a11y-command-menu-button/styles.css';
+
+const root = document.querySelector('[data-command-menu]');
+
+if (root instanceof HTMLElement) {
+  const menu = createCommandMenuButton(root, {
+    closeOnSelect: true,
+    typeahead: true,
+  });
+
+  // menu.destroy() removes behavior and restores package-managed DOM state.
+}
+```
+
+Use `initCommandMenuButtons(options?, root?)` to enhance every matching root in a document or fragment.
+
+## Required markup
+
+Provide one marked root, a real button trigger, and a panel with `role="menu"`. The panel ID must match the trigger’s `aria-controls`. Each command must be a real button or link marked with `data-command-item` and a unique, stable `data-command-id`.
+
+```html
+<div class="a11y-command-menu-button" data-command-menu>
+  <button
+    id="review-command-trigger"
+    type="button"
+    class="a11y-command-menu-button__trigger"
+    data-command-trigger
+    aria-haspopup="menu"
+    aria-expanded="false"
+    aria-controls="review-commands"
+  >
+    Review commands
+  </button>
+
+  <div
+    id="review-commands"
+    class="a11y-command-menu-button__panel"
+    data-command-menu-panel
+    role="menu"
+    aria-labelledby="review-command-trigger"
+    hidden
+  >
+    <ul class="a11y-command-menu-button__list" role="none">
+      <li role="none">
+        <button
+          type="button"
+          class="a11y-command-menu-button__item"
+          data-command-item
+          data-command-id="assign-reviewer"
+          role="menuitem"
+        >
+          Assign reviewer
+        </button>
+      </li>
+    </ul>
+  </div>
+</div>
+```
+
+Give the trigger visible text or another usable accessible name. Keep command markup flat, avoid nested interactive elements, use buttons for actions, and use links with real `href` values for navigation. The runtime preserves native link navigation while dispatching its command event.
+
+The runtime generates a command ID when one is missing and warns about duplicate IDs, but authored stable IDs are necessary for reliable focus preservation after dynamic refresh.
+
+## Options and data attributes
+
+JavaScript options configure one instance. Matching root attributes are available for every option below except `announce`.
+
+| Option | Type | Matching attribute | Purpose |
+| --- | --- | --- | --- |
+| `closeOnSelect` | `boolean` | `data-close-on-select` | Close after an ordinary enabled command activates. Checkable commands keep host-controlled closure. |
+| `restoreFocus` | `boolean` | `data-restore-focus` | Allow eligible closing paths to return focus to the opener. |
+| `loop` | `boolean` | `data-loop` | Wrap Arrow-key movement at the start and end of the current menu. |
+| `placement` | `"auto" \| "top" \| "bottom"` | `data-placement` | Choose the main panel’s preferred vertical placement. |
+| `submenuPlacement` | `"auto" \| "left" \| "right"` | `data-submenu-placement` | Choose the submenu’s preferred side. Directional keys still adapt to text direction. |
+| `hoverSubmenus` | `boolean` | `data-hover-submenus` | Allow pointer hover to open and close submenus in addition to keyboard activation. |
+| `hoverOpenDelay` | `number` | `data-hover-open-delay` | Set the submenu hover-open delay in milliseconds. |
+| `hoverCloseDelay` | `number` | `data-hover-close-delay` | Set the submenu hover-close delay in milliseconds. |
+| `typeahead` | `boolean` | `data-typeahead` | Move to a command whose text begins with typed printable characters. |
+| `mobileMode` | `"sheet" \| "menu"` | `data-mobile-mode` | Use the package’s narrow-screen bottom sheet or retain floating-menu presentation. |
+| `portal` | `boolean` | `data-portal` | Move open menu layers to `document.body` while preserving relationships and public theme variables. |
+| `announce` | `false \| object` | — | Write command, disabled, and loading messages to a host-provided live region. |
+
+Dataset values are parsed safely. Prefer JavaScript options when behavior depends on application state.
+
+### Optional status announcements
+
+Announcements are opt-in. Supply a persistent, polite target outside the hidden panel, then provide the target element or selector. Item-level `data-command-announcement`, `data-command-disabled-announcement`, and `data-command-loading-announcement` values can provide concise contextual copy.
+
+```html
+<p id="command-status" role="status" aria-live="polite" aria-atomic="true"></p>
+```
+
+```js
+createCommandMenuButton(root, {
+  announce: {
+    target: '#command-status',
+    formatCommand: ({ item }) =>
+      item.dataset.commandAnnouncement || 'Command activated.',
+    formatDisabled: ({ item }) =>
+      item.dataset.commandDisabledAnnouncement || 'Command unavailable.',
+    formatLoading: ({ item }) =>
+      item.dataset.commandLoadingAnnouncement || 'Command is still loading.',
+  },
+});
+```
+
+Return `false`, `null`, `undefined`, or an empty string from a formatter to skip that message. Keep command IDs and announcement copy free of private filenames, account data, or other values that should not reach logs or telemetry.
+
+## Runtime API and instance methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createCommandMenuButton(root, options?)` | Enhance one root and return a `CommandMenuButtonInstance`. |
+| `initCommandMenuButtons(options?, root?)` | Enhance all `[data-command-menu]` roots in a document or subtree. |
+| `A11yCommandMenuButton` | Public implementation class used by the factory. |
+| `COMMAND_MENU_BUTTON_EVENTS` | Reuse the eight supported event names without repeating strings. |
+| `open({ focus? })` | Open and optionally focus `"first"`, `"last"`, or `false`. |
+| `close({ restoreFocus? })` | Close and optionally override focus restoration for that call. |
+| `toggle({ focus? })` | Toggle and control the focus target when opening. |
+| `refresh({ preserveFocus? })` | Re-read dynamic commands and submenus, reapply roles and roving focus, and preserve a safe focus target when requested. |
+| `destroy()` | Permanently remove listeners and timers, restore moved layers, and restore package-managed attributes and positioning properties. |
+
+Call `refresh({ preserveFocus: true })` after adding, removing, replacing, disabling, or loading commands while a menu may be open. If the focused command still exists, its stable ID preserves focus; otherwise the runtime chooses a safe sibling or returns to the trigger.
+
+`destroy()` is terminal for that instance. Create a new instance if the same markup must be enhanced again.
+
+## Events
+
+All events dispatch from the component root with `bubbles: true`, `composed: false`, and `cancelable: false`. They report completed behavior; they do not provide cancelable before-hooks. Every detail includes `instance` and `root`.
+
+| Constant | Event | Additional detail |
+| --- | --- | --- |
+| `init` | `a11y-command-menu:init` | Initialization completed. |
+| `open` | `a11y-command-menu:open` | `trigger`, `menu`, and `reason` after focus settles. |
+| `close` | `a11y-command-menu:close` | `trigger`, `menu`, and `reason` after closing and eligible focus restoration. |
+| `command` | `a11y-command-menu:command` | `commandId`, `item`, `menu`, `trigger`, and `originalEvent` for an enabled activation. |
+| `disabledCommand` | `a11y-command-menu:disabled-command` | Command detail for a blocked disabled or busy activation. |
+| `submenuOpen` | `a11y-command-menu:submenu-open` | `trigger`, `submenu`, and `reason` after submenu focus settles. |
+| `submenuClose` | `a11y-command-menu:submenu-close` | `trigger`, `submenu`, and `reason` after closure. |
+| `destroy` | `a11y-command-menu:destroy` | One terminal cleanup completion event. |
+
+Closing a menu with an open submenu emits `submenu-close` before `close`. Calls that do not change public state do not emit duplicate state events. Because events do not cross a Shadow DOM boundary, attach listeners inside the component’s shadow root when applicable.
+
+## Checkable command addon
+
+The only addon is a separate public subpath:
+
+```js
+import { createCheckableCommandAdapter } from 'a11y-command-menu-button/checkable';
+
+const menu = createCommandMenuButton(root);
+const checkable = createCheckableCommandAdapter(root);
+```
+
+The adapter supports explicit `menuitemcheckbox` values and `menuitemradio` values inside an explicit, named `role="group"`.
+
+```html
+<button
+  type="button"
+  data-command-item
+  data-command-id="show-comments"
+  role="menuitemcheckbox"
+  aria-checked="false"
+>
+  Show comments
+</button>
+
+<li role="group" aria-label="View density">
+  <button
+    type="button"
+    data-command-item
+    data-command-id="comfortable"
+    role="menuitemradio"
+    aria-checked="true"
+  >
+    Comfortable
+  </button>
+  <button
+    type="button"
+    data-command-item
+    data-command-id="compact"
+    role="menuitemradio"
+    aria-checked="false"
+  >
+    Compact
+  </button>
+</li>
+```
+
+Checkbox values toggle between `true` and `false`; `mixed` resolves to `true`. Selecting a valid radio sets its peers in the same group to `false`. The adapter updates `aria-checked` before the ordinary `command` event, leaves focus on the checkable command, and keeps the menu open. The host application owns initial state, persistence, rendering, and any explicit closure.
+
+Call both `menu.refresh({ preserveFocus: true })` and `checkable.refresh()` after replacing checkable markup. Destroy the adapter before the base instance when cleaning up independently. The base instance also cleans up its attached adapter.
+
+## CSS and customization
+
+Import `a11y-command-menu-button/styles.css` for panel and submenu placement, roving-focus presentation, disabled and checked states, mobile-sheet layout, reduced motion, coarse-pointer sizing, and forced-colors treatment.
+
+Customize the documented `.a11y-command-menu-button` variables rather than overriding private positioning properties:
+
+```css
+.review-command-menu {
+  --a11y-command-menu-bg: #172033;
+  --a11y-command-menu-color: #f8fafc;
+  --a11y-command-menu-muted-color: #cbd5e1;
+  --a11y-command-menu-border-color: #94a3b8;
+  --a11y-command-menu-item-border-color: rgb(255 255 255 / 0.24);
+  --a11y-command-menu-item-active-bg: #334155;
+  --a11y-command-menu-item-disabled-opacity: 0.6;
+  --a11y-command-menu-radius: 0.75rem;
+  --a11y-command-menu-item-radius: 0.5rem;
+  --a11y-command-menu-shadow: 0 1rem 2.5rem rgb(0 0 0 / 0.4);
+  --a11y-command-menu-padding: 0.5rem;
+  --a11y-command-menu-gap: 0.25rem;
+  --a11y-command-menu-min-width: 18rem;
+  --a11y-command-menu-max-width: 24rem;
+  --a11y-command-menu-z-index: 1000;
+  --a11y-command-menu-item-gap: 0.75rem;
+  --a11y-command-menu-item-padding: 0.75rem 0.8rem;
+  --a11y-command-menu-focus-ring: 3px solid #fbbf24;
+  --a11y-command-menu-focus-offset: 4px;
+  --a11y-command-menu-transition-duration: 160ms;
+}
+```
+
+Shortcut labels styled with `.a11y-command-menu-button__shortcut` are visual hints only. The package does not register global keyboard shortcuts; the host application must route them around editable fields, platform conventions, user preferences, and conflicts.
+
+When `portal: true`, the runtime copies public `--a11y-command-menu-*` values to the moved layers and restores their original inline values on destroy. Do not depend on unrelated inherited styles from `document.body`. Recheck text, active, disabled, focus-ring, and boundary contrast after applying a custom theme.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> / <kbd>ArrowDown</kbd> | Trigger | Open and focus the first keyboard-discoverable command. |
+| <kbd>ArrowUp</kbd> | Trigger | Open and focus the last keyboard-discoverable command. |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> | Open menu | Move within the current menu, with optional wrapping. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Open menu | Focus the first or last discoverable command. |
+| Printable characters | Open menu | Move by the start of command text when typeahead is enabled. |
+| <kbd>ArrowRight</kbd> / <kbd>ArrowLeft</kbd> | Submenu trigger or submenu | Open or close one submenu level; directions reverse automatically for right-to-left layouts. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Command | Activate an enabled command. Links retain native navigation; checkable commands update their explicit state. |
+| <kbd>Escape</kbd> | Open menu or submenu | Close the complete menu and return focus to the opener. |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Open menu | Close and continue to the control after or before the trigger. |
+
+Native `disabled` controls are excluded from roving focus. Commands using `aria-disabled="true"`, `.is-disabled`, `aria-busy="true"`, or `data-command-loading` remain Arrow-key discoverable but block normal command activation. When every command is natively disabled, the menu can open but focus remains on the trigger.
+
+## Focus behavior
+
+Trigger activation moves focus to the first or last command according to the key used. One active command participates in roving `tabindex` within the current menu. Opening a submenu moves focus into it; the reverse directional key returns focus to its parent command.
+
+Escape restores focus to the opener. Tab and Shift+Tab close the menu and place focus around the trigger rather than trapping it. Outside pointer or focus movement closes without stealing focus from the destination. Enabled link navigation leaves the destination responsible for the resulting focus.
+
+`refresh({ preserveFocus: true })` retains a still-valid stable command ID, otherwise selects a safe nearby command or the trigger. Portal mode preserves the same keyboard order even though the panel is temporarily moved in the DOM.
+
+## Progressive enhancement and accessibility notes
+
+The author supplies semantic buttons, links, menu roles, labels, and relationships; the package synchronizes expanded state, roving focus, submenu state, placement, and temporary portal state. `destroy()` restores author-owned roles, IDs, ARIA attributes, `hidden`, `tabindex`, moved layers, and package-managed positioning properties.
+
+An authored `hidden` menu is not usable without JavaScript. If its commands are essential, provide an always-visible fallback or a simpler native pattern elsewhere. Do not treat installing the package as complete accessibility: command names, action outcomes, confirmation and error recovery, custom colors, responsive placement, and real assistive-technology testing remain integration responsibilities.
+
+Keep `data-command-id` values stable and non-sensitive. Command events reveal user intent when forwarded to analytics, so group or redact IDs and do not send raw labels or document-specific values without a privacy review.
+
+The package includes implementation evidence and a manual test plan; it does not claim WCAG conformance.
+
+## Live example
+
+This example imports the installed root runtime, public stylesheet, event constants, and public checkable adapter. It demonstrates a normal command, a host-owned checkbox command, one submenu, an ARIA-disabled command with a polite explanation, typeahead, focus restoration, and destroy/reinitialize reset behavior.
+
+<CommandMenuButtonDemo />
+
+## Known limitations and browser support
+
+- Only one submenu level is supported; nested `data-command-submenu` elements produce a developer warning.
+- The package is an application menu, not site navigation, a command palette, a dialog, or a general collision-positioning engine.
+- Visual shortcut labels do not register keyboard shortcuts.
+- The checkable adapter requires valid explicit roles, checked values, and named radio groups; it does not infer groups or persist preferences.
+- Status announcements require a host-provided live region and should be verified with the product’s supported screen readers.
+- Events are observational, non-cancelable, and do not cross a Shadow DOM boundary.
+- Focus can remain on the trigger when all commands use native `disabled`.
+- Portal layers inherit copied public theme variables, not arbitrary ancestor styles.
+- The package publishes no formal browser-support matrix. Its test guide calls for current Chrome, Firefox, and Safari plus VoiceOver, NVDA, and release-critical mobile combinations; the published release records Chromium evidence but leaves other browser and assistive-technology checks manual.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, accessibility evidence, and maintained examples](https://github.com/vmitsaras/a11y-command-menu-button)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version 1.0.0](https://www.npmjs.com/package/a11y-command-menu-button)</Card>
+  <Card title="Maintained examples" icon="rocket">[Basic command-menu example](https://vmitsaras.github.io/a11y-command-menu-button/examples/basic/) and [status-announcement example](https://vmitsaras.github.io/a11y-command-menu-button/examples/status-announcements/)</Card>
+  <Card title="Related: Menu Button" icon="document">[Use a disclosure with native controls and document Tab order](/plugins/a11y-menu-button/)</Card>
+  <Card title="Related: Async Button" icon="document">[Manage a command’s loading, success, and recovery states](/plugins/a11y-async-button/)</Card>
+</CardGrid>

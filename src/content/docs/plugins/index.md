@@ -15,6 +15,12 @@ Add disclosure-style action panels to real buttons while keeping native links, b
 
 **Status:** Stable · **Package:** `a11y-menu-button`
 
+### [A11y Command Menu Button](/plugins/a11y-command-menu-button/)
+
+Add application-style command menus to real buttons with roving focus, one-level submenus, typeahead, disabled and busy states, optional announcements, and host-owned checkable commands.
+
+**Status:** Stable · **Package:** `a11y-command-menu-button`
+
 ## Forms
 
 ### [A11y Form Validator](/plugins/a11y-form-validator/)

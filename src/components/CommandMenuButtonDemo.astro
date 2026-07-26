@@ -1,0 +1,422 @@
+---
+import 'a11y-command-menu-button/styles.css';
+---
+
+<section
+  class="command-menu-demo"
+  aria-labelledby="command-menu-demo-title"
+  data-command-menu-demo
+>
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="command-menu-demo-title">Triage an accessibility review</h3>
+    <p id="command-menu-demo-instructions">
+      Open the command menu and use Arrow keys, Home, End, typeahead, or the one-level
+      submenu. “Export signed report” is deliberately unavailable.
+    </p>
+  </div>
+
+  <div class="review-workspace">
+    <article class="review-summary" aria-labelledby="review-summary-title">
+      <p class="review-id">Review A11Y-84</p>
+      <h4 id="review-summary-title">Account recovery flow</h4>
+      <dl>
+        <div>
+          <dt>Open findings</dt>
+          <dd>7</dd>
+        </div>
+        <div>
+          <dt>Reviewers</dt>
+          <dd>2</dd>
+        </div>
+      </dl>
+    </article>
+
+    <div class="a11y-command-menu-button review-command-menu" data-command-menu>
+      <button
+        id="review-command-trigger"
+        class="a11y-command-menu-button__trigger review-command-trigger"
+        type="button"
+        data-command-trigger
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-controls="review-command-panel"
+        aria-describedby="command-menu-demo-instructions"
+      >
+        Review commands
+      </button>
+
+      <div
+        id="review-command-panel"
+        class="a11y-command-menu-button__panel"
+        data-command-menu-panel
+        role="menu"
+        aria-labelledby="review-command-trigger"
+        hidden
+      >
+        <ul class="a11y-command-menu-button__list" role="none">
+          <li role="none">
+            <button
+              class="a11y-command-menu-button__item"
+              type="button"
+              data-command-item
+              data-command-id="assign-reviewer"
+              data-command-announcement="Reviewer assignment opened."
+              role="menuitem"
+            >
+              <span class="a11y-command-menu-button__item-icon" aria-hidden="true">A</span>
+              <span class="a11y-command-menu-button__item-content">
+                <span class="a11y-command-menu-button__item-label">Assign reviewer</span>
+                <span class="a11y-command-menu-button__item-meta">Choose another review owner</span>
+              </span>
+            </button>
+          </li>
+
+          <li role="none">
+            <button
+              class="a11y-command-menu-button__item"
+              type="button"
+              data-command-item
+              data-command-id="show-resolved"
+              role="menuitemcheckbox"
+              aria-checked="false"
+            >
+              <span class="a11y-command-menu-button__checkmark" aria-hidden="true"></span>
+              <span class="a11y-command-menu-button__item-content">
+                <span class="a11y-command-menu-button__item-label">Show resolved findings</span>
+                <span class="a11y-command-menu-button__item-meta">Keep this menu open while toggling</span>
+              </span>
+            </button>
+          </li>
+
+          <li role="none">
+            <button
+              id="review-view-trigger"
+              class="a11y-command-menu-button__item"
+              type="button"
+              data-command-item
+              data-command-submenu-trigger
+              data-command-id="change-review-view"
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="review-view-submenu"
+            >
+              <span class="a11y-command-menu-button__item-icon" aria-hidden="true">V</span>
+              <span class="a11y-command-menu-button__item-content">
+                <span class="a11y-command-menu-button__item-label">Change review view</span>
+                <span class="a11y-command-menu-button__item-meta">Open a one-level submenu</span>
+              </span>
+              <span class="a11y-command-menu-button__item-arrow" aria-hidden="true">›</span>
+            </button>
+
+            <div
+              id="review-view-submenu"
+              class="a11y-command-menu-button__submenu"
+              data-command-submenu
+              role="menu"
+              aria-labelledby="review-view-trigger"
+              hidden
+            >
+              <ul class="a11y-command-menu-button__list" role="none">
+                <li role="none">
+                  <button
+                    class="a11y-command-menu-button__item"
+                    type="button"
+                    data-command-item
+                    data-command-id="view-by-page"
+                    data-command-announcement="Review grouped by page."
+                    role="menuitem"
+                  >
+                    <span class="a11y-command-menu-button__item-content">
+                      <span class="a11y-command-menu-button__item-label">Group by page</span>
+                      <span class="a11y-command-menu-button__item-meta">Follow the audited journey</span>
+                    </span>
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    class="a11y-command-menu-button__item"
+                    type="button"
+                    data-command-item
+                    data-command-id="view-by-severity"
+                    data-command-announcement="Review grouped by severity."
+                    role="menuitem"
+                  >
+                    <span class="a11y-command-menu-button__item-content">
+                      <span class="a11y-command-menu-button__item-label">Group by severity</span>
+                      <span class="a11y-command-menu-button__item-meta">Prioritize blocking issues</span>
+                    </span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </li>
+
+          <li class="a11y-command-menu-button__separator" role="none"></li>
+
+          <li role="none">
+            <button
+              class="a11y-command-menu-button__item is-disabled"
+              type="button"
+              data-command-item
+              data-command-id="export-report"
+              data-command-disabled-announcement="The signed report is unavailable until all blocking findings are resolved."
+              role="menuitem"
+              aria-disabled="true"
+            >
+              <span class="a11y-command-menu-button__item-icon" aria-hidden="true">E</span>
+              <span class="a11y-command-menu-button__item-content">
+                <span class="a11y-command-menu-button__item-label">Export signed report</span>
+                <span class="a11y-command-menu-button__item-meta">Unavailable while blockers remain</span>
+              </span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-controls">
+    <button class="reset-button" type="button" data-command-menu-reset>Reset example</button>
+    <p
+      id="review-command-status"
+      class="demo-status"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-command-menu-status
+    >
+      No review command has been selected.
+    </p>
+  </div>
+
+  <noscript>
+    <p class="no-script-note">
+      JavaScript is required for this application-menu interaction. Keep essential commands
+      available elsewhere when progressive enhancement is required.
+    </p>
+  </noscript>
+</section>
+
+<script>
+  import {
+    COMMAND_MENU_BUTTON_EVENTS,
+    createCommandMenuButton,
+  } from 'a11y-command-menu-button';
+  import { createCheckableCommandAdapter } from 'a11y-command-menu-button/checkable';
+
+  const demo = document.querySelector<HTMLElement>('[data-command-menu-demo]');
+
+  if (demo) {
+    const root = demo.querySelector<HTMLElement>('[data-command-menu]');
+    const status = demo.querySelector<HTMLElement>('[data-command-menu-status]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-command-menu-reset]');
+    const showResolved = demo.querySelector<HTMLElement>('[data-command-id="show-resolved"]');
+    let menuInstance: ReturnType<typeof createCommandMenuButton> | undefined;
+    let checkableInstance: ReturnType<typeof createCheckableCommandAdapter> | undefined;
+
+    const initialize = () => {
+      if (!root) return;
+
+      menuInstance = createCommandMenuButton(root, {
+        closeOnSelect: true,
+        hoverSubmenus: false,
+        typeahead: true,
+        announce: status
+          ? {
+              target: status,
+              formatCommand: ({ item }) => {
+                if (item.dataset.commandId === 'show-resolved') {
+                  return item.getAttribute('aria-checked') === 'true'
+                    ? 'Resolved findings are now included.'
+                    : 'Resolved findings are hidden.';
+                }
+
+                return item.dataset.commandAnnouncement || 'Command activated.';
+              },
+              formatDisabled: ({ item }) =>
+                item.dataset.commandDisabledAnnouncement || 'Command unavailable.',
+              formatLoading: ({ item }) =>
+                item.dataset.commandLoadingAnnouncement || 'Command is still loading.',
+            }
+          : false,
+      });
+      checkableInstance = createCheckableCommandAdapter(root);
+    };
+
+    initialize();
+
+    root?.addEventListener(COMMAND_MENU_BUTTON_EVENTS.command, (event) => {
+      if (!(event instanceof CustomEvent) || !status) return;
+
+      const item = event.detail.item;
+      if (!(item instanceof HTMLElement)) return;
+
+      if (item.dataset.commandId === 'show-resolved') {
+        status.textContent =
+          item.getAttribute('aria-checked') === 'true'
+            ? 'Resolved findings are now included.'
+            : 'Resolved findings are hidden.';
+      }
+    });
+
+    resetButton?.addEventListener('click', () => {
+      checkableInstance?.destroy();
+      menuInstance?.destroy();
+      showResolved?.setAttribute('aria-checked', 'false');
+      if (status) status.textContent = 'Example reset. No review command has been selected.';
+      initialize();
+    });
+  }
+</script>
+
+<style>
+  .command-menu-demo {
+    position: relative;
+    z-index: 1;
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 50rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: .25rem .5rem;
+  }
+
+  .eyebrow,
+  .review-id {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: .75rem;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .review-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 20rem;
+    align-items: start;
+    gap: 1rem;
+    margin-block-start: 1.5rem;
+    padding: clamp(.85rem, 2vw, 1.25rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .65rem;
+    background: var(--sl-color-black);
+  }
+
+  .review-summary {
+    padding: 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .55rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .review-summary h4 {
+    margin-block: .35rem 1rem;
+  }
+
+  .review-summary dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    margin: 0;
+  }
+
+  .review-summary dl div {
+    min-width: 8rem;
+    padding: .65rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .4rem;
+  }
+
+  .review-summary dt {
+    color: var(--sl-color-gray-2);
+    font-size: .8rem;
+  }
+
+  .review-summary dd {
+    margin: .15rem 0 0;
+    font-size: 1.25rem;
+    font-weight: 750;
+  }
+
+  .review-command-menu {
+    --a11y-command-menu-bg: #172033;
+    --a11y-command-menu-color: #f8fafc;
+    --a11y-command-menu-muted-color: #cbd5e1;
+    --a11y-command-menu-border-color: #94a3b8;
+    --a11y-command-menu-item-border-color: rgb(255 255 255 / .24);
+    --a11y-command-menu-item-active-bg: #334155;
+    --a11y-command-menu-focus-ring: 3px solid #fbbf24;
+    --a11y-command-menu-min-width: min(22rem, calc(100vw - 3rem));
+    --a11y-command-menu-max-width: min(24rem, calc(100vw - 3rem));
+  }
+
+  .review-command-trigger,
+  .reset-button {
+    min-height: 2.75rem;
+    margin: 0;
+    padding: .65rem 1rem;
+    border: 2px solid var(--sl-color-accent-high);
+    border-radius: .45rem;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .review-command-trigger {
+    color: var(--sl-color-black);
+    background: var(--sl-color-accent-high);
+  }
+
+  .reset-button {
+    color: var(--sl-color-white);
+    background: transparent;
+  }
+
+  .reset-button:focus-visible {
+    outline: 3px solid var(--sl-color-accent-high);
+    outline-offset: 3px;
+  }
+
+  .demo-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    margin-block-start: 1rem;
+  }
+
+  .demo-status {
+    min-height: 1.5rem;
+    margin: 0;
+    font-weight: 650;
+  }
+
+  .no-script-note {
+    margin-block: 1rem 0;
+    padding: .75rem;
+    border-inline-start: .25rem solid var(--sl-color-orange);
+  }
+
+  @media (max-width: 40rem) {
+    .review-workspace {
+      grid-template-columns: 1fr;
+      min-height: 24rem;
+    }
+
+    .review-command-menu,
+    .review-command-trigger {
+      width: 100%;
+    }
+  }
+</style>

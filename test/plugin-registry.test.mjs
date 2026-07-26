@@ -13,6 +13,7 @@ import * as loadMoreRuntime from 'a11y-load-more';
 import * as characterCountRuntime from 'a11y-character-count';
 import * as tagInputRuntime from 'a11y-tag-input';
 import * as menuButtonRuntime from 'a11y-menu-button';
+import * as commandMenuButtonRuntime from 'a11y-command-menu-button';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -26,7 +27,9 @@ import { docs as loadMoreDocs } from 'a11y-load-more/docs';
 import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
+import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
 import { inspectTagInputs } from 'a11y-tag-input/dev';
+import { createCheckableCommandAdapter } from 'a11y-command-menu-button/checkable';
 import { enhanceAsyncMenuState } from 'a11y-menu-button/addons/async-menu-state';
 import { enhanceCommandMenu } from 'a11y-menu-button/addons/command-menu';
 import { enhanceFilterableMenu } from 'a11y-menu-button/addons/filterable-menu';
@@ -246,5 +249,27 @@ test('a11y-menu-button exposes the documented public contract', () => {
   assert.match(
     import.meta.resolve('a11y-menu-button/styles/themes/a11y-menu-button-elevated.css'),
     /a11y-menu-button\/dist\/styles\/themes\/a11y-menu-button-elevated\.css$/,
+  );
+});
+
+test('a11y-command-menu-button exposes the documented public contract', () => {
+  assert.ok(Object.keys(commandMenuButtonRuntime).length > 0);
+  assert.equal(typeof commandMenuButtonRuntime.createCommandMenuButton, 'function');
+  assert.equal(typeof commandMenuButtonRuntime.initCommandMenuButtons, 'function');
+  assert.equal(typeof commandMenuButtonRuntime.A11yCommandMenuButton, 'function');
+  assert.equal(typeof commandMenuButtonRuntime.COMMAND_MENU_BUTTON_EVENTS, 'object');
+  assert.equal(typeof createCheckableCommandAdapter, 'function');
+  assert.equal(commandMenuButtonDocs.packageName, 'a11y-command-menu-button');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-command-menu-button')?.docs,
+    commandMenuButtonDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-command-menu-button/styles.css'),
+    /a11y-command-menu-button\/dist\/styles\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('a11y-command-menu-button/checkable'),
+    /a11y-command-menu-button\/dist\/checkable\.js$/,
   );
 });
