@@ -3,6 +3,8 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
+  site: 'https://vmitsaras.github.io',
+  base: '/a11y-ui-lab',
   integrations: [
     starlight({
       title: 'A11y UI',
