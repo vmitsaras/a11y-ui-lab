@@ -213,8 +213,8 @@ Load one theme after the core stylesheet. Recheck text, background, hover, activ
 | --- | --- | --- |
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Trigger | Use native button activation to toggle the panel. |
 | <kbd>ArrowDown</kbd> / <kbd>ArrowUp</kbd> | Trigger | Open and focus the first or last enabled visible control. |
-| <kbd>ArrowDown</kbd> / <kbd>ArrowUp</kbd> | Open panel | Move through enabled visible controls with wrapping. |
-| <kbd>Home</kbd> / <kbd>End</kbd> | Open panel | Focus the first or last enabled visible control. |
+| <kbd>ArrowDown</kbd> / <kbd>ArrowUp</kbd> | Open panel | Move through enabled visible controls with wrapping, skipping disabled controls and reaching native controls such as checkboxes. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Open panel | Focus the first or last enabled visible control, including native controls. |
 | Printable characters | Open panel, outside editable controls | Move to the next control whose `data-menu-label`, ARIA name, native label, or text starts with the query. |
 | <kbd>Escape</kbd> | Open component | Close and return focus to the trigger when configured. |
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Native button item | Run the native action; item-driven closing conditionally restores trigger focus. |
@@ -258,7 +258,7 @@ This example imports the installed core, stylesheet, Elevated theme, event const
 - The package publishes no completed browser or screen-reader test matrix. Verify current Chromium, Firefox, and Safari plus the assistive-technology combinations supported by the product.
 
 <Aside type="note" title="Published metadata gaps">
-  Version 1.0.0 is published and installable, but its `docs` object omits the optional npm URL. The docs metadata and README reference maintained examples that are available in the repository and hosted site but excluded from the npm tarball. The published README also retains a pre-publication sentence that conflicts with the installed npm release. This guide uses the package export map, declarations, metadata, changelog, README, and repository examples without private imports or a local adapter.
+  Version 1.0.1 is published and installable, but its `docs` object omits the optional npm URL. The docs metadata references maintained examples that are available in the repository and hosted site but excluded from the npm tarball. The README's former pre-publication wording was corrected in this release. This guide uses the package export map, declarations, metadata, changelog, README, and repository examples without private imports or a local adapter.
 </Aside>
 
 ## Resources and related plugins
