@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "test": "node --test",
-    "validate:plugins": "node scripts/validate-plugins.mjs"
+    "validate:plugins": "node scripts/validate-plugins.mjs",
+    "check:plugin-releases": "node scripts/check-plugin-releases.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.41.3",

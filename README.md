@@ -38,6 +38,7 @@ Astro will print the local development URL in the terminal.
 | `npm run check` | Run Astro and TypeScript checks |
 | `npm test` | Run the Node.js test suite |
 | `npm run validate:plugins` | Validate plugin registry entries |
+| `npm run check:plugin-releases` | Check registered npm packages for releases and identify the affected docs pages |
 
 ## Project structure
 
@@ -65,6 +66,10 @@ npm run build
 ```
 
 The plugin's own repository remains the source of truth for runtime code, releases, types, and package-level documentation. A11y UI Lab consumes the published package and documents its public contract.
+
+### Checking plugin releases
+
+Run `npm run check:plugin-releases` to check only packages registered in `src/data/plugins.mjs`. The report includes the installed, compatible, and latest published versions, the release type, and the corresponding MDX page to review. It is intentionally read-only: review a release's public API and behaviour before installing the explicit approved version it prints. The existing page already uses the package's exported docs metadata through the registry; update its editorial MDX and demo only when the release changes the documented contract.
 
 ## License
 
