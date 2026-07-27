@@ -1,0 +1,302 @@
+---
+title: A11y Data Grid
+description: Composite-widget keyboard navigation, sorting, selection, filtering, recovery, and view helpers for interactive native HTML tables.
+sidebar:
+  order: 6
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import DataGridDemo from '../../../components/DataGridDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Tables" variant="note" />
+
+`a11y-data-grid` progressively enhances an interactive native HTML table with the WAI-ARIA grid interaction model. It creates one Tab stop, supports cell-by-cell keyboard navigation and an explicit interaction mode for controls inside cells, and can opt into sorting and row or cell selection. Public addon subpaths cover filtering, recovery, explanation, export, pagination, and view management.
+
+<Aside type="caution" title="Use the grid pattern only when interaction requires it">
+  A grid changes how keyboard users reach and operate table content. Use a normal semantic table, or [`a11y-sortable-table`](/a11y-ui-lab/plugins/a11y-sortable-table/), when people mainly read and sort data. This package does not claim complete WCAG conformance.
+</Aside>
+
+## Use when
+
+- A dense table contains enough interactive cells that placing every control in the normal Tab order would be burdensome.
+- Users need predictable Arrow-key movement between cells and a separate mode for links, buttons, or form controls inside a cell.
+- The host needs optional client sorting, row or cell selection, and persistent visible explanations of the active view.
+- The server can render a complete, meaningful native table before JavaScript runs.
+
+## Avoid when
+
+- The content is primarily read-only or only needs column sorting.
+- The layout is not genuinely tabular.
+- The workflow needs spreadsheet editing, range selection, column resizing or reordering, virtualization, infinite rows, or cursor pagination from the core plugin.
+- `rowspan` or `colspan` is essential to the table structure; complex spanned-cell navigation is not implemented.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-data-grid
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-data-grid
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-data-grid
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM and does not auto-initialize. Import the runtime and public stylesheet through the package export map.
+
+```js
+import { createA11yDataGrid } from 'a11y-data-grid';
+import 'a11y-data-grid/styles.css';
+
+const root = document.querySelector('[data-a11y-data-grid]');
+
+if (root instanceof HTMLElement) {
+  createA11yDataGrid(root, {
+    sortable: true,
+    selectable: true,
+  });
+}
+```
+
+`a11y-data-grid/min` exposes the same minified ESM runtime for consumers that explicitly want that entry.
+
+## Required markup
+
+Start with a real `<table>` containing proper row and column headers. Give it an accessible name with a `<caption>`, `aria-label`, or `aria-labelledby`, and keep its keyboard instructions visible.
+
+```html
+<section class="a11y-data-grid" data-a11y-data-grid>
+  <p id="payments-help" data-a11y-data-grid-help>
+    Use arrow keys to move between cells. Press Enter or F2 to interact
+    with controls in the active cell. Press Escape or F2 to return.
+  </p>
+
+  <p id="payments-scroll-hint" class="a11y-data-grid__scroll-hint">
+    Scroll horizontally to reveal more columns.
+  </p>
+
+  <div class="a11y-data-grid__scroller">
+    <table
+      data-a11y-data-grid-table
+      aria-describedby="payments-help payments-scroll-hint"
+    >
+      <caption>Recent payments</caption>
+      <thead>
+        <tr>
+          <th scope="col">Reference</th>
+          <th scope="col">
+            <button
+              type="button"
+              class="a11y-data-grid__sort-button"
+              data-a11y-data-grid-sort="amount"
+              data-a11y-data-grid-sort-type="number"
+            >
+              Amount
+              <span class="a11y-data-grid__sort-indicator" aria-hidden="true"></span>
+            </button>
+          </th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">PAY-1042</th>
+          <td data-sort-value="199.95">$199.95</td>
+          <td><button type="button">Review payment</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div
+    class="a11y-data-grid__live"
+    data-a11y-data-grid-live
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+</section>
+```
+
+The plugin adds `role="grid"` only after successful initialization. Mark a row or cell with `data-a11y-data-grid-disabled="true"` or `aria-disabled="true"` when grid navigation should skip it. Use `data-sort-value` for formatted numbers or dates whose displayed text is not a reliable sort key.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `wrapRows` | `false` | Allows Left/Right movement to wrap across row boundaries. |
+| `enableHomeEnd` | `true` | Enables first/last-cell movement within the active row. |
+| `enableCtrlHomeEnd` | `true` | Enables first/last-cell movement across the whole grid when Home/End is enabled. |
+| `enablePageKeys` | `false` | Enables PageUp and PageDown row jumps. |
+| `pageSize` | `5` | Number of rows moved by enabled page keys. |
+| `sortable` | `false` | Activates authored sortable header buttons. |
+| `sortMode` | `client` | Reorders DOM rows in `client` mode or emits sort intent in `manual` mode. |
+| `liveAnnouncements` | `true` | Announces sort and selection changes through the shared polite region. |
+| `scrollFocusedCellIntoView` | `true` | Scrolls the newly focused cell into view. |
+| `skipDisabledCells` | `true` | Skips rows or cells marked disabled. |
+| `selectable` | `false` | Enables Space to toggle selection in grid navigation mode. |
+| `selectionMode` | `row` | Applies selection to the active `row` or active `cell`. |
+
+Equivalent `data-*` options are normalized safely by the class. Prefer JavaScript options when application logic already owns initialization.
+
+## Runtime API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11yDataGrid` | Class for consumers that need direct construction. |
+| `createA11yDataGrid(root, options?)` | Creates one instance, reusing the instance already attached to that root. |
+| `initA11yDataGridAll(options?, scope?)` | Initializes all matching roots in a document or fragment. |
+| `A11Y_DATA_GRID_EVENTS` | Frozen catalog of core event names. |
+| `grid.update()` | Rebuilds cell metadata and sortable controls after rows, columns, controls, or visibility change. |
+| `grid.getActiveCell()` | Returns the active cell, focus target, row/column indexes, and interaction-mode state. |
+| `grid.announce(message, options?)` | Sends a message through the grid's polite status channel. |
+| `grid.destroy()` | Removes core and attached-addon listeners and restores package-managed roles, tabindexes, ARIA state, panels, controls, visibility, and live regions. |
+
+`sortMode: 'manual'` is required when the application, including the remote-pagination adapter, owns sorted row rendering. Call `update()` after application code adds, removes, hides, or replaces rows, cells, columns, or sortable buttons.
+
+## Events
+
+Core events dispatch synchronously from the grid root, bubble, do not cross a Shadow DOM boundary (`composed: false`), and include `instance` and `root` in `detail`.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-data-grid:init` | Core enhancement completes. |
+| `a11y-data-grid:focus-change` | The active cell changes. |
+| `a11y-data-grid:interaction-start` | Enter or F2 starts interaction mode. |
+| `a11y-data-grid:interaction-end` | Escape, F2, or supported input behavior ends interaction mode. |
+| `a11y-data-grid:sort-change` | Sort direction changes; detail includes `columnKey`, `columnIndex`, `direction`, and `mode`. |
+| `a11y-data-grid:selection-change` | Row or cell selection changes. |
+| `a11y-data-grid:update` | Dynamic cell metadata is refreshed. |
+| `a11y-data-grid:warning` | Unsupported structure, including spanned cells, is detected. |
+| `a11y-data-grid:destroy` | Cleanup begins, before managed markup is restored. |
+
+`selection-change` is cancelable only so an addon can claim announcement ownership; canceling it does not undo selection. Addon events also dispatch from `grid.root`, bubble, and use `composed: false`. The filter and state change events are cancelable only while announcing, and the row-action event is cancelable to veto activation. Other addon events are observations.
+
+## Addons
+
+Every addon is opt-in through a documented public subpath. The main stylesheet includes the package-owned addon styles.
+
+| Public import | Primary behavior |
+| --- | --- |
+| `a11y-data-grid/addons/filter` | Text filtering plus an optional media-query-controlled filter; exposes match counts and silent coordinated updates. |
+| `a11y-data-grid/addons/filter-suggestions` | Editable-combobox suggestions, in-memory recent searches, popular visible values, chips, typo recovery, and no-results guidance. |
+| `a11y-data-grid/addons/state` | Loading, empty, and error messages with `aria-busy` coordination and filter no-results handling. |
+| `a11y-data-grid/addons/recovery-actions` | Contextual native recovery links and buttons for empty and error states. |
+| `a11y-data-grid/addons/column-visibility` | Checkbox-controlled or media-query-controlled columns, required-column protection, metadata refresh, and opt-in persistence. |
+| `a11y-data-grid/addons/row-actions` | Contextual active-row actions outside the composite grid, including proxies for existing row controls. |
+| `a11y-data-grid/addons/row-details` | Active-row key/value details, metadata, messages, and actions outside the grid. |
+| `a11y-data-grid/addons/keyboard-help` | A generated shortcut reference limited to the options enabled on the instance. |
+| `a11y-data-grid/addons/export` | Visible or selected row/cell extraction plus CSV, TSV, clipboard, and download helpers. |
+| `a11y-data-grid/addons/bulk-actions` | Persistent selection count, Clear selection, and application-defined bulk actions. |
+| `a11y-data-grid/addons/cell-summary` | Active-cell value, column, position, and selection context with announcement throttling. |
+| `a11y-data-grid/addons/cell-help` | Application-authored cell meaning and opt-in detailed business context. |
+| `a11y-data-grid/addons/sort-explainer` | Persistent explanation of active sort, comparison type, empty-value placement, and hidden sort values. |
+| `a11y-data-grid/addons/data-quality` | Application-supplied issue rules, text badges, issue counts, filtering, summary, and cell navigation. |
+| `a11y-data-grid/addons/saved-views` | Named filter, column, sort, preference, and client-pagination views; persistence is opt-in. |
+| `a11y-data-grid/addons/pagination` | Client pagination or guarded application-owned remote pagination with known totals. |
+| `a11y-data-grid/addons/view-diff` | Structured comparison between current state and a named saved view. |
+| `a11y-data-grid/addons/view-summary` | Persistent “Current view” explanation with focused recovery and reset actions. |
+
+```js
+import { initA11yDataGridFilter } from 'a11y-data-grid/addons/filter';
+import { initA11yDataGridViewSummary } from 'a11y-data-grid/addons/view-summary';
+
+const filter = initA11yDataGridFilter(grid, '#payment-filter');
+const summary = initA11yDataGridViewSummary(grid, {
+  filter,
+  defaultView: 'All payments',
+});
+
+summary.resetView();
+```
+
+Stateful addon initializers reuse an existing instance for the same grid or controller. Destroying the core grid also destroys attached addons. Saved views remain in memory unless `storageKey` or `storageAdapter` is supplied; use scoped keys and avoid sensitive values in names, filters, or preferences. The remote adapter coordinates requests and guarded commits, but application code still chooses the endpoint, calls `fetch()`, and renders rows.
+
+## CSS customization
+
+The public stylesheet supplies table and scroller layout, roving-focus and selection states, sort indicators, addon panels and controls, a responsive scroll hint, `prefers-reduced-motion` treatment, and forced-colors adjustments.
+
+```css
+.payments-grid {
+  --a11y-data-grid-background: #ffffff;
+  --a11y-data-grid-border-color: #94a3b8;
+  --a11y-data-grid-focus-color: #9a3412;
+  --a11y-data-grid-header-background: #f8fafc;
+  --a11y-data-grid-active-background: #e0f2fe;
+  --a11y-data-grid-selected-background: #dbeafe;
+  --a11y-data-grid-text-color: #172033;
+  --a11y-data-grid-muted-color: #475569;
+  --a11y-data-grid-cell-padding: 0.65rem 0.8rem;
+  --a11y-data-grid-panel-background: #f4f7fb;
+  --a11y-data-grid-accent-color: #0f766e;
+  --a11y-data-grid-action-background: #ffffff;
+  --a11y-data-grid-action-color: #123c69;
+  --a11y-data-grid-error-color: #a61b1b;
+}
+```
+
+The package also publishes `--a11y-data-grid-shadow-color`, `.a11y-data-grid--wide`, `.is-active-cell`, `.is-sorted-ascending`, `.is-sorted-descending`, the interaction-mode data state, and `[aria-selected="true"]`. Preserve a visible focus indicator and a non-color-only selection cue when overriding these styles.
+
+## Keyboard interaction
+
+| Key | Behavior |
+| --- | --- |
+| Arrow keys | Move focus between enabled grid cells while grid navigation is active. |
+| Home / End | Move to the first or last cell in the active row when enabled. |
+| Ctrl+Home / Ctrl+End | Move to the first or last cell in the grid when enabled. |
+| PageUp / PageDown | Move by `pageSize` rows when page keys are enabled. |
+| Enter / F2 | Enter interaction mode for links, buttons, inputs, and other controls in the active cell. |
+| Escape / F2 | Exit interaction mode and restore grid navigation. |
+| Space | Toggle row or cell selection when selection is enabled and interaction mode is inactive. |
+| Tab / Shift+Tab | Enter or leave the composite grid once, or move normally through controls while in interaction mode. |
+
+The filter-suggestions addon has its own editable-combobox behavior: Up/Down moves the active option, Home/End moves within the open list, Enter chooses, Escape closes, and Tab follows document order. Native addon buttons, links, and pagination controls use their normal keyboard behavior.
+
+## Focus behavior
+
+Roving `tabindex` makes the grid a single stop in document Tab order. Arrow movement places DOM focus on the active cell target and can scroll it into view. Enter or F2 temporarily enables the cell's interactive descendants; Escape or F2 returns focus to the active grid cell. Disabled rows and cells are skipped.
+
+Client sorting restores the logical active cell after row reordering. When filtering or client pagination hides the DOM-focused cell, the related addon recovers to an available cell; paging controls keep focus when they remain relevant. Keyboard help returns focus to its trigger. View-summary recovery keeps focus on the action when it survives, otherwise moves to Reset view or the Current view heading.
+
+## Progressive enhancement and accessibility notes
+
+Server-render the caption, headers, rows, values, instructions, and any essential navigation. Without JavaScript, the authored native table remains readable, `role="grid"` is absent, all client-pagination rows remain in the document, and generated addon controls do not exist. Authored sort buttons and filters will not work without initialization; when those actions are essential, provide server-backed links or form submission as the baseline.
+
+The plugin aligns visual active and selected states with `tabindex` and ARIA state, keeps `aria-sort` on the related `<th>`, and uses one polite status channel for sort, selection, and coordinated addon messages. Test the actual data, controls, responsive scroller, zoom/reflow, forced colors, and supported screen-reader/browser combinations.
+
+## Live example
+
+The demo imports only the installed package's public runtime, stylesheet, filter, state, bulk-actions, keyboard-help, and view-summary exports. It includes sorting, row selection, controls inside cells, a skipped syncing row, no-results recovery, and a reset to the initial view.
+
+<DataGridDemo />
+
+## Known limitations and browser support
+
+- Use a normal table when users mainly read static data; the grid pattern adds keyboard-learning cost.
+- Complex spreadsheet editing, range selection, resizing, reordering, remote virtualization, and infinite rows are outside the core package.
+- Client pagination keeps all rows in the DOM and does not reduce DOM memory.
+- Remote pagination requires known totals. Cursor pagination, caching, cross-page selection, and cross-page export remain application responsibilities.
+- `rowspan` and `colspan` dispatch a warning, but complex spanned-cell navigation is not implemented.
+- Space selection is disabled in interaction mode so controls retain native keyboard behavior.
+- Core and addon events use `composed: false`, so they do not cross Shadow DOM boundaries.
+- No explicit browser matrix is published. The package uses ESM, modern DOM and table APIs, `matchMedia`, native dialog when requested, and modern CSS; verify against the host application's support policy.
+- The npm tarball includes the README, changelog, evidence, QA, declarations, runtime, and CSS, but not the example directories referenced by the README and `docs.examples`. Maintained examples remain available in the public repository and GitHub Pages site.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, evidence, and maintained examples](https://github.com/vmitsaras/a11y-data-grid)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-data-grid)</Card>
+  <Card title="Interactive examples" icon="rocket">[Package-maintained demos](https://vmitsaras.github.io/a11y-data-grid/)</Card>
+  <Card title="Related: Sortable Table" icon="document">[Keep native table navigation when only column sorting is needed](/a11y-ui-lab/plugins/a11y-sortable-table/)</Card>
+  <Card title="Related: Filter List" icon="document">[Filter semantic lists and card collections without a grid interaction model](/a11y-ui-lab/plugins/a11y-filter-list/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/a11y-ui-lab/plugins/).

@@ -5,6 +5,7 @@ import * as conditionalFieldsRuntime from 'a11y-conditional-fields';
 import * as passwordStrengthMeterRuntime from 'a11y-password-strength-meter';
 import * as resultCountRuntime from 'a11y-result-count';
 import * as sortableTableRuntime from 'a11y-sortable-table';
+import * as dataGridRuntime from 'a11y-data-grid';
 import * as filterListRuntime from 'a11y-filter-list';
 import * as filterSummaryRuntime from 'a11y-filter-summary';
 import * as errorSummaryRuntime from 'a11y-error-summary';
@@ -21,6 +22,7 @@ import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
 import { docs as resultCountDocs } from 'a11y-result-count/docs';
 import { docs as sortableTableDocs } from 'a11y-sortable-table/docs';
+import { docs as dataGridDocs } from 'a11y-data-grid/docs';
 import { docs as filterListDocs } from 'a11y-filter-list/docs';
 import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
@@ -77,6 +79,9 @@ import { createEmptyStateActions } from 'a11y-filter-list/addons/empty-state-act
 import { createFacetCounts } from 'a11y-filter-list/addons/facet-counts';
 import { createSortableTableColumnVisibility } from 'a11y-sortable-table/column-visibility';
 import { createSortableTableReset } from 'a11y-sortable-table/reset-state';
+import { initA11yDataGridFilter } from 'a11y-data-grid/addons/filter';
+import { initA11yDataGridKeyboardHelp } from 'a11y-data-grid/addons/keyboard-help';
+import { initA11yDataGridViewSummary } from 'a11y-data-grid/addons/view-summary';
 import { createCharacterCountAddon } from 'a11y-form-validator/addons/character-count';
 import { createErrorSummaryAddon } from 'a11y-form-validator/addons/error-summary';
 import { plugins } from '../src/data/plugins.mjs';
@@ -160,6 +165,20 @@ test('a11y-sortable-table exposes the documented public contract', () => {
   assert.equal(sortableTableDocs.packageName, 'a11y-sortable-table');
   assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-sortable-table')?.docs, sortableTableDocs);
   assert.match(import.meta.resolve('a11y-sortable-table/styles.css'), /a11y-sortable-table\/dist\/styles\.css$/);
+});
+
+test('a11y-data-grid exposes the documented public contract', () => {
+  assert.ok(Object.keys(dataGridRuntime).length > 0);
+  assert.equal(typeof dataGridRuntime.createA11yDataGrid, 'function');
+  assert.equal(typeof dataGridRuntime.initA11yDataGridAll, 'function');
+  assert.equal(typeof dataGridRuntime.A11yDataGrid, 'function');
+  assert.equal(typeof dataGridRuntime.A11Y_DATA_GRID_EVENTS, 'object');
+  assert.equal(typeof initA11yDataGridFilter, 'function');
+  assert.equal(typeof initA11yDataGridKeyboardHelp, 'function');
+  assert.equal(typeof initA11yDataGridViewSummary, 'function');
+  assert.equal(dataGridDocs.packageName, 'a11y-data-grid');
+  assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-data-grid')?.docs, dataGridDocs);
+  assert.match(import.meta.resolve('a11y-data-grid/styles.css'), /a11y-data-grid\/dist\/styles\.css$/);
 });
 
 test('a11y-filter-list exposes the documented public contract', () => {

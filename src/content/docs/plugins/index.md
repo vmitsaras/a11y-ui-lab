@@ -97,6 +97,12 @@ Add stable sorting, `aria-sort`, focus preservation, and polite announcements to
 
 **Status:** Stable · **Package:** `a11y-sortable-table`
 
+### [A11y Data Grid](/a11y-ui-lab/plugins/a11y-data-grid/)
+
+Turn an interactive native table into a composite grid with one Tab stop, cell-by-cell navigation, interaction mode, optional sorting and selection, plus opt-in filtering, recovery, explanation, export, pagination, and view-management addons.
+
+**Status:** Stable · **Package:** `a11y-data-grid`
+
 ### [A11y Filter List](/a11y-ui-lab/plugins/a11y-filter-list/)
 
 Add text search and pressed-state category filters to semantic lists and card grids, with visible result counts, empty-state recovery, and optional filter summaries, typo suggestions, and facet counts.

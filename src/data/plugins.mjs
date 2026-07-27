@@ -3,6 +3,7 @@ import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
 import { docs as resultCountDocs } from 'a11y-result-count/docs';
 import { docs as sortableTableDocs } from 'a11y-sortable-table/docs';
+import { docs as dataGridDocs } from 'a11y-data-grid/docs';
 import { docs as filterListDocs } from 'a11y-filter-list/docs';
 import { docs as filterSummaryDocs } from 'a11y-filter-summary/docs';
 import { docs as errorSummaryDocs } from 'a11y-error-summary/docs';
@@ -70,8 +71,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-sortable-table',
     demo: '/plugins/a11y-sortable-table/#live-example',
-    related: ['a11y-result-count', 'a11y-filter-list'],
+    related: ['a11y-data-grid', 'a11y-result-count', 'a11y-filter-list'],
     docs: sortableTableDocs,
+  },
+  {
+    slug: 'a11y-data-grid',
+    packageName: 'a11y-data-grid',
+    category: 'table',
+    status: 'stable',
+    docsPath: 'plugins/a11y-data-grid',
+    demo: '/plugins/a11y-data-grid/#live-example',
+    related: ['a11y-sortable-table', 'a11y-filter-list'],
+    notes: 'Version 1.0.0 publishes complete docs metadata, core styles, and 18 addon subpaths; its README and docs metadata reference maintained repository examples that are not included in the npm tarball.',
+    docs: dataGridDocs,
   },
   {
     slug: 'a11y-filter-list',

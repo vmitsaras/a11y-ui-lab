@@ -19,6 +19,7 @@
     "a11y-character-count": "^1.0.0",
     "a11y-command-menu-button": "^1.0.0",
     "a11y-conditional-fields": "^1.0.1",
+    "a11y-data-grid": "^1.0.0",
     "a11y-error-summary": "^1.0.0",
     "a11y-filter-list": "^1.0.0",
     "a11y-filter-summary": "^1.0.0",

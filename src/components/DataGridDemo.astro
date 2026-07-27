@@ -1,0 +1,328 @@
+---
+import 'a11y-data-grid/styles.css';
+---
+
+<section class="data-grid-demo" aria-labelledby="data-grid-demo-title" data-grid-demo>
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="data-grid-demo-title">Accessibility finding review queue</h3>
+    <p>
+      Use the grid keyboard model to inspect findings, sort columns, select rows, and enter
+      interaction mode for a row action. Search for <code>captions</code> to exercise the
+      no-results state; the syncing row is deliberately skipped by grid navigation.
+    </p>
+  </div>
+
+  <div class="demo-tools">
+    <div>
+      <label for="data-grid-filter">Filter findings</label>
+      <p id="data-grid-filter-help">Matches text in any visible row. Try owner, severity, or status.</p>
+      <input
+        id="data-grid-filter"
+        type="search"
+        autocomplete="off"
+        aria-describedby="data-grid-filter-help"
+        placeholder="Try critical or Amara"
+        data-grid-filter
+      />
+    </div>
+    <button type="button" class="reset-button" data-grid-reset>Reset example</button>
+  </div>
+
+  <div class="a11y-data-grid findings-grid" data-a11y-data-grid>
+    <p id="data-grid-help" data-a11y-data-grid-help>
+      Arrow keys move between cells. Enter or F2 enters interaction mode. Escape or F2 returns
+      to grid navigation. Space selects the active row.
+    </p>
+    <p id="data-grid-scroll-hint" class="a11y-data-grid__scroll-hint">
+      Scroll horizontally to reveal every column on smaller screens.
+    </p>
+
+    <div class="a11y-data-grid__scroller">
+      <table
+        data-a11y-data-grid-table
+        aria-describedby="data-grid-help data-grid-scroll-hint"
+      >
+        <caption>Open accessibility findings</caption>
+        <thead>
+          <tr>
+            <th scope="col">
+              <button
+                class="a11y-data-grid__sort-button"
+                type="button"
+                data-a11y-data-grid-sort="finding"
+              >
+                Finding <span class="a11y-data-grid__sort-indicator" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col">
+              <button
+                class="a11y-data-grid__sort-button"
+                type="button"
+                data-a11y-data-grid-sort="severity"
+                data-a11y-data-grid-sort-type="number"
+              >
+                Severity <span class="a11y-data-grid__sort-indicator" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col">
+              <button
+                class="a11y-data-grid__sort-button"
+                type="button"
+                data-a11y-data-grid-sort="owner"
+              >
+                Owner <span class="a11y-data-grid__sort-indicator" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col">
+              <button
+                class="a11y-data-grid__sort-button"
+                type="button"
+                data-a11y-data-grid-sort="age"
+                data-a11y-data-grid-sort-type="number"
+              >
+                Age <span class="a11y-data-grid__sort-indicator" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-a11y-data-grid-row-label="Keyboard trap in date picker">
+            <th scope="row">Keyboard trap in date picker</th>
+            <td data-sort-value="1"><span class="severity">Critical</span></td>
+            <td>Amara</td>
+            <td data-sort-value="5">5 days</td>
+            <td><button type="button" data-review-action>Review finding</button></td>
+          </tr>
+          <tr data-a11y-data-grid-row-label="Missing checkout error summary">
+            <th scope="row">Missing checkout error summary</th>
+            <td data-sort-value="2"><span class="severity">High</span></td>
+            <td>Jon</td>
+            <td data-sort-value="3">3 days</td>
+            <td><button type="button" data-review-action>Review finding</button></td>
+          </tr>
+          <tr
+            data-a11y-data-grid-disabled="true"
+            data-a11y-data-grid-row-label="Audit results syncing"
+          >
+            <th scope="row">Audit results syncing</th>
+            <td data-sort-value="4"><span class="severity">Pending</span></td>
+            <td>Automation</td>
+            <td data-sort-value="">—</td>
+            <td><button type="button" disabled>Review unavailable</button></td>
+          </tr>
+          <tr data-a11y-data-grid-row-label="Focus indicator is clipped">
+            <th scope="row">Focus indicator is clipped</th>
+            <td data-sort-value="3"><span class="severity">Medium</span></td>
+            <td>Priya</td>
+            <td data-sort-value="8">8 days</td>
+            <td><button type="button" data-review-action>Review finding</button></td>
+          </tr>
+          <tr data-a11y-data-grid-row-label="Dialog loses return focus">
+            <th scope="row">Dialog loses return focus</th>
+            <td data-sort-value="2"><span class="severity">High</span></td>
+            <td>Mateo</td>
+            <td data-sort-value="1">1 day</td>
+            <td><button type="button" data-review-action>Review finding</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="a11y-data-grid__live"
+      data-a11y-data-grid-live
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+  </div>
+
+  <p class="demo-status" role="status" aria-live="polite" data-grid-action-status>
+    No finding has been opened.
+  </p>
+</section>
+
+<script>
+  import { A11yDataGrid } from 'a11y-data-grid';
+  import { initA11yDataGridFilter } from 'a11y-data-grid/addons/filter';
+  import { initA11yDataGridState } from 'a11y-data-grid/addons/state';
+  import { initA11yDataGridBulkActions } from 'a11y-data-grid/addons/bulk-actions';
+  import { initA11yDataGridKeyboardHelp } from 'a11y-data-grid/addons/keyboard-help';
+  import { initA11yDataGridViewSummary } from 'a11y-data-grid/addons/view-summary';
+
+  const demo = document.querySelector<HTMLElement>('[data-grid-demo]');
+
+  if (demo) {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-data-grid]');
+    const input = demo.querySelector<HTMLInputElement>('[data-grid-filter]');
+    const reset = demo.querySelector<HTMLButtonElement>('[data-grid-reset]');
+    const status = demo.querySelector<HTMLElement>('[data-grid-action-status]');
+
+    if (root && input) {
+      const grid = new A11yDataGrid(root, {
+        sortable: true,
+        selectable: true,
+        selectionMode: 'row',
+      });
+      const filter = initA11yDataGridFilter(grid, input);
+      initA11yDataGridState(grid, {
+        noResultsMessage: 'No findings match this filter. Clear the filter or reset the view.',
+      });
+      const bulkActions = initA11yDataGridBulkActions(grid, {
+        label: 'Selected findings',
+        toolbarLabel: 'Finding selection',
+        clearLabel: 'Clear selected findings',
+      });
+      initA11yDataGridKeyboardHelp(grid, {
+        buttonLabel: 'Show grid keyboard help',
+        heading: 'Finding grid keyboard help',
+      });
+      const viewSummary = initA11yDataGridViewSummary(grid, {
+        filter,
+        bulkActions,
+        defaultView: 'All open findings',
+      });
+
+      reset?.addEventListener('click', () => {
+        viewSummary.resetView();
+        if (status) status.textContent = 'Example reset to all open findings.';
+        input.focus();
+      });
+
+      for (const button of demo.querySelectorAll<HTMLButtonElement>('[data-review-action]')) {
+        button.addEventListener('click', () => {
+          const label =
+            button.closest<HTMLTableRowElement>('tr')?.dataset.a11yDataGridRowLabel ??
+            'Selected finding';
+          if (status) status.textContent = `${label} opened for review.`;
+        });
+      }
+    }
+  }
+</script>
+
+<style>
+  .data-grid-demo {
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 52rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: .25rem .5rem;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: .75rem;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .demo-tools {
+    display: flex;
+    gap: 1rem;
+    align-items: end;
+    justify-content: space-between;
+    margin-block: 1.25rem;
+  }
+
+  .demo-tools > div {
+    flex: 1;
+    max-width: 32rem;
+  }
+
+  .demo-tools label {
+    display: block;
+    font-weight: 700;
+  }
+
+  .demo-tools p {
+    margin-block: .25rem .5rem;
+    color: var(--sl-color-gray-2);
+    font-size: .875rem;
+  }
+
+  .demo-tools input {
+    width: 100%;
+  }
+
+  .findings-grid {
+    --a11y-data-grid-background: var(--sl-color-bg);
+    --a11y-data-grid-border-color: var(--sl-color-gray-4);
+    --a11y-data-grid-focus-color: #e85d04;
+    --a11y-data-grid-header-background: var(--sl-color-gray-6);
+    --a11y-data-grid-active-background: color-mix(in srgb, var(--sl-color-accent-low) 72%, transparent);
+    --a11y-data-grid-selected-background: color-mix(in srgb, var(--sl-color-accent) 22%, var(--sl-color-bg));
+    --a11y-data-grid-text-color: var(--sl-color-text);
+    --a11y-data-grid-muted-color: var(--sl-color-gray-2);
+    --a11y-data-grid-action-background: var(--sl-color-bg);
+    --a11y-data-grid-action-color: var(--sl-color-accent-high);
+  }
+
+  .findings-grid [data-a11y-data-grid-help] {
+    margin-block: .5rem;
+  }
+
+  .findings-grid table {
+    min-width: 47rem;
+  }
+
+  .findings-grid th:first-child {
+    min-width: 15rem;
+  }
+
+  .findings-grid button,
+  .reset-button {
+    margin: 0;
+  }
+
+  .severity {
+    display: inline-block;
+    padding: .15rem .45rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-text);
+    font-size: .8rem;
+    font-weight: 750;
+  }
+
+  .demo-status {
+    min-height: 1.5rem;
+    margin-block-end: 0;
+    font-weight: 700;
+  }
+
+  .reset-button:focus-visible,
+  .demo-tools input:focus-visible {
+    outline: 3px solid #e85d04;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 38rem) {
+    .demo-tools {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .reset-button {
+      width: 100%;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .severity {
+      forced-color-adjust: none;
+      color: CanvasText;
+    }
+  }
+</style>
