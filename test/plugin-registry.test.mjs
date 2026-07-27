@@ -15,6 +15,7 @@ import * as tagInputRuntime from 'a11y-tag-input';
 import * as menuButtonRuntime from 'a11y-menu-button';
 import * as commandMenuButtonRuntime from 'a11y-command-menu-button';
 import * as tabsRuntime from 'a11y-tabs-widget';
+import * as dialogRuntime from '@vmitsaras/a11y-dialog';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -30,6 +31,11 @@ import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
 import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
+import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
+import { createA11yDialogOutcome } from '@vmitsaras/a11y-dialog/outcome';
+import { createA11yDialogAsyncAction } from '@vmitsaras/a11y-dialog/async-action';
+import { inspectA11yDialogs } from '@vmitsaras/a11y-dialog/diagnostics';
+import { createA11yDialogMorph } from '@vmitsaras/a11y-dialog/morph';
 import { inspectTagInputs } from 'a11y-tag-input/dev';
 import { createCheckableCommandAdapter } from 'a11y-command-menu-button/checkable';
 import { A11yTabsAccordion } from 'a11y-tabs-widget/addons/a11y-tabs-accordion';
@@ -308,4 +314,28 @@ test('a11y-tabs-widget exposes the documented public contract', () => {
   assert.equal(tabsDocs.packageName, 'a11y-tabs-widget');
   assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-tabs-widget')?.docs, tabsDocs);
   assert.match(import.meta.resolve('a11y-tabs-widget/styles.css'), /a11y-tabs-widget\/dist\/styles\.css$/);
+});
+
+test('@vmitsaras/a11y-dialog exposes the documented public contract', () => {
+  assert.ok(Object.keys(dialogRuntime).length > 0);
+  assert.equal(typeof dialogRuntime.createA11yDialog, 'function');
+  assert.equal(typeof dialogRuntime.initA11yDialogs, 'function');
+  assert.equal(typeof dialogRuntime.A11yDialog, 'function');
+  assert.equal(typeof createA11yDialogOutcome, 'function');
+  assert.equal(typeof createA11yDialogAsyncAction, 'function');
+  assert.equal(typeof inspectA11yDialogs, 'function');
+  assert.equal(typeof createA11yDialogMorph, 'function');
+  assert.equal(dialogDocs.packageName, '@vmitsaras/a11y-dialog');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === '@vmitsaras/a11y-dialog')?.docs,
+    dialogDocs,
+  );
+  assert.match(
+    import.meta.resolve('@vmitsaras/a11y-dialog/styles.css'),
+    /@vmitsaras\/a11y-dialog\/dist\/styles\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('@vmitsaras/a11y-dialog/morph.css'),
+    /@vmitsaras\/a11y-dialog\/dist\/morph\.css$/,
+  );
 });

@@ -13,6 +13,7 @@ import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
 import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
+import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -151,7 +152,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-menu-button',
     demo: '/plugins/a11y-menu-button/#live-example',
-    related: ['a11y-async-button', 'a11y-command-menu-button', 'a11y-tabs'],
+    related: ['a11y-async-button', 'a11y-command-menu-button', 'a11y-tabs', 'a11y-dialog'],
     notes: 'Version 1.0.0 docs metadata omits the npm URL, the npm tarball excludes its referenced examples, and the published README retains pre-publication wording.',
     docs: menuButtonDocs,
   },
@@ -173,8 +174,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-tabs',
     demo: '/plugins/a11y-tabs/#live-example',
-    related: ['a11y-menu-button', 'a11y-command-menu-button'],
+    related: ['a11y-menu-button', 'a11y-command-menu-button', 'a11y-dialog'],
     notes: 'Version 1.0.0 publishes complete docs metadata and 12 public addon subpaths; maintained examples are repository-hosted rather than included in the npm tarball.',
     docs: tabsDocs,
+  },
+  {
+    slug: 'a11y-dialog',
+    packageName: '@vmitsaras/a11y-dialog',
+    category: 'navigation',
+    status: 'stable',
+    docsPath: 'plugins/a11y-dialog',
+    demo: '/plugins/a11y-dialog/#live-example',
+    related: ['a11y-menu-button', 'a11y-tabs'],
+    notes: 'Version 1.0.0 publishes complete docs metadata, core and morph stylesheets, and public outcome, async-action, diagnostics, and morph subpaths; maintained examples are repository-hosted rather than included in the npm tarball.',
+    docs: dialogDocs,
   },
 ];

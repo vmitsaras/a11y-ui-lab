@@ -1,0 +1,353 @@
+---
+import '@vmitsaras/a11y-dialog/styles.css';
+---
+
+<section class="dialog-demo" data-a11y-dialog-demo aria-labelledby="dialog-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="dialog-demo-title">Invite a teammate</h3>
+    <p>
+      Open the dialog, choose a simulated service response, and submit the form.
+      The temporary-error path remains available for a keyboard-operable retry.
+      No request is sent.
+    </p>
+  </div>
+
+  <div class="demo-toolbar">
+    <button class="demo-primary" type="button" data-dialog-demo-trigger>
+      Invite a teammate
+    </button>
+    <button class="demo-secondary" type="button" data-dialog-demo-reset>
+      Reset example
+    </button>
+  </div>
+
+  <p class="demo-summary" data-dialog-demo-summary>
+    Ready. Opening the dialog moves focus to the email field.
+  </p>
+
+  <dialog
+    class="a11y-dialog dialog-demo__dialog"
+    data-a11y-dialog
+    data-dialog-demo-dialog
+    data-a11y-dialog-async-status-target="#dialog-demo-status"
+    aria-labelledby="dialog-demo-dialog-title"
+    aria-describedby="dialog-demo-description"
+  >
+    <div class="a11y-dialog__surface">
+      <header class="a11y-dialog__header">
+        <div>
+          <p class="dialog-kicker">Workspace access</p>
+          <h2 class="a11y-dialog__title" id="dialog-demo-dialog-title">
+            Invite a teammate
+          </h2>
+        </div>
+        <button
+          class="a11y-dialog__button"
+          type="button"
+          data-a11y-dialog-close
+          aria-label="Close invitation dialog"
+        >
+          Close
+        </button>
+      </header>
+
+      <div class="a11y-dialog__body">
+        <p id="dialog-demo-description">
+          Enter an email address and choose how this local simulation should respond.
+        </p>
+
+        <form class="invite-form" data-dialog-demo-form data-a11y-dialog-async-action="invite">
+          <div class="field">
+            <label for="dialog-demo-email">Work email</label>
+            <input
+              id="dialog-demo-email"
+              name="email"
+              type="email"
+              value="alex@example.com"
+              autocomplete="email"
+              required
+              data-a11y-dialog-initial-focus
+            />
+          </div>
+
+          <div class="field">
+            <label for="dialog-demo-result">Simulated service response</label>
+            <select id="dialog-demo-result" data-dialog-demo-result>
+              <option value="error">Return a temporary error</option>
+              <option value="success">Send successfully</option>
+            </select>
+          </div>
+
+          <p id="dialog-demo-status" class="dialog-status" role="status">
+            Ready to send an invitation.
+          </p>
+
+          <div class="a11y-dialog__actions">
+            <button class="a11y-dialog__button" type="button" data-a11y-dialog-close>
+              Cancel
+            </button>
+            <button
+              class="a11y-dialog__button a11y-dialog__button--primary"
+              type="submit"
+            >
+              Send invitation
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+</section>
+
+<script>
+  import {
+    A11Y_DIALOG_EVENTS,
+    createA11yDialog,
+  } from '@vmitsaras/a11y-dialog';
+  import type { A11yDialogInstance } from '@vmitsaras/a11y-dialog';
+  import {
+    A11Y_DIALOG_ASYNC_ACTION_EVENTS,
+    createA11yDialogAsyncAction,
+  } from '@vmitsaras/a11y-dialog/async-action';
+  import type { A11yDialogAsyncActionInstance } from '@vmitsaras/a11y-dialog/async-action';
+
+  const demoRoot = document.querySelector('[data-a11y-dialog-demo]');
+
+  if (demoRoot instanceof HTMLElement) {
+    const dialog = demoRoot.querySelector('[data-dialog-demo-dialog]');
+    const trigger = demoRoot.querySelector('[data-dialog-demo-trigger]');
+    const reset = demoRoot.querySelector('[data-dialog-demo-reset]');
+    const form = demoRoot.querySelector('[data-dialog-demo-form]');
+    const result = demoRoot.querySelector('[data-dialog-demo-result]');
+    const actionStatus = demoRoot.querySelector('#dialog-demo-status');
+    const summary = demoRoot.querySelector('[data-dialog-demo-summary]');
+
+    if (
+      dialog instanceof HTMLDialogElement &&
+      trigger instanceof HTMLButtonElement &&
+      reset instanceof HTMLButtonElement &&
+      form instanceof HTMLFormElement &&
+      result instanceof HTMLSelectElement &&
+      actionStatus instanceof HTMLElement &&
+      summary instanceof HTMLElement
+    ) {
+      const waitForSimulation = (signal: AbortSignal | null) =>
+        new Promise((resolve, reject) => {
+          const timer = window.setTimeout(() => {
+            if (result.value === 'error') {
+              reject(new Error('Simulated temporary invitation service error'));
+            } else {
+              resolve(undefined);
+            }
+          }, 850);
+
+          signal?.addEventListener(
+            'abort',
+            () => {
+              window.clearTimeout(timer);
+              reject(new DOMException('Invitation simulation canceled', 'AbortError'));
+            },
+            { once: true },
+          );
+        });
+
+      let dialogInstance: A11yDialogInstance;
+      let asyncAction: A11yDialogAsyncActionInstance;
+
+      const initialize = () => {
+        dialogInstance = createA11yDialog(dialog, {
+          closeOnBackdrop: true,
+          closeOnEscape: true,
+          restoreFocus: true,
+        });
+
+        asyncAction = createA11yDialogAsyncAction(dialog, {
+          trigger: form,
+          statusTarget: actionStatus,
+          name: 'invite',
+          pendingMessage: 'Sending the invitation...',
+          successMessage: 'Invitation sent in this simulation. No request was made.',
+          errorMessage: 'The invitation service is temporarily unavailable. Choose the successful response and retry.',
+          canceledMessage: null,
+          pendingClose: 'abort',
+          closeOnSuccess: false,
+          clearStatusOnReset: true,
+          busyTarget: dialog,
+          action: ({ signal }) => waitForSimulation(signal),
+        });
+      };
+
+      initialize();
+
+      trigger.addEventListener('click', () => {
+        summary.textContent = 'Dialog opened. Focus moved to the email field.';
+        dialogInstance.open(trigger);
+      });
+
+      dialog.addEventListener(A11Y_DIALOG_ASYNC_ACTION_EVENTS.success, () => {
+        summary.textContent = 'Invitation simulation succeeded. The dialog remains open so the result can be reviewed.';
+      });
+
+      dialog.addEventListener(A11Y_DIALOG_ASYNC_ACTION_EVENTS.error, () => {
+        summary.textContent = 'Temporary error returned. Change the simulated response and retry.';
+      });
+
+      dialog.addEventListener(A11Y_DIALOG_EVENTS.close, () => {
+        summary.textContent = asyncAction.state === 'canceled'
+          ? 'Pending invitation canceled. Focus returned to the opener.'
+          : 'Dialog closed. Focus returned to the opener.';
+      });
+
+      reset.addEventListener('click', () => {
+        asyncAction.destroy();
+        dialogInstance.destroy();
+        form.reset();
+        result.value = 'error';
+        actionStatus.textContent = 'Ready to send an invitation.';
+        summary.textContent = 'Example reset. The temporary-error response is selected.';
+        initialize();
+        trigger.focus();
+      });
+
+      document.addEventListener(
+        'astro:before-swap',
+        () => {
+          asyncAction.destroy();
+          dialogInstance.destroy();
+        },
+        { once: true },
+      );
+    }
+  }
+</script>
+
+<style>
+  .dialog-demo {
+    --a11y-dialog-background: #ffffff;
+    --a11y-dialog-border-color: #64748b;
+    --a11y-dialog-border-radius: 0.85rem;
+    --a11y-dialog-color: #172033;
+    --a11y-dialog-focus-color: #2563eb;
+    --a11y-dialog-max-inline-size: 38rem;
+    --a11y-dialog-button-background: #14532d;
+    --a11y-dialog-button-color: #ffffff;
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 48rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: 0.25rem 0.5rem;
+  }
+
+  .eyebrow,
+  .dialog-kicker {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .dialog-kicker {
+    color: #166534;
+  }
+
+  .demo-toolbar,
+  .a11y-dialog__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .demo-toolbar {
+    margin-block-start: 1.25rem;
+  }
+
+  .demo-primary,
+  .demo-secondary {
+    min-block-size: 2.75rem;
+    padding: 0.65rem 1rem;
+    border: 2px solid var(--sl-color-accent-high);
+    border-radius: 0.4rem;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .demo-primary {
+    color: var(--sl-color-black);
+    background: var(--sl-color-accent-high);
+  }
+
+  .demo-secondary {
+    color: var(--sl-color-white);
+    background: transparent;
+  }
+
+  .demo-primary:focus-visible,
+  .demo-secondary:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 3px;
+  }
+
+  .demo-summary {
+    min-height: 1.5rem;
+    margin-block: 1rem 0;
+    font-weight: 650;
+  }
+
+  .dialog-demo__dialog {
+    overscroll-behavior: contain;
+  }
+
+  .invite-form,
+  .field {
+    display: grid;
+  }
+
+  .invite-form {
+    gap: 1rem;
+  }
+
+  .field {
+    gap: 0.4rem;
+  }
+
+  .field label {
+    font-weight: 700;
+  }
+
+  .field input,
+  .field select {
+    inline-size: 100%;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #64748b;
+    border-radius: 0.4rem;
+    color: #172033;
+    background: #ffffff;
+    font: inherit;
+  }
+
+  .dialog-status {
+    min-height: 1.5rem;
+    margin: 0;
+    color: #334155;
+    font-weight: 650;
+  }
+
+  @media (max-width: 40rem) {
+    .demo-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+</style>

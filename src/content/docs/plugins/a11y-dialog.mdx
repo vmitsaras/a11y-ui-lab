@@ -1,0 +1,450 @@
+---
+title: A11y Dialog
+description: Native modal dialogs with enforced labels, safe initial focus, keyboard containment, focus restoration, lifecycle events, cleanup, and optional workflow helpers.
+sidebar:
+  order: 16
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import A11yDialogDemo from '../../../components/A11yDialogDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Navigation & disclosure" variant="note" />
+
+`@vmitsaras/a11y-dialog` enhances a native `<dialog>` with required visible
+labelling, safe initial focus, Tab containment, Escape and backdrop policies,
+focus restoration, typed lifecycle events, duplicate-init protection, and
+complete cleanup. Optional public subpaths add outcome messages, async action
+state, authoring diagnostics, and progressive morph transitions.
+
+<Aside type="caution" title="The integration still owns the experience">
+  The package does not claim complete WCAG conformance. The application still owns dialog content, labels, validation, error recovery, async work, responsive layout, color choices, and testing with its target browsers and assistive technologies.
+</Aside>
+
+## Use when
+
+- A modal task needs a native `<dialog>` with predictable focus entry and return.
+- Authors need required visible heading relationships and real button close controls.
+- Escape, optional backdrop dismissal, lifecycle events, and teardown need one documented contract.
+- A dialog workflow benefits from outcome status, async pending/error state, development diagnostics, or optional motion.
+
+## Avoid when
+
+- Content should remain available in the normal page flow or a non-modal disclosure.
+- A native `<details>` element, inline confirmation, or separate page would be simpler.
+- Target browsers lack native `<dialog>` and the project cannot supply its own support strategy.
+- The design requires nested modal dialogs; they are outside the v1 contract.
+- Installing a helper would replace necessary product-specific accessibility and assistive-technology testing.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install @vmitsaras/a11y-dialog
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add @vmitsaras/a11y-dialog
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add @vmitsaras/a11y-dialog
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only and does not initialize the DOM as an import side effect.
+Import the optional public stylesheet separately.
+
+```js
+import { createA11yDialog } from '@vmitsaras/a11y-dialog';
+import '@vmitsaras/a11y-dialog/styles.css';
+
+const dialog = document.querySelector('#settings-dialog');
+const trigger = document.querySelector('#settings-trigger');
+
+if (dialog instanceof HTMLDialogElement && trigger instanceof HTMLButtonElement) {
+  const instance = createA11yDialog(dialog);
+
+  trigger.addEventListener('click', () => {
+    instance.open(trigger);
+  });
+}
+```
+
+Passing the opener to `open()` gives the instance an explicit focus-restoration
+target. Otherwise it remembers the element focused immediately before opening.
+
+## Required markup
+
+Use a native `<dialog>`, reference a visible heading with `aria-labelledby`, and
+mark at least one enabled, visible native button as a close control.
+
+```html
+<button id="settings-trigger" type="button">Review settings</button>
+
+<dialog
+  class="a11y-dialog"
+  id="settings-dialog"
+  data-a11y-dialog
+  aria-labelledby="settings-dialog-title"
+  aria-describedby="settings-dialog-description"
+>
+  <div class="a11y-dialog__surface">
+    <header class="a11y-dialog__header">
+      <h2 class="a11y-dialog__title" id="settings-dialog-title">
+        Review settings
+      </h2>
+      <button class="a11y-dialog__button" type="button" data-a11y-dialog-close>
+        Close
+      </button>
+    </header>
+
+    <p id="settings-dialog-description">
+      Confirm these settings before continuing.
+    </p>
+
+    <div class="a11y-dialog__actions">
+      <button class="a11y-dialog__button" type="button" data-a11y-dialog-close>
+        Cancel
+      </button>
+      <button
+        class="a11y-dialog__button a11y-dialog__button--primary"
+        type="button"
+        data-a11y-dialog-close
+        data-a11y-dialog-initial-focus
+      >
+        Confirm settings
+      </button>
+    </div>
+  </div>
+</dialog>
+```
+
+`aria-describedby` is optional and should point to concise supporting text.
+Close markers on links, generic elements, hidden controls, or disabled buttons
+do not meet the package contract. `requireLabel: false` disables the package
+guard but does not remove the application’s responsibility to provide an
+accessible name.
+
+## Core options and data attributes
+
+JavaScript options override matching data attributes, which override defaults.
+
+| Option | Default | Data attribute | Purpose |
+| --- | --- | --- | --- |
+| `initialFocus` | `null` | `data-a11y-dialog-initial-focus` | Element or selector to focus on open. Unsafe, hidden, disabled, out-of-dialog, or non-focusable targets are ignored. |
+| `restoreFocus` | `true` | `data-a11y-dialog-restore-focus` | Return focus to the connected opener or prior focus target after close. |
+| `closeOnEscape` | `true` | `data-a11y-dialog-close-on-escape` | Allow Escape to close the dialog. |
+| `closeOnBackdrop` | `false` | `data-a11y-dialog-close-on-backdrop` | Allow a click on the native backdrop to close. |
+| `requireLabel` | `true` | `data-a11y-dialog-require-label` | Require `aria-labelledby` to reference an existing visible heading. |
+
+Boolean data attributes use `"true"` and `"false"`. A selector-based initial
+focus target can also be supplied on the dialog:
+
+```html
+<dialog
+  data-a11y-dialog
+  data-a11y-dialog-initial-focus="#confirm-settings"
+  data-a11y-dialog-close-on-backdrop="true"
+  aria-labelledby="settings-title"
+>
+  <!-- ... -->
+</dialog>
+```
+
+## Runtime API and instance methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createA11yDialog(dialog, options?)` | Create or return the existing instance for one native dialog. |
+| `initA11yDialogs(root?)` | Initialize every `[data-a11y-dialog]` descendant in a document or subtree. |
+| `A11yDialog` | Public plugin class used by the factory. |
+| `open(trigger?)` | Open with `showModal()` and move focus inside. |
+| `close()` | Request the package close path and eligible focus restoration. |
+| `isOpen()` | Read the synchronized open state. |
+| `destroy()` | Immediately close if needed, remove listeners and package state, restore changed `tabindex`, and remove duplicate-init tracking. |
+| `A11Y_DIALOG_EVENTS` | Reuse the supported lifecycle event names. |
+| `A11Y_DIALOG_SELECTORS`, `A11Y_DIALOG_CLASSES`, `A11Y_DIALOG_ATTRIBUTES` | Reuse the documented public constants. |
+| `DEFAULT_A11Y_DIALOG_OPTIONS` | Read the normalized core defaults. |
+
+Calling the factory twice for the same element returns the same instance.
+Repeated effective no-op calls do not emit duplicate open, close, or destroy
+events. Calling a method after destruction is unsupported; initialize again
+when the same authored dialog needs fresh behavior.
+
+## Lifecycle events
+
+Events dispatch from the dialog with `bubbles: true` and `composed: false`.
+Detail contains `instance`, `dialog`, `trigger`, and an `open` snapshot.
+
+| Event | Cancelable | When it fires |
+| --- | --- | --- |
+| `a11y-dialog:init` | No | Registration, listeners, and initialized state are ready. |
+| `a11y-dialog:ready` | No | Immediately after `init`, before the constructor returns. |
+| `a11y-dialog:before-open` | Yes | Before an effective open; `preventDefault()` keeps the dialog closed. |
+| `a11y-dialog:open` | No | Open state and initial focus are applied. |
+| `a11y-dialog:before-close` | Yes | Before an effective core close; `preventDefault()` keeps it open. |
+| `a11y-dialog:close` | No | Close state and eligible focus restoration are complete. |
+| `a11y-dialog:change` | No | After an effective open or close. |
+| `a11y-dialog:destroy` | No | Cleanup has completed. |
+
+The guaranteed synchronous sequences are `init → ready`,
+`before-open → open → change`, and `before-close → close → change`. A direct
+native `dialog.close()` cannot be intercepted and reports `close → change`.
+Destroying an open instance bypasses cancellation so teardown cannot be blocked.
+Events do not cross a Shadow DOM boundary because they are not composed.
+
+## Public addons
+
+All four addon modules are explicit public package exports. None auto-initialize
+or import private implementation files.
+
+### Outcome status
+
+`@vmitsaras/a11y-dialog/outcome` writes open or close outcomes into an existing
+author-owned status element. It does not create a hidden live region.
+
+```js
+import { createA11yDialogOutcome } from '@vmitsaras/a11y-dialog/outcome';
+
+const outcome = createA11yDialogOutcome(dialog, {
+  statusTarget: '#settings-status',
+  messages: {
+    save: 'Settings saved.',
+    cancel: 'Settings review canceled. No changes were saved.',
+  },
+  defaultMessage: 'Settings dialog closed. No changes were saved.',
+});
+```
+
+Mark close buttons with `data-a11y-dialog-outcome="save"` or another short key.
+Options cover `statusTarget`, mapped `messages`, `defaultMessage`,
+`openMessage`, `clearOnOpen`, and custom outcome/status attribute names.
+Instances expose `setOutcome()`, `clearOutcome()`, and `destroy()`;
+`a11y-dialog-outcome:update` reports `statusTarget`, outcome, source, reason,
+and resolved message. `initA11yDialogOutcomes(root?)` discovers dialogs whose
+`data-a11y-dialog-status-target` points to an existing status target.
+
+### Async action state
+
+`@vmitsaras/a11y-dialog/async-action` wraps application-owned async work. It
+manages pending, success, error, canceled, disabled, `aria-busy`, and status
+state; it never sends a request itself.
+
+```js
+import { createA11yDialogAsyncAction } from '@vmitsaras/a11y-dialog/async-action';
+
+const action = createA11yDialogAsyncAction(dialog, {
+  trigger: '#settings-form',
+  statusTarget: '#settings-status',
+  pendingMessage: 'Saving settings...',
+  successMessage: 'Settings saved.',
+  errorMessage: 'Settings could not be saved. Try again.',
+  pendingClose: 'abort',
+  action: ({ signal }) => saveSettings({ signal }),
+});
+```
+
+Important options include `action`, `trigger`, `statusTarget`, action `name`,
+pending/success/error/canceled messages, `preventDefault`,
+`ignoreWhilePending`, `disableTrigger`, `closeOnSuccess`,
+`pendingClose: "abort" | "continue"`, `resetOnOpen`, `clearStatusOnReset`, and
+`busyTarget`. Instances expose `run()`, `cancel()`, `reset()`, and `destroy()`.
+Events cover `pending`, `success`, `error`, `canceled`, `reset`, `change`, and
+`destroy` under the `a11y-dialog-async-action:*` namespace.
+
+Closing aborts pending work by default, restores busy and disabled state, and
+suppresses stale UI results. Cancellation is cooperative: app-owned work that
+ignores its `AbortSignal` can still finish externally.
+
+### Markup diagnostics
+
+`@vmitsaras/a11y-dialog/diagnostics` provides a synchronous, read-only
+development scan:
+
+```js
+import { inspectA11yDialogs } from '@vmitsaras/a11y-dialog/diagnostics';
+
+const issues = inspectA11yDialogs(document);
+for (const issue of issues) {
+  console.warn(issue.code, issue.message, issue.element);
+}
+```
+
+Structured issues include `code`, `severity`, `dialog`, `element`, and
+`message`. Stable codes cover duplicate IDs; missing, unresolved, hidden, or
+non-heading labels; unresolved descriptions; missing, non-button, or unusable
+close controls; invalid, unresolved, or unsafe initial focus; and nested
+dialogs. The scanner does not initialize, focus, mutate, observe, store,
+measure rendered CSS visibility, send analytics, or make network calls. A clean
+result is not a WCAG conformance result or a replacement for browser and screen
+reader testing.
+
+### Morph transitions
+
+`@vmitsaras/a11y-dialog/morph` coordinates open and close through the core
+instance. Import its public stylesheet after the core stylesheet.
+
+```js
+import { createA11yDialog } from '@vmitsaras/a11y-dialog';
+import { createA11yDialogMorph } from '@vmitsaras/a11y-dialog/morph';
+import '@vmitsaras/a11y-dialog/styles.css';
+import '@vmitsaras/a11y-dialog/morph.css';
+
+const instance = createA11yDialog(dialog);
+const morph = createA11yDialogMorph(instance, {
+  source: trigger,
+  strategy: 'auto',
+  duration: 180,
+  direction: 'both',
+});
+
+trigger.addEventListener('click', () => morph.open(trigger));
+```
+
+Options cover `source`, `strategy: "auto" | "view-transition" | "css" | "none"`,
+transition `name`, `duration`, `easing`, `className`, `direction`,
+`respectReducedMotion`, and `onUnsupported`. Instances expose `open()`,
+`close()`, and `destroy()`. Declarative equivalents use
+`data-a11y-dialog-morph-*`; the resolved strategy is reflected in
+`data-a11y-dialog-morph-active-strategy`.
+
+Automatic mode uses the View Transition API when available and motion is
+allowed, then falls back to CSS. Reduced motion skips animation by default.
+Direct native `dialog.close()` calls bypass the cancelable core before-close
+hook and morph interception.
+
+## CSS and customization
+
+The optional `@vmitsaras/a11y-dialog/styles.css` export supplies modal sizing,
+surface layout, buttons, visible focus, narrow-screen reflow, forced-colors
+boundaries, backdrop styling, and reduced-motion handling.
+
+| Custom property | Default | Purpose |
+| --- | --- | --- |
+| `--a11y-dialog-background` | `#ffffff` | Dialog surface background. |
+| `--a11y-dialog-border-color` | `#6b7280` | Dialog border. |
+| `--a11y-dialog-border-radius` | `0.5rem` | Corner radius. |
+| `--a11y-dialog-color` | `#111827` | Text color. |
+| `--a11y-dialog-focus-color` | `#0b5fff` | Focus indicator color. |
+| `--a11y-dialog-max-inline-size` | `42rem` | Maximum inline size. |
+| `--a11y-dialog-padding` | `1.25rem` | Surface padding. |
+| `--a11y-dialog-shadow` | package default | Dialog shadow. |
+| `--a11y-dialog-backdrop-color` | package default | Native backdrop color. |
+| `--a11y-dialog-button-background` | `#14532d` | Primary button background. |
+| `--a11y-dialog-button-color` | `#ffffff` | Primary button text. |
+
+```css
+.account-dialog {
+  --a11y-dialog-max-inline-size: 36rem;
+  --a11y-dialog-border-radius: 0.875rem;
+  --a11y-dialog-focus-color: #2563eb;
+  --a11y-dialog-button-background: #14532d;
+}
+```
+
+Morph CSS adds `--a11y-dialog-morph-duration` and
+`--a11y-dialog-morph-easing`, plus advanced old/new background, border, and
+radius hooks for View Transition snapshots. Recheck text, button, focus,
+backdrop, forced-color, zoom, narrow-width, and motion behavior after product
+overrides.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Native opener or close button | Uses native button activation. |
+| <kbd>Tab</kbd> | Open modal | Moves forward through focusable dialog controls and wraps inside as a fallback around native modal behavior. |
+| <kbd>Shift</kbd>+<kbd>Tab</kbd> | Open modal | Moves backward and wraps inside. |
+| <kbd>Escape</kbd> | Open modal | Closes when `closeOnEscape` is `true`; the native `cancel` path is prevented when disabled. |
+
+Backdrop dismissal is pointer behavior and is off by default. Every workflow
+must retain a visible, enabled button that closes the dialog.
+
+## Focus behavior
+
+On open, focus resolves in this order:
+
+1. a safe `initialFocus` option target;
+2. a safe `[data-a11y-dialog-initial-focus]` target;
+3. the first enabled, visible marked close button;
+4. the first focusable element;
+5. the dialog itself.
+
+Targets outside the dialog, hidden targets, disabled controls, and elements
+that cannot receive focus are ignored. The package may temporarily add
+`tabindex="-1"` to the dialog fallback and restores the authored value on
+destroy.
+
+On close, focus returns to the explicit opener or previously focused element
+when `restoreFocus` is enabled and the target remains connected. Async
+cancellation does not move focus; close-time restoration remains owned by the
+core instance.
+
+## Progressive enhancement
+
+The authored element is a native `<dialog>`, and the package uses
+`showModal()`. Importing the module has no DOM side effects, so initialization
+can be scoped to content that exists. `destroy()` removes managed behavior and
+state.
+
+An unopened native `<dialog>` is hidden when JavaScript fails. Essential
+content and irreversible actions therefore need a separate non-dialog path,
+server-rendered fallback, or a design that stays in normal document flow. The
+package does not polyfill `<dialog>`. Morphing is additional progressive
+enhancement: core focus and lifecycle behavior remains available without the
+View Transition API or when reduced motion is requested.
+
+## Accessibility notes
+
+- Use a concise visible heading as the accessible name.
+- Keep descriptions short enough to be useful when announced with the name.
+- Choose initial focus according to the task, not merely the first visual control.
+- Keep destructive and cancel actions clearly labelled and visually distinct.
+- Do not disable Escape or focus restoration without a documented product reason.
+- Avoid competing live regions when outcome and async addons share a workflow.
+- Validate forms and focus validation errors separately; core dialog behavior does not perform validation.
+- Test focus order, zoom/reflow, forced colors, reduced motion, touch targets, and the target browser/screen-reader combinations.
+
+## Live example
+
+This example imports the installed core, public stylesheet, and async-action
+addon. It demonstrates native dialog semantics, safe initial focus, Tab
+containment, Escape and backdrop closing, focus restoration, a deterministic
+temporary error, retry, pending-close cancellation, visible status, cleanup,
+and full reset.
+
+<A11yDialogDemo />
+
+## Known limitations and browser support
+
+- Native `<dialog>` and `showModal()` support are required; no polyfill is shipped.
+- Nested modal dialogs are outside the v1 support contract.
+- Form validation and error-summary focus are application responsibilities.
+- Async work is supplied by the application; the addon only coordinates UI state.
+- Aborting a signal cannot stop external work that ignores it, although late addon UI updates are suppressed.
+- Diagnostics inspect authored relationships and programmatic hidden states, not rendered CSS, browser behavior, or assistive-technology output.
+- View Transition interpolation is browser-owned and needs visual testing; CSS or no-motion paths remain available.
+- The published package does not state a browser-version matrix. Define support from the native web APIs used and verify it against the project’s own baseline.
+
+## Package-maintained examples
+
+The public docs metadata links to repository-hosted basic, outcome-status,
+settings-review, form-validator integration, async invitation, diagnostics-lab,
+and morphing-dialog examples. Those example files are not package subpath
+exports and are not copied into this hub; this page and demo use only the
+installed npm package’s public exports.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="GitHub repository" icon="github">[Read the source project, README, changelog, and maintained examples](https://github.com/vmitsaras/a11y-dialog)</Card>
+  <Card title="npm package" icon="seti:npm">[Install `@vmitsaras/a11y-dialog`](https://www.npmjs.com/package/@vmitsaras/a11y-dialog)</Card>
+  <Card title="Related: Menu Button" icon="document">[Use a non-modal disclosure with native controls and normal Tab order](/plugins/a11y-menu-button/)</Card>
+  <Card title="Related: Tabs Widget" icon="document">[Switch among related in-page panels without opening a modal](/plugins/a11y-tabs/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/plugins/).

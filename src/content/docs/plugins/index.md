@@ -27,6 +27,12 @@ Progressively enhance semantic buttons and content sections into a single-select
 
 **Status:** Stable · **Package:** `a11y-tabs-widget`
 
+### [A11y Dialog](/plugins/a11y-dialog/)
+
+Enhance native modal dialogs with required visible labels, safe initial focus, Tab containment, Escape and backdrop policies, focus restoration, lifecycle events, cleanup, and optional outcome, async-action, diagnostics, and morph helpers.
+
+**Status:** Stable · **Package:** `@vmitsaras/a11y-dialog`
+
 ## Forms
 
 ### [A11y Form Validator](/plugins/a11y-form-validator/)
