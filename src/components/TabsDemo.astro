@@ -1,0 +1,379 @@
+---
+import 'a11y-tabs-widget/styles.css';
+---
+
+<section class="tabs-demo" aria-labelledby="tabs-demo-title" data-tabs-demo>
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="tabs-demo-title">Prepare an accessibility handoff</h3>
+    <p>
+      Review the release, inspect its open findings, and try to approve it with missing required
+      information. The audit log tab is deliberately unavailable.
+    </p>
+  </div>
+
+  <div class="a11y-tabs handoff-tabs" data-a11y-tabs>
+    <div class="a11y-tabs__list" data-a11y-tabs-list aria-label="Accessibility handoff">
+      <button
+        class="a11y-tabs__tab"
+        type="button"
+        data-a11y-tabs-tab
+        data-a11y-tabs-panel-id="tabs-demo-summary"
+      >
+        Summary
+      </button>
+      <button
+        class="a11y-tabs__tab"
+        type="button"
+        data-a11y-tabs-tab
+        data-a11y-tabs-panel-id="tabs-demo-findings"
+      >
+        Findings
+      </button>
+      <button
+        class="a11y-tabs__tab"
+        type="button"
+        data-a11y-tabs-tab
+        data-a11y-tabs-panel-id="tabs-demo-approval"
+      >
+        Approval
+      </button>
+      <button
+        class="a11y-tabs__tab"
+        type="button"
+        data-a11y-tabs-tab
+        data-a11y-tabs-panel-id="tabs-demo-audit-log"
+        disabled
+      >
+        Audit log
+      </button>
+    </div>
+
+    <section class="a11y-tabs__panel" id="tabs-demo-summary" data-a11y-tabs-panel>
+      <p class="panel-kicker">Release candidate 2.4</p>
+      <h4>Checkout flow</h4>
+      <dl class="release-summary">
+        <div>
+          <dt>Checks complete</dt>
+          <dd>18 of 20</dd>
+        </div>
+        <div>
+          <dt>Open findings</dt>
+          <dd>2</dd>
+        </div>
+        <div>
+          <dt>Owner</dt>
+          <dd>Payments team</dd>
+        </div>
+      </dl>
+      <button class="demo-action" type="button" data-review-findings>Review open findings</button>
+    </section>
+
+    <section class="a11y-tabs__panel" id="tabs-demo-findings" data-a11y-tabs-panel>
+      <p class="panel-kicker">Needs attention</p>
+      <h4>Open findings</h4>
+      <ul class="finding-list">
+        <li>
+          <strong>Address autocomplete is missing</strong>
+          <span>High priority · Checkout address</span>
+        </li>
+        <li>
+          <strong>Timeout warning needs more time</strong>
+          <span>Medium priority · Payment confirmation</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="a11y-tabs__panel" id="tabs-demo-approval" data-a11y-tabs-panel>
+      <p class="panel-kicker">Required before handoff</p>
+      <h4>Approval note</h4>
+      <form class="approval-form" data-approval-form novalidate>
+        <label for="tabs-demo-note">Decision note</label>
+        <p id="tabs-demo-note-hint">
+          Explain why the remaining findings are accepted or how they will be resolved.
+        </p>
+        <textarea
+          id="tabs-demo-note"
+          name="decision-note"
+          rows="4"
+          minlength="12"
+          required
+          aria-describedby="tabs-demo-note-hint"
+        ></textarea>
+        <label class="confirmation">
+          <input type="checkbox" name="review-confirmed" required />
+          I reviewed the two open findings.
+        </label>
+        <button class="demo-action" type="submit">Validate handoff</button>
+      </form>
+    </section>
+
+    <section class="a11y-tabs__panel" id="tabs-demo-audit-log" data-a11y-tabs-panel>
+      <p class="panel-kicker">Unavailable</p>
+      <h4>Audit log</h4>
+      <p>The audit-log service is unavailable for this release candidate.</p>
+    </section>
+  </div>
+
+  <div class="demo-controls">
+    <button class="reset-button" type="button" data-tabs-demo-reset>Reset example</button>
+    <p class="demo-status" role="status" aria-live="polite" data-tabs-demo-status>
+      No handoff decision has been submitted.
+    </p>
+  </div>
+</section>
+
+<script>
+  import { createTabs } from 'a11y-tabs-widget';
+  import { A11yTabsValidation } from 'a11y-tabs-widget/addons/a11y-tabs-validation';
+
+  const demo = document.querySelector<HTMLElement>('[data-tabs-demo]');
+
+  if (demo) {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-tabs]');
+    const form = demo.querySelector<HTMLFormElement>('[data-approval-form]');
+    const reviewButton = demo.querySelector<HTMLButtonElement>('[data-review-findings]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-tabs-demo-reset]');
+    const status = demo.querySelector<HTMLElement>('[data-tabs-demo-status]');
+
+    if (root) {
+      const tabs = createTabs(root, { activation: 'manual' });
+      const validation = new A11yTabsValidation(tabs, {
+        live: true,
+        validateOnInput: true,
+      });
+
+      reviewButton?.addEventListener('click', () => {
+        if (tabs.activateByPanelId('tabs-demo-findings')) {
+          tabs.getActiveTab()?.focus();
+          if (status) status.textContent = 'Open findings selected for review.';
+        }
+      });
+
+      form?.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const invalidFields = validation.update();
+
+        if (invalidFields.length > 0) {
+          validation.focusFirstInvalid();
+          if (status) {
+            status.textContent =
+              invalidFields.length === 1
+                ? 'Handoff not ready: 1 required field needs attention.'
+                : `Handoff not ready: ${invalidFields.length} required fields need attention.`;
+          }
+          return;
+        }
+
+        if (status) status.textContent = 'Handoff information is complete and ready for review.';
+      });
+
+      resetButton?.addEventListener('click', () => {
+        form?.reset();
+        validation.update();
+        tabs.activate(0);
+        if (status) status.textContent = 'Example reset. No handoff decision has been submitted.';
+      });
+    }
+  }
+</script>
+
+<style>
+  .tabs-demo {
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 48rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: .25rem .5rem;
+  }
+
+  .eyebrow,
+  .panel-kicker {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: .75rem;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .handoff-tabs {
+    --a11y-tabs-border-color: #94a3b8;
+    --a11y-tabs-panel-border-color: #cbd5e1;
+    --a11y-tabs-background: #ffffff;
+    --a11y-tabs-muted-background: #f8fafc;
+    --a11y-tabs-hover-background: #e0f2fe;
+    --a11y-tabs-active-background: #dbeafe;
+    --a11y-tabs-text-color: #172033;
+    --a11y-tabs-muted-color: #334155;
+    --a11y-tabs-disabled-color: #64748b;
+    --a11y-tabs-accent-color: #075985;
+    --a11y-tabs-focus-color: #9a3412;
+    --a11y-tabs-radius: .65rem;
+    margin-block-start: 1.5rem;
+    color-scheme: light;
+  }
+
+  .a11y-tabs__panel {
+    min-height: 18rem;
+  }
+
+  .a11y-tabs__panel h4 {
+    margin-block: .2rem 1rem;
+    color: #172033;
+  }
+
+  .release-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin-block: 1.25rem;
+  }
+
+  .release-summary div {
+    padding: .85rem;
+    border: 1px solid #dbe3ec;
+    border-radius: .5rem;
+    background: #f8fafc;
+  }
+
+  .release-summary dt {
+    color: #475569;
+    font-size: .78rem;
+    font-weight: 700;
+  }
+
+  .release-summary dd {
+    margin: .2rem 0 0;
+    color: #172033;
+    font-size: 1.05rem;
+    font-weight: 750;
+  }
+
+  .finding-list {
+    display: grid;
+    gap: .75rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .finding-list li {
+    display: grid;
+    gap: .2rem;
+    padding: .85rem 1rem;
+    border-inline-start: .3rem solid #b45309;
+    border-radius: .35rem;
+    background: #fff7ed;
+  }
+
+  .finding-list strong {
+    color: #7c2d12;
+  }
+
+  .finding-list span {
+    color: #78350f;
+    font-size: .85rem;
+  }
+
+  .approval-form {
+    display: grid;
+    max-width: 40rem;
+    gap: .65rem;
+  }
+
+  .approval-form > label:first-child {
+    color: #172033;
+    font-weight: 750;
+  }
+
+  .approval-form p {
+    margin: -.35rem 0 0;
+    color: #475569;
+    font-size: .88rem;
+  }
+
+  .approval-form textarea {
+    inline-size: 100%;
+    padding: .65rem;
+    border: 2px solid #94a3b8;
+    border-radius: .4rem;
+    color: #172033;
+    background: #ffffff;
+    font: inherit;
+  }
+
+  .confirmation {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    color: #172033;
+  }
+
+  .confirmation input {
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    margin-block-start: .15rem;
+  }
+
+  .demo-action,
+  .reset-button {
+    justify-self: start;
+    min-height: 2.75rem;
+    margin: 0;
+    padding: .65rem 1rem;
+    border: 2px solid #075985;
+    border-radius: .45rem;
+    color: #ffffff;
+    background: #075985;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .demo-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    margin-block-start: 1rem;
+  }
+
+  .reset-button {
+    flex: none;
+    border-color: var(--sl-color-accent-high);
+    color: var(--sl-color-white);
+    background: transparent;
+  }
+
+  .demo-status {
+    min-height: 1.5rem;
+    margin: 0;
+    font-weight: 650;
+  }
+
+  .demo-action:focus-visible,
+  .reset-button:focus-visible,
+  .approval-form textarea:focus-visible,
+  .confirmation input:focus-visible {
+    outline: 3px solid #c2410c;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 38rem) {
+    .release-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .a11y-tabs__panel {
+      min-height: 0;
+    }
+  }
+</style>

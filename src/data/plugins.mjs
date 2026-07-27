@@ -12,6 +12,7 @@ import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
+import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -150,7 +151,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-menu-button',
     demo: '/plugins/a11y-menu-button/#live-example',
-    related: ['a11y-async-button', 'a11y-command-menu-button'],
+    related: ['a11y-async-button', 'a11y-command-menu-button', 'a11y-tabs'],
     notes: 'Version 1.0.0 docs metadata omits the npm URL, the npm tarball excludes its referenced examples, and the published README retains pre-publication wording.',
     docs: menuButtonDocs,
   },
@@ -161,8 +162,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-command-menu-button',
     demo: '/plugins/a11y-command-menu-button/#live-example',
-    related: ['a11y-menu-button', 'a11y-async-button'],
+    related: ['a11y-menu-button', 'a11y-async-button', 'a11y-tabs'],
     notes: 'Version 1.0.0 ships complete docs metadata and a separate public checkable-command adapter; maintained examples remain repository-hosted rather than package exports.',
     docs: commandMenuButtonDocs,
+  },
+  {
+    slug: 'a11y-tabs',
+    packageName: 'a11y-tabs-widget',
+    category: 'navigation',
+    status: 'stable',
+    docsPath: 'plugins/a11y-tabs',
+    demo: '/plugins/a11y-tabs/#live-example',
+    related: ['a11y-menu-button', 'a11y-command-menu-button'],
+    notes: 'Version 1.0.0 publishes complete docs metadata and 12 public addon subpaths; maintained examples are repository-hosted rather than included in the npm tarball.',
+    docs: tabsDocs,
   },
 ];

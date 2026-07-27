@@ -1,0 +1,280 @@
+---
+title: A11y Tabs Widget
+description: Progressively enhance semantic buttons and content sections into a single-selection tabs interface with roving focus, manual or automatic activation, and optional addons.
+sidebar:
+  order: 15
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import TabsDemo from '../../../components/TabsDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Navigation & disclosure" variant="note" />
+
+`a11y-tabs-widget` adds the ARIA tabs pattern, roving focus, orientation- and direction-aware keyboard behavior, optional hash activation, and complete teardown to ordinary buttons and content sections. The framework-independent, ESM-only package keeps initialization explicit and returns the existing instance when the same root is initialized again.
+
+<Aside type="note" title="Tabs hide content by design">
+  Use tabs only when people benefit from switching among closely related sections in the same context. If comparing sections is important, or every section should remain searchable and visible at once, headings and an in-page table of contents are usually a better structure.
+</Aside>
+
+## Use when
+
+- A compact region contains several peer sections and only one should be shown at a time.
+- The interface needs either manual activation or low-latency automatic activation.
+- Horizontal, vertical, left-to-right, or right-to-left tab movement must share one predictable API.
+- The integration needs cancellable changes, deep links, responsive presentation, form validation, loading, history, badges, or overflow controls through explicit addons.
+
+## Avoid when
+
+- People need to compare content across panels or search the full page visually.
+- Panel loading is slow enough that automatic activation would make Arrow-key navigation lag.
+- The interface needs multiple sections open at once; use disclosure or accordion behavior instead.
+- Each section is a distinct destination that should have its own page title, navigation history, or server-rendered route.
+- Essential content would be authored hidden and become unavailable when JavaScript fails.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-tabs-widget
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-tabs-widget
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-tabs-widget
+    ```
+  </TabItem>
+</Tabs>
+
+Import the runtime and optional public stylesheet from the package export map. Importing the package does not initialize the document.
+
+```js
+import { createTabs } from 'a11y-tabs-widget';
+import 'a11y-tabs-widget/styles.css';
+
+const root = document.querySelector('[data-a11y-tabs]');
+
+if (root instanceof HTMLElement) {
+  const tabs = createTabs(root, { activation: 'manual' });
+  // tabs.destroy() removes behavior and restores package-owned DOM state.
+}
+```
+
+Use `initTabsAll(options?, scope?)` when a document or routed fragment contains multiple roots.
+
+## Required markup
+
+Provide one root, one labelled tablist, real button tabs, and one content panel per tab. Each `data-a11y-tabs-panel-id` must match a unique panel `id`.
+
+```html
+<div class="a11y-tabs" data-a11y-tabs>
+  <div
+    class="a11y-tabs__list"
+    data-a11y-tabs-list
+    aria-label="Product information"
+  >
+    <button
+      class="a11y-tabs__tab"
+      type="button"
+      data-a11y-tabs-tab
+      data-a11y-tabs-panel-id="product-details"
+    >
+      Details
+    </button>
+    <button
+      class="a11y-tabs__tab"
+      type="button"
+      data-a11y-tabs-tab
+      data-a11y-tabs-panel-id="product-reviews"
+    >
+      Reviews
+    </button>
+  </div>
+
+  <section
+    class="a11y-tabs__panel"
+    id="product-details"
+    data-a11y-tabs-panel
+  >
+    <h2>Details</h2>
+    <p>Product details remain readable before JavaScript initializes.</p>
+  </section>
+
+  <section
+    class="a11y-tabs__panel"
+    id="product-reviews"
+    data-a11y-tabs-panel
+  >
+    <h2>Reviews</h2>
+    <p>Review content also remains in the unenhanced document.</p>
+  </section>
+</div>
+```
+
+Do not author tabs with `role="tab"` or panels with `role="tabpanel"` unless the matching keyboard and visibility behavior is already available. The runtime adds the tab roles, `aria-selected`, `aria-controls`, `aria-labelledby`, roving `tabindex`, panel `tabindex`, and inactive-panel `hidden` state as one enhancement.
+
+Native `disabled` is the strongest unavailable-tab state. The runtime also recognizes `aria-disabled="true"`, skips disabled tabs during movement, and prevents them from becoming active.
+
+The package continues to accept its legacy `[data-tabs-list]`, `[data-tab-target]`, and `[data-tab-panel]` selectors, but new integrations should use the `data-a11y-tabs-*` hooks above.
+
+## Options and data attributes
+
+JavaScript options override matching root dataset values. Invalid values fall back to the documented defaults.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `activation` | `"manual"` | Use `"manual"` to move focus without changing panels until Enter or Space; use `"automatic"` to activate on focus. |
+| `orientation` | `"horizontal"` | Use horizontal Left/Right movement or vertical Up/Down movement; vertical mode also sets `aria-orientation="vertical"`. |
+| `dir` | `"auto"` | Resolve horizontal Arrow behavior from the closest `dir`, computed style, or document direction; `"ltr"` and `"rtl"` override detection. |
+| `useHash` | `false` | Activate from the current panel-id hash, respond to `hashchange`, and replace the hash after a successful change. |
+| `scrollSelectedIntoView` | `true` | Keep the focused or selected tab visible when its tablist actually overflows. |
+| `initialIndex` | `null` | Prefer one enabled tab by zero-based index when the hash and authored selected/visible state do not choose another. |
+
+Dataset equivalents are `data-a11y-tabs-activation`, `data-a11y-tabs-orientation`, `data-a11y-tabs-dir`, `data-a11y-tabs-use-hash`, `data-a11y-tabs-scroll-selected-into-view`, and `data-a11y-tabs-initial-index`. Boolean dataset values must be `"true"` or `"false"`.
+
+The initial selection order is: a valid configured index, an enabled tab authored with `aria-selected="true"`, the first panel authored without `hidden`, then the first enabled tab.
+
+## Runtime API and instance methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createTabs(root, options?)` | Enhance one root; duplicate initialization returns its existing instance. |
+| `initTabsAll(options?, scope?)` | Enhance every `[data-a11y-tabs]` or `.a11y-tabs` root in a document or subtree. |
+| `A11yTabs` | Public class implementing the same instance contract. |
+| `activate(indexOrId)` | Activate an enabled tab by numeric index or tab element `id`; return whether the request succeeded. |
+| `activateByPanelId(panelId)` | Activate the tab controlling a panel `id`; return whether it succeeded. |
+| `next()` / `previous()` | Activate the next or previous enabled tab, with wrapping. |
+| `getActiveTab()` | Return the current tab element or `null`. |
+| `getActivePanel()` | Return the current panel element or `null`. |
+| `destroy()` | Remove listeners, clear instance tracking, and restore original roles, ARIA, ids, classes, `tabindex`, and panel visibility. |
+
+`activate()`, `activateByPanelId()`, `next()`, and `previous()` change selection without moving focus. When a control inside the current panel triggers a programmatic change, move focus deliberately before or after the old panel becomes hidden.
+
+## Events
+
+All core events bubble from the tabs root. Every event detail includes `instance`.
+
+| Event | Cancelable | Detail and timing |
+| --- | --- | --- |
+| `a11y-tabs:init` | No | Initialization finishes, including the synchronized roles, relationships, focus order, and visible panel. |
+| `a11y-tabs:before-change` | Yes | Fires before an effective change with `tab`, `panel`, `index`, and `previousIndex`. |
+| `a11y-tabs:change` | No | Fires after a successful change with the same transition fields. |
+| `a11y-tabs:destroy` | No | Fires while teardown completes. |
+
+Canceling `a11y-tabs:before-change` preserves the current panel and returns focus to its active tab. Requests for the already active tab synchronize state but do not emit change events.
+
+## Public addons
+
+Import addons from their declared package subpaths after creating the core instance. Instance-bound addons accept either the core instance or its root, listen for core teardown, and remove their own listeners or generated UI. The auto-init controller owns page-level listeners and has a separate `destroy()` method.
+
+| Public import | Main API | Adds |
+| --- | --- | --- |
+| `/addons/a11y-tabs-accordion` | `A11yTabsAccordion` | Container- and media-query-aware required-open disclosure controls that mirror the tabs selection. |
+| `/addons/a11y-tabs-analytics` | `A11yTabsAnalytics` | Normalized local tab-change data passed to a consumer callback; no analytics SDK or network request. |
+| `/addons/a11y-tabs-autoinit` | `installTabsAutoInit`, `A11Y_TABS_INIT_REQUEST` | Explicit document-ready initialization and scoped `a11y-tabs:request-init` handling for inserted fragments. |
+| `/addons/a11y-tabs-badges` | `A11yTabsBadges` | Count or status badges with deliberate accessible-label modes and zero-count handling. |
+| `/addons/a11y-tabs-history` | `A11yTabsHistory` | Back/Forward entries using hash, query, or application state modes. |
+| `/addons/a11y-tabs-loader` | `A11yTabsLoader` | Lazy panel requests, busy and status states, caching, aborts, error UI, and retry hooks. |
+| `/addons/a11y-tabs-overflow-menu` | `A11yTabsOverflowMenu` | An auxiliary menu, select, or jump list when the original tablist overflows. |
+| `/addons/a11y-tabs-shortcuts` | `A11yTabsShortcuts` | Optional root- or document-scoped direct shortcuts with unavailable-target events. |
+| `/addons/a11y-tabs-stepper` | `A11yTabsStepper` | External Previous/Next controls and current, total, and completed progress text. |
+| `/addons/a11y-tabs-tour` | `A11yTabsTour` | Sequenced panel activation with optional generated controls, focus return, and callbacks. |
+| `/addons/a11y-tabs-unsaved-guard` | `A11yTabsUnsavedGuard` | Dirty-field tracking and synchronous or asynchronous confirmation through the cancelable change hook. |
+| `/addons/a11y-tabs-validation` | `A11yTabsValidation` | Native or custom validation, invalid-tab badges and descriptions, and first-invalid-field focus routing. |
+
+The accordion adapter keeps one panel open and remains a tabs-backed single-selection model; it is not a standalone multi-open accordion. The overflow control supplements the original, still-visible tablist. Shortcut defaults are root-scoped; global shortcuts need deliberate conflict testing and a visible way to discover, disable, or remap them.
+
+The loader is the only built-in network client. HTML is rejected by default unless the integration supplies `sanitize`, takes ownership through `renderContent`, or explicitly enables `allowUnsafeHtml`. Pending and superseded requests are aborted. Do not place sensitive state in hashes, query parameters, tab ids, panel ids, or analytics callbacks.
+
+## CSS and customization
+
+The optional `a11y-tabs-widget/styles.css` export styles the core classes, selected and disabled states, visible focus, responsive overflow, reduced motion, coarse-pointer targets, and forced-colors boundaries.
+
+```css
+.product-tabs {
+  --a11y-tabs-border-color: #94a3b8;
+  --a11y-tabs-panel-border-color: #cbd5e1;
+  --a11y-tabs-background: #ffffff;
+  --a11y-tabs-muted-background: #f8fafc;
+  --a11y-tabs-hover-background: #e0f2fe;
+  --a11y-tabs-active-background: #dbeafe;
+  --a11y-tabs-text-color: #172033;
+  --a11y-tabs-muted-color: #475569;
+  --a11y-tabs-disabled-color: #64748b;
+  --a11y-tabs-accent-color: #075985;
+  --a11y-tabs-focus-color: #9a3412;
+  --a11y-tabs-radius: 0.625rem;
+  --a11y-tabs-gap: 0.125rem;
+}
+```
+
+Public hooks are `.a11y-tabs`, `.a11y-tabs__list`, `.a11y-tabs__tab`, `.a11y-tabs__panel`, `.a11y-tabs__sr-only`, and the runtime states `.is-initialized`, `.is-active`, and `.is-disabled`. Variables prefixed with `--_` are private stylesheet details.
+
+The package exports no theme or addon stylesheet subpaths. Style generated addon controls in the host application, and recheck text, focus, selected, hover, disabled, forced-colors, zoom, reflow, and target-size behavior in the complete product.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Page | Enter or leave the tab component through normal document order; only the current roving tab is a tab stop. |
+| <kbd>ArrowLeft</kbd> / <kbd>ArrowRight</kbd> | Horizontal tablist | Move focus among enabled tabs with wrapping; Left/Right meaning reverses in RTL. |
+| <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> | Vertical tablist | Move focus among enabled tabs with wrapping. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | Any tablist | Move focus to the first or last enabled tab. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Manual activation | Activate the focused tab. |
+| Arrow, Home, or End | Automatic activation | Move focus and immediately activate the newly focused tab. |
+
+Disabled tabs are skipped. In horizontal orientation, Up and Down retain their normal page behavior; in vertical orientation, Left and Right are not claimed. Panel content follows normal document keyboard behavior and focus is not trapped.
+
+## Focus behavior
+
+Initialization chooses a selected tab and gives it `tabindex="0"` without moving focus. Other tabs receive `tabindex="-1"`. Every panel receives `tabindex="0"` so the active panel can be reached after the tablist; inactive panels are hidden.
+
+Manual activation separates focus from selection: Arrow, Home, and End move the roving tab stop, while Enter or Space changes the panel. Automatic activation couples those actions, so use it only when every panel is available without perceptible delay. Pointer activation focuses and selects an enabled tab.
+
+Hash activation and instance methods do not move focus. A programmatic action inside a panel must not leave focus in content that becomes hidden; move focus to the newly active tab or an intentional destination. The validation and tour addons provide their own documented focus routing, while the accordion adapter preserves focus on the equivalent control when its responsive presentation changes.
+
+## Progressive enhancement and accessibility notes
+
+Author every panel as visible, readable source content. On initialization, the package adds the ARIA pattern and hides inactive panels as one synchronized operation. If panels are authored with `hidden`, those sections remain unavailable when JavaScript fails.
+
+`destroy()` restores the original roles, relationships, generated ids, classes, tab order, and hidden state. The runtime snapshots tabs and panels only once; after adding, removing, replacing, or reordering them, destroy the instance and its addons, update the markup, and initialize again.
+
+The plugin intentionally adds no live announcement for ordinary tab changes because selection, focus, tab, and tabpanel semantics already expose the change. Labels, panel content, application focus changes, async recovery, color choices, responsive layout, and assistive-technology testing remain integration responsibilities. Installing the package is not a claim of complete WCAG conformance.
+
+## Live example
+
+This handoff workflow imports the installed core, public stylesheet, and public validation addon. It demonstrates manual activation, a disabled unavailable tab, programmatic focus continuity, invalid-tab state, first-invalid-field routing, visible focus, and reset behavior.
+
+<TabsDemo />
+
+## Known limitations and browser support
+
+- One root supports one tablist and one panel per tab; multi-selection and independently collapsible panels are outside the core pattern.
+- Tabs and panels are a fixed snapshot after initialization; dynamic structural changes require teardown and reinitialization.
+- Core `useHash` replaces the current URL entry. Use the history addon when each activation should create a Back/Forward entry.
+- Automatic activation is unsuitable for panels whose rendering or loading has noticeable latency.
+- The responsive accordion remains required-open and single-selection.
+- The loader does not make remote HTML trusted; sanitization and rendering policy remain application responsibilities.
+- The npm package contains built runtime files, declarations, CSS, README, changelog, and license, but excludes the maintained repository examples.
+- The package is ESM-only and targets modern module browsers. It publishes no completed browser or screen-reader support matrix.
+- `ResizeObserver`-dependent responsive behavior is feature-detected and has narrower fallback behavior; verify constrained layouts in the browsers the product supports.
+- The source repository contains theme files, but version 1.0.0 does not expose them through the package export map.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, declarations, tests, and maintained examples](https://github.com/vmitsaras/A11y-Tabs-Widget)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-tabs-widget)</Card>
+  <Card title="Maintained demos" icon="rocket">[Core tabs and all addon examples](https://vmitsaras.github.io/a11y-tabs-widget/)</Card>
+  <Card title="Related: Menu Button" icon="document">[Reveal a compact action panel while preserving native controls and Tab order](/plugins/a11y-menu-button/)</Card>
+  <Card title="Related: Command Menu Button" icon="document">[Use an application-style command menu with roving focus and typeahead](/plugins/a11y-command-menu-button/)</Card>
+</CardGrid>
+
+<Aside type="note" title="Published package notes">
+  Version 1.0.0 satisfies the hub’s normalized public contract: an importable ESM runtime, declarations, named `docs` metadata, core CSS, repository and license metadata, and 12 addon exports. The repository’s examples are maintained and linked from the public metadata, but are not included in the npm tarball. No private import or local adapter is used by this guide.
+</Aside>

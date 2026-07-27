@@ -21,6 +21,12 @@ Add application-style command menus to real buttons with roving focus, one-level
 
 **Status:** Stable · **Package:** `a11y-command-menu-button`
 
+### [A11y Tabs Widget](/plugins/a11y-tabs/)
+
+Progressively enhance semantic buttons and content sections into a single-selection tabs interface with manual or automatic activation, orientation-aware roving focus, optional hash state, and focused addons for responsive, form, history, loading, and overflow needs.
+
+**Status:** Stable · **Package:** `a11y-tabs-widget`
+
 ## Forms
 
 ### [A11y Form Validator](/plugins/a11y-form-validator/)

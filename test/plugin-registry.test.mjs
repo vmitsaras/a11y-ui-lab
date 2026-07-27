@@ -14,6 +14,7 @@ import * as characterCountRuntime from 'a11y-character-count';
 import * as tagInputRuntime from 'a11y-tag-input';
 import * as menuButtonRuntime from 'a11y-menu-button';
 import * as commandMenuButtonRuntime from 'a11y-command-menu-button';
+import * as tabsRuntime from 'a11y-tabs-widget';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
@@ -28,8 +29,21 @@ import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
+import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
 import { inspectTagInputs } from 'a11y-tag-input/dev';
 import { createCheckableCommandAdapter } from 'a11y-command-menu-button/checkable';
+import { A11yTabsAccordion } from 'a11y-tabs-widget/addons/a11y-tabs-accordion';
+import { A11yTabsAnalytics } from 'a11y-tabs-widget/addons/a11y-tabs-analytics';
+import { installTabsAutoInit } from 'a11y-tabs-widget/addons/a11y-tabs-autoinit';
+import { A11yTabsBadges } from 'a11y-tabs-widget/addons/a11y-tabs-badges';
+import { A11yTabsHistory } from 'a11y-tabs-widget/addons/a11y-tabs-history';
+import { A11yTabsLoader } from 'a11y-tabs-widget/addons/a11y-tabs-loader';
+import { A11yTabsOverflowMenu } from 'a11y-tabs-widget/addons/a11y-tabs-overflow-menu';
+import { A11yTabsShortcuts } from 'a11y-tabs-widget/addons/a11y-tabs-shortcuts';
+import { A11yTabsStepper } from 'a11y-tabs-widget/addons/a11y-tabs-stepper';
+import { A11yTabsTour } from 'a11y-tabs-widget/addons/a11y-tabs-tour';
+import { A11yTabsUnsavedGuard } from 'a11y-tabs-widget/addons/a11y-tabs-unsaved-guard';
+import { A11yTabsValidation } from 'a11y-tabs-widget/addons/a11y-tabs-validation';
 import { enhanceAsyncMenuState } from 'a11y-menu-button/addons/async-menu-state';
 import { enhanceCommandMenu } from 'a11y-menu-button/addons/command-menu';
 import { enhanceFilterableMenu } from 'a11y-menu-button/addons/filterable-menu';
@@ -272,4 +286,26 @@ test('a11y-command-menu-button exposes the documented public contract', () => {
     import.meta.resolve('a11y-command-menu-button/checkable'),
     /a11y-command-menu-button\/dist\/checkable\.js$/,
   );
+});
+
+test('a11y-tabs-widget exposes the documented public contract', () => {
+  assert.ok(Object.keys(tabsRuntime).length > 0);
+  assert.equal(typeof tabsRuntime.createTabs, 'function');
+  assert.equal(typeof tabsRuntime.initTabsAll, 'function');
+  assert.equal(typeof tabsRuntime.A11yTabs, 'function');
+  assert.equal(typeof A11yTabsAccordion, 'function');
+  assert.equal(typeof A11yTabsAnalytics, 'function');
+  assert.equal(typeof installTabsAutoInit, 'function');
+  assert.equal(typeof A11yTabsBadges, 'function');
+  assert.equal(typeof A11yTabsHistory, 'function');
+  assert.equal(typeof A11yTabsLoader, 'function');
+  assert.equal(typeof A11yTabsOverflowMenu, 'function');
+  assert.equal(typeof A11yTabsShortcuts, 'function');
+  assert.equal(typeof A11yTabsStepper, 'function');
+  assert.equal(typeof A11yTabsTour, 'function');
+  assert.equal(typeof A11yTabsUnsavedGuard, 'function');
+  assert.equal(typeof A11yTabsValidation, 'function');
+  assert.equal(tabsDocs.packageName, 'a11y-tabs-widget');
+  assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-tabs-widget')?.docs, tabsDocs);
+  assert.match(import.meta.resolve('a11y-tabs-widget/styles.css'), /a11y-tabs-widget\/dist\/styles\.css$/);
 });
