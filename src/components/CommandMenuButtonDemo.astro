@@ -302,9 +302,9 @@ import 'a11y-command-menu-button/styles.css';
 
   .review-workspace {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 20rem;
-    align-items: start;
+    grid-template-columns: minmax(15rem, .85fr) minmax(14rem, 1fr);
+    min-height: 18rem;
+    align-items: stretch;
     gap: 1rem;
     margin-block-start: 1.5rem;
     padding: clamp(.85rem, 2vw, 1.25rem);
@@ -314,6 +314,9 @@ import 'a11y-command-menu-button/styles.css';
   }
 
   .review-summary {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
     padding: 1rem;
     border: 1px solid var(--sl-color-gray-5);
     border-radius: .55rem;
@@ -350,15 +353,29 @@ import 'a11y-command-menu-button/styles.css';
   }
 
   .review-command-menu {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    min-width: 0;
     --a11y-command-menu-bg: #172033;
     --a11y-command-menu-color: #f8fafc;
     --a11y-command-menu-muted-color: #cbd5e1;
     --a11y-command-menu-border-color: #94a3b8;
     --a11y-command-menu-item-border-color: rgb(255 255 255 / .24);
     --a11y-command-menu-item-active-bg: #334155;
+    --a11y-command-menu-radius: .75rem;
+    --a11y-command-menu-item-radius: .5rem;
+    --a11y-command-menu-item-gap: .625rem;
+    --a11y-command-menu-item-padding: .625rem .7rem;
+    --a11y-command-menu-shadow: 0 .75rem 2rem rgb(15 23 42 / .32);
     --a11y-command-menu-focus-ring: 3px solid #fbbf24;
-    --a11y-command-menu-min-width: min(22rem, calc(100vw - 3rem));
-    --a11y-command-menu-max-width: min(24rem, calc(100vw - 3rem));
+    --a11y-command-menu-min-width: min(20rem, calc(100vw - 3rem));
+    --a11y-command-menu-max-width: min(22rem, calc(100vw - 3rem));
+  }
+
+  .review-command-menu .a11y-command-menu-button__list > li:not(.a11y-command-menu-button__separator),
+  .review-command-menu .a11y-command-menu-button__item {
+    margin: 0;
   }
 
   .review-command-trigger,
@@ -374,6 +391,7 @@ import 'a11y-command-menu-button/styles.css';
   }
 
   .review-command-trigger {
+    width: 100%;
     color: var(--sl-color-black);
     background: var(--sl-color-accent-high);
   }
@@ -408,15 +426,26 @@ import 'a11y-command-menu-button/styles.css';
     border-inline-start: .25rem solid var(--sl-color-orange);
   }
 
-  @media (max-width: 40rem) {
+  @media (max-width: 72rem) {
     .review-workspace {
       grid-template-columns: 1fr;
-      min-height: 24rem;
+      min-height: 22rem;
     }
 
-    .review-command-menu,
-    .review-command-trigger {
-      width: 100%;
+    .review-command-menu {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .review-summary {
+      grid-column: 1;
+      grid-row: 2;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .review-workspace {
+      min-height: 24rem;
     }
   }
 </style>
