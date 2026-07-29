@@ -1,0 +1,208 @@
+---
+import 'a11y-quiz-form/styles.css';
+---
+
+<section class="quiz-demo" aria-labelledby="quiz-demo-title">
+  <header class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="quiz-demo-title">Choose the semantic form control</h3>
+    <p>
+      Try an incorrect answer, recover on the second attempt, reveal the answer, or reset the
+      completed quiz.
+    </p>
+  </header>
+
+  <form
+    class="a11y-quiz docs-quiz"
+    data-a11y-quiz
+    data-a11y-quiz-demo
+    action="#quiz-demo-title"
+    method="get"
+    novalidate
+  >
+    <fieldset class="a11y-quiz__fieldset">
+      <legend class="a11y-quiz__question">
+        Which markup is the strongest semantic starting point for an action that submits a form?
+      </legend>
+      <p class="a11y-quiz__instruction">Choose one answer. You have two attempts.</p>
+
+      <details class="a11y-quiz__hint">
+        <summary>Need a hint?</summary>
+        <div class="a11y-quiz__hint-content">
+          <p>Prefer the native element whose built-in behavior already matches the action.</p>
+        </div>
+      </details>
+
+      <div class="a11y-quiz__answers">
+        <div class="a11y-quiz__answer" data-correct="true">
+          <label class="a11y-quiz__answer-label">
+            <input class="a11y-quiz__input" type="radio" name="semantic-control" value="button" />
+            <span class="a11y-quiz__answer-text">&lt;button type="submit"&gt;Save&lt;/button&gt;</span>
+          </label>
+          <p class="a11y-quiz__answer-note" hidden>Previously selected</p>
+          <p class="a11y-quiz__explanation" hidden>
+            A submit button has the expected role, name, focus behavior, and keyboard activation
+            without additional scripting.
+          </p>
+        </div>
+
+        <div class="a11y-quiz__answer" data-correct="false">
+          <label class="a11y-quiz__answer-label">
+            <input class="a11y-quiz__input" type="radio" name="semantic-control" value="div" />
+            <span class="a11y-quiz__answer-text">&lt;div onclick="save()"&gt;Save&lt;/div&gt;</span>
+          </label>
+          <p class="a11y-quiz__answer-note" hidden>Previously selected</p>
+          <p class="a11y-quiz__explanation" hidden>
+            A div has no native button role, keyboard activation, or form-submission behavior.
+          </p>
+        </div>
+
+        <div class="a11y-quiz__answer" data-correct="false">
+          <label class="a11y-quiz__answer-label">
+            <input class="a11y-quiz__input" type="radio" name="semantic-control" value="link" />
+            <span class="a11y-quiz__answer-text">&lt;a href="#"&gt;Save&lt;/a&gt;</span>
+          </label>
+          <p class="a11y-quiz__answer-note" hidden>Previously selected</p>
+          <p class="a11y-quiz__explanation" hidden>
+            A link communicates navigation, not a form action, and does not submit the form.
+          </p>
+        </div>
+      </div>
+
+      <p class="a11y-quiz__attempt-count" hidden></p>
+      <p class="a11y-quiz__status"></p>
+
+      <div class="a11y-quiz__actions">
+        <button type="submit">Check answer</button>
+        <button type="button" data-quiz-show-answer hidden>Show correct answer</button>
+        <button type="button" class="demo-reset" data-demo-quiz-reset>Reset quiz</button>
+      </div>
+
+      <div class="a11y-quiz__result-summary" hidden>
+        <p class="a11y-quiz__result-summary-heading" aria-hidden="true">Quiz result</p>
+        <p class="a11y-quiz__result-summary-text"></p>
+      </div>
+    </fieldset>
+
+    <noscript>
+      <details class="no-script-answer">
+        <summary>Show the answer without JavaScript</summary>
+        <p>The native <code>&lt;button type="submit"&gt;</code> element is the strongest starting point.</p>
+      </details>
+    </noscript>
+  </form>
+
+  <p class="event-observation">
+    <strong>Completion event:</strong> <span data-quiz-event-observation>No completion event yet.</span>
+  </p>
+</section>
+
+<script>
+  import { createQuizForm, onQuizFormEvent, quizFormEvents } from 'a11y-quiz-form';
+
+  const form = document.querySelector('[data-a11y-quiz-demo]');
+
+  if (form instanceof HTMLFormElement) {
+    const observation = document.querySelector('[data-quiz-event-observation]');
+    const resetButton = form.querySelector('[data-demo-quiz-reset]');
+    const quiz = createQuizForm(form, {
+      maxAttempts: 2,
+      showProgress: true,
+      focusResult: true,
+    });
+
+    const resetQuiz = () => quiz.reset();
+    resetButton?.addEventListener('click', resetQuiz);
+
+    const stopComplete = onQuizFormEvent(form, quizFormEvents.complete, (event) => {
+      if (observation) {
+        const result = event.detail.revealed
+          ? 'Answer revealed'
+          : event.detail.correct
+            ? 'Correct'
+            : 'Final incorrect result';
+        observation.textContent = `${result} on attempt ${event.detail.attempt}.`;
+      }
+    });
+
+    const stopReset = onQuizFormEvent(form, quizFormEvents.reset, () => {
+      if (observation) observation.textContent = 'Quiz reset; a new run is ready.';
+    });
+
+    document.addEventListener(
+      'astro:before-swap',
+      () => {
+        stopComplete();
+        stopReset();
+        resetButton?.removeEventListener('click', resetQuiz);
+        quiz.destroy();
+      },
+      { once: true },
+    );
+  }
+</script>
+
+<style>
+  .quiz-demo {
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 48rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: 0.25rem 0.5rem;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .docs-quiz {
+    margin-block-start: 1.5rem;
+    --a11y-quiz-color-action-bg: #4338ca;
+    --a11y-quiz-color-action-hover: #3730a3;
+    --a11y-quiz-color-border-focus: #2563eb;
+    --a11y-quiz-color-focus-ring: #f59e0b;
+    --a11y-quiz-radius: 0.625rem;
+  }
+
+  .a11y-quiz__answer-text {
+    overflow-wrap: anywhere;
+    font-family: var(--__sl-font-mono);
+    font-size: 0.9rem;
+  }
+
+  .a11y-quiz__actions .demo-reset {
+    border-color: var(--a11y-quiz-color-secondary-border);
+    background: transparent;
+    color: var(--a11y-quiz-color-text);
+  }
+
+  .a11y-quiz__actions .demo-reset:hover {
+    background: var(--a11y-quiz-color-secondary-bg);
+  }
+
+  .no-script-answer {
+    margin-block-start: 1rem;
+    color: var(--sl-color-white);
+  }
+
+  .event-observation {
+    max-width: 48rem;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-inline-start: 0.25rem solid var(--sl-color-accent);
+    background: color-mix(in srgb, var(--sl-color-accent) 10%, transparent);
+  }
+</style>

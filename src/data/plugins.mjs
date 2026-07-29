@@ -1,5 +1,8 @@
 import { docs as formValidatorDocs } from 'a11y-form-validator/docs';
+import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recovery/docs';
+import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
+import { docs as formDraftPersistenceDocs } from 'a11y-form-draft-persistence/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
 import { docs as resultCountDocs } from 'a11y-result-count/docs';
 import { docs as sortableTableDocs } from 'a11y-sortable-table/docs';
@@ -31,8 +34,30 @@ export const plugins = [
     docsPath: 'plugins/a11y-form-validator',
     demo: '/plugins/a11y-form-validator/#live-example',
     featured: true,
-    related: ['a11y-tag-input'],
+    related: ['a11y-tag-input', 'a11y-quiz-form', 'a11y-form-draft-persistence'],
     docs: formValidatorDocs,
+  },
+  {
+    slug: 'a11y-form-submission-recovery',
+    packageName: 'a11y-form-submission-recovery',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-form-submission-recovery',
+    demo: '/plugins/a11y-form-submission-recovery/#live-example',
+    related: ['a11y-form-validator', 'a11y-error-summary', 'a11y-async-button'],
+    notes: 'Version 1.0.0 publishes complete runtime, declaration, docs, stylesheet, and four addon export contracts. Its declared docs and examples are repository-hosted rather than included in the npm tarball.',
+    docs: formSubmissionRecoveryDocs,
+  },
+  {
+    slug: 'a11y-quiz-form',
+    packageName: 'a11y-quiz-form',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-quiz-form',
+    demo: '/plugins/a11y-quiz-form/#live-example',
+    related: ['a11y-form-validator', 'a11y-error-summary'],
+    notes: 'Version 1.0.0 publishes complete docs metadata and core styles with six repository-hosted examples and no addon subpath exports. Browser QA found that terminal check/reset controls can lose focus when they hide; the docs record the required host focus policy.',
+    docs: quizFormDocs,
   },
   {
     slug: 'a11y-conditional-fields',
@@ -41,8 +66,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-conditional-fields',
     demo: '/plugins/a11y-conditional-fields/#live-example',
-    related: ['a11y-form-validator'],
+    related: ['a11y-form-validator', 'a11y-form-draft-persistence'],
     docs: conditionalFieldsDocs,
+  },
+  {
+    slug: 'a11y-form-draft-persistence',
+    packageName: 'a11y-form-draft-persistence',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-form-draft-persistence',
+    demo: '/plugins/a11y-form-draft-persistence/#live-example',
+    related: ['a11y-conditional-fields', 'a11y-form-validator'],
+    notes: 'Version 1.0.0 is published under npm latest, while its public docs metadata still reports release-candidate and its changelog labels 1.0.0 unreleased. The package exports no CSS, and repository-maintained examples and guides are referenced by the README but excluded from the npm tarball.',
+    docs: formDraftPersistenceDocs,
   },
   {
     slug: 'a11y-password-strength-meter',

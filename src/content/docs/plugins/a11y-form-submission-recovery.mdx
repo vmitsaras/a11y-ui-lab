@@ -1,0 +1,250 @@
+---
+title: A11y Form Submission Recovery
+description: Preserve form values, prevent duplicate attempts, classify failures, and offer deliberate recovery for native form submissions.
+sidebar:
+  order: 2
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import FormSubmissionRecoveryDemo from '../../../components/FormSubmissionRecoveryDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-form-submission-recovery` progressively enhances a native form’s submission lifecycle. It preserves a snapshot while an attempt is active, blocks concurrent attempts, classifies validation, network, and server outcomes, and makes retry explicit. The application retains ownership of its endpoint, validation policy, idempotency, server messages, and successful destination.
+
+<Aside type="caution" title="Recovery is not delivery confirmation">
+  A retryable client-side failure does not prove the server did not receive a request. For side-effecting submissions, use a backend-enforced idempotency key and verify an uncertain outcome before offering retry. This package cannot establish exactly-once processing by itself.
+</Aside>
+
+## Use when
+
+- Losing a long contact, application, service-intake, support, or quote request would be costly to the person completing it.
+- A native form needs one owner for duplicate prevention, failure states, retained values, and a deliberate retry path.
+- The application can supply a working `action` and `method`, backend response policy, and a safe transport.
+- Tab-scoped draft recovery is appropriate for a narrowly allowlisted set of nonsensitive fields.
+
+## Avoid when
+
+- A normal full-page native submission is already sufficient and no asynchronous workflow is needed.
+- A payment, legal, application, or other irreversible action lacks server-side idempotency and outcome verification.
+- The form cannot expose a useful no-JavaScript action or the product intends to retry automatically.
+- Sensitive values must not be kept in browser storage; session recovery is optional, not required by the core.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-form-submission-recovery
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-form-submission-recovery
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-form-submission-recovery
+    ```
+  </TabItem>
+</Tabs>
+
+The runtime does not initialize on import. Import the public entry and, when desired, its public stylesheet, then initialize a selected form.
+
+```ts
+import { createFormSubmissionRecovery } from 'a11y-form-submission-recovery';
+import 'a11y-form-submission-recovery/styles.css';
+
+const form = document.querySelector('[data-a11y-form-submission-recovery]');
+
+if (form instanceof HTMLFormElement) {
+  createFormSubmissionRecovery(form);
+}
+```
+
+`initFormSubmissionRecoveryAll(options?)` is the opt-in bulk initializer. `A11yFormSubmissionRecovery` is the public class when direct construction is more appropriate.
+
+## Required markup
+
+Keep native labels, constraints, an `action`, a `method`, and a real submit button. Supply a polite status region and retry button when their placement and text are product-owned. The core can create a missing status region by default; it creates a retry control only when `createRetryButton` is enabled.
+
+```html
+<form
+  class="a11y-form-submission-recovery"
+  data-a11y-form-submission-recovery
+  action="/service-intake"
+  method="post"
+>
+  <label for="full-name">Full name</label>
+  <input id="full-name" name="fullName" autocomplete="name" required />
+
+  <label for="request">How can we help?</label>
+  <textarea id="request" name="request" rows="8" required></textarea>
+
+  <button type="submit">Send request</button>
+
+  <div class="a11y-form-submission-recovery__feedback">
+    <p
+      class="a11y-form-submission-recovery__status"
+      data-a11y-form-submission-recovery-status
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></p>
+    <button
+      class="a11y-form-submission-recovery__retry"
+      data-a11y-form-submission-recovery-retry
+      type="button"
+      hidden
+    >Try again</button>
+  </div>
+</form>
+```
+
+Without JavaScript, this remains a standard form submission. Do not invoke `form.submit()` because it bypasses the `submit` event; use `requestSubmit()` for a programmatic native submission.
+
+## Options and state
+
+The active states are `submitting` and `retrying`; terminal states are `succeeded`, `validation-failed`, `network-failed`, and `server-failed`. A new deliberate submit can begin from any non-active terminal state.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `validate` | Native constraints | Supply synchronous or asynchronous validation and an optional focus target. |
+| `transport` | Fetch transport | Replace the default form-aware Fetch transport. |
+| `classifyResponse` | Status-based | Classify an application-specific response. |
+| `statusElement` / `retryButton` | Matching data attribute | Provide an element or selector for existing UI. |
+| `createStatusRegion` / `createRetryButton` | `true` / `false` | Control generation of missing feedback controls. |
+| `disableSubmitControls` | `true` | Disable every submit control during an active attempt, then restore its authored state. |
+| `restoreValuesOnFailure` | `true` | Restore programmatically changed values after a failure without overwriting later edits. |
+| `resetValidationFailureOnInput` | `true` | Return a validation failure to idle when the person corrects the form. |
+| `restoreOnPageShow` | `true` | Repair stale active UI after BFCache restoration and report an unknown outcome. |
+| `clearPayloadOnSuccess` | `true` | Release the in-memory snapshot after success. |
+| `retryFromCurrentValues` | `true` | Retry with current values rather than the failed snapshot. |
+| `allowRetryAfterUnknownOutcome` | `false` | Allow retry of an interrupted, unverified attempt only when the application explicitly permits it. |
+| `validationStatusCodes` | `[422]` | Treat these response statuses as validation failures. |
+| `retryableStatusCodes` | `[408, 425, 429, 500, 502, 503, 504]` | Treat these server responses as retryable. |
+| `messages` | English defaults | Override lifecycle messages. |
+| `addons` | `[]` | Install ordered public addons. |
+
+Boolean-like `data-*` configuration is supported for the documented boolean options. Functions, arrays, message objects, and addons must be passed in JavaScript or TypeScript.
+
+The default Fetch transport respects the form and submitter’s `action`, `method`, and `enctype`, supports GET serialization and common body encodings, and uses same-origin credentials. CORS, CSRF, backend idempotency, and response policy remain application responsibilities.
+
+## Methods and runtime API
+
+| Export or method | Purpose |
+| --- | --- |
+| `createFormSubmissionRecovery(form, options?)` | Create and initialize one recovery instance. |
+| `createFetchSubmissionTransport(options?)` | Build the public default Fetch transport with optional Fetch, credentials, or keepalive overrides. |
+| `submit({ submitter }?)` | Start a deliberate attempt and resolve to its outcome. |
+| `retry({ payload, allowUnknownOutcome }?)` | Retry a retryable failure, using current or failed values. |
+| `reset({ clearSnapshot, clearOutcome, clearStatus }?)` | Return workflow state to idle; it does not reset fields by default. |
+| `restore(snapshot?)` | Restore a supplied or current snapshot, reporting restored and skipped counts. |
+| `getState()` / `getLastOutcome()` / `getSnapshot()` | Read the safe workflow state, terminal result, or in-memory snapshot. |
+| `canRetry()` | Report whether retry is currently available under the configured policy. |
+| `destroy()` | Abort active work, remove listeners and generated UI, restore managed attributes, and clean up addons. |
+| `onFormSubmissionRecoveryEvent(form, name, listener)` | Subscribe to a typed event and receive an unsubscribe function. |
+
+`FORM_SUBMISSION_STATES` and `FORM_SUBMISSION_RECOVERY_EVENTS` expose the public constants. Repeated initialization of a form is idempotent; `A11yFormSubmissionRecovery.get(form)` retrieves its existing class instance.
+
+## Events
+
+Events bubble from the form, are neither composed nor cancelable, and include the instance. Their details intentionally omit raw form values, `FormData`, response bodies, headers, cookies, full `Response` objects, and stack traces.
+
+| Event suffix | When it fires |
+| --- | --- |
+| `init` | Core listeners and addons are installed. |
+| `state-change` | An effective state transition occurs; detail includes state, reason, attempt, retryability, and unknown-outcome status. |
+| `attempt` | Validation and `beforeAttempt` hooks complete, before offline handling or transport. |
+| `succeeded` / `failed` | A terminal outcome has been applied with safe response metadata where available. |
+| `duplicate-blocked` | A concurrent submit or retry was declined. |
+| `restored` | Values were restored explicitly or after failure. |
+| `addon-error` | A supported addon hook threw; core and other addon work remain isolated. |
+| `destroy` | Teardown has completed. |
+
+Prefix every suffix with `a11y-form-submission-recovery:`, for example `a11y-form-submission-recovery:failed`.
+
+## Public addons
+
+Each addon has its own public package export; none is bundled into the core entry.
+
+| Import path | Export | Use it for |
+| --- | --- | --- |
+| `/addons/session-recovery` | `createSessionRecoveryAddon()` | Filtered, tab-scoped save/restore/discard flow. Prefer an allowlist and `prompt` or application-owned `manual` mode. It has its own typed session events and private controller commands. |
+| `/addons/submission-reference` | `createSubmissionReferenceAddon()` | A generated header and optional field or visible reference. Backend enforcement is still required for idempotency. |
+| `/addons/server-error-mapper` | `createServerErrorMapperAddon()`, `readJsonResponseBody()`, `normalizeFieldErrors()` | Map a bounded, cloned response into backend-specific validation or server errors. It does not render field errors itself. |
+| `/addons/failure-support-summary` | `createFailureSupportSummaryAddon()` | A static, non-live support section with opted-in attempt number, HTTP status, and submission reference. |
+
+The session addon defaults to a 30-minute, versioned `sessionStorage` record. It omits password, file, hidden, ignored, excluded, payment-autocomplete, and non-allowlisted fields. Storage is not encryption; it can be denied or cleared. File selections must always be chosen again after reload.
+
+## CSS customization
+
+The exported stylesheet provides layout, visible focus, non-color state cues, forced-colors support, narrow-layout behavior, and reduced-motion handling. Customize the documented custom properties on the root rather than reaching into package files.
+
+```css
+.service-intake {
+  --a11y-form-submission-recovery-gap: 0.75rem;
+  --a11y-form-submission-recovery-status-padding: 1rem;
+  --a11y-form-submission-recovery-border-color: #64748b;
+  --a11y-form-submission-recovery-background: #f8fafc;
+  --a11y-form-submission-recovery-success-color: #166534;
+  --a11y-form-submission-recovery-warning-color: #854d0e;
+  --a11y-form-submission-recovery-error-color: #b91c1c;
+  --a11y-form-submission-recovery-focus-color: #1d4ed8;
+  --a11y-form-submission-recovery-radius: 0.5rem;
+}
+```
+
+Keep the supplied state distinctions and an obvious `:focus-visible` indicator when replacing the baseline styling. The root reflects states such as `.is-submitting`, `.is-retrying`, `.is-succeeded`, `.has-network-failed`, `.has-server-failed`, and `.is-offline`.
+
+## Keyboard and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move through native form controls and the retry button when it is available. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Activate the focused native submit or retry button. |
+
+The package does not move focus for start, success, network/server failure, connectivity changes, session save/restore, or the support summary. Native browser validation and an explicit custom-validator `focusTarget` may move focus. A retry control is a real button and appears only for an eligible retry; focus stays predictable rather than being forced to it.
+
+## Progressive enhancement and accessibility notes
+
+The unenhanced form follows its normal native submission. Use valid labels, field instructions, server validation, error associations, and a useful response page independently of this package. During an owned active attempt, it applies `aria-busy="true"`, updates one polite atomic status region, and restores prior control and ARIA state on cleanup.
+
+Do not create competing owners for disabled state, live announcements, reload restoration, or dirty-form tracking. A session save means values were stored locally, not that the server accepted them. Test the complete host form with the target browsers and assistive technologies; the package is not a claim of full WCAG conformance.
+
+## Live example
+
+<FormSubmissionRecoveryDemo />
+
+## Limitations
+
+- `form.submit()` bypasses the interception point.
+- BFCache or navigation can leave an unknown outcome; check with the server before retrying.
+- A submission reference is an identifier, not authorization or idempotency by itself.
+- Browser online status does not prove service availability.
+- Fetch cannot reproduce every native navigation behavior, including `formtarget`.
+- File inputs cannot be restored after reload, and client storage is not encrypted.
+- Backend-specific validation needs a custom classifier or the public server-error-mapper addon.
+- Background submission and automatic retry are intentionally not provided.
+
+## Browser support, examples, and links
+
+The package targets ES2022 and Baseline 2024 capabilities, including ESM, Fetch, `FormData`, `AbortController`, and modern DOM APIs. Use a custom transport or a project-level compatibility strategy for older browsers.
+
+Its typed `docs` metadata describes basic, failure-state, session-recovery, localization, recipe, and failure-support examples. Those `docs/` examples are maintained in the public repository and GitHub Pages site, rather than shipped in the npm tarball.
+
+<CardGrid>
+  <Card title="npm package" href="https://www.npmjs.com/package/a11y-form-submission-recovery">
+    Inspect the installed version and package metadata.
+  </Card>
+  <Card title="GitHub repository" href="https://github.com/vmitsaras/A11y-Form-Submission-Recovery">
+    Read source, changelog, security guidance, and repository-hosted examples.
+  </Card>
+  <Card title="A11y Form Validator" href="/a11y-ui-lab/plugins/a11y-form-validator/">
+    Pair client and server validation with this package’s transport and recovery workflow.
+  </Card>
+  <Card title="A11y Error Summary" href="/a11y-ui-lab/plugins/a11y-error-summary/">
+    Add a focused summary for application-owned validation feedback.
+  </Card>
+</CardGrid>

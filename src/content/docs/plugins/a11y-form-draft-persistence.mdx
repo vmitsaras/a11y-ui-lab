@@ -1,0 +1,248 @@
+---
+title: A11y Form Draft Persistence
+description: Conflict-aware browser draft persistence for semantic forms, with safe field exclusions, storage adapters, value-free events, and optional recovery helpers.
+sidebar:
+  order: 2.5
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import FormDraftPersistenceDemo from '../../../components/FormDraftPersistenceDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-form-draft-persistence` saves eligible values from semantic forms through a configurable storage adapter. It supports manual or debounced saving, conflict-aware restoration, expiry and form-version checks, cross-tab notifications, custom controls, value-free lifecycle events, and optional recovery UI without replacing native form controls.
+
+<Aside type="danger" title="Browser storage is not private or encrypted">
+  Same-origin scripts and anyone using the same browser profile may be able to access a stored draft. The package excludes several high-risk control types by default, but the application still owns data classification, consent, retention, device-sharing policy, deletion controls, and legal review.
+</Aside>
+
+## Use when
+
+- A long or interruption-prone form needs local recovery.
+- Users should explicitly review conflicts before current answers are overwritten.
+- The application needs manual controls or quiet debounced autosave.
+- Draft storage, expiry, field eligibility, and presentation must remain application-controlled.
+
+## Avoid when
+
+- The device, browser profile, kiosk, lab, or support workstation may be shared.
+- Drafts contain secrets or sensitive personal data that should not enter browser storage.
+- Users need encrypted, authenticated, cross-device, collaborative, or server-authoritative drafts.
+- The workflow needs tab locking, value merging, migrations, or guaranteed saves during page unload.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-form-draft-persistence
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-form-draft-persistence
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-form-draft-persistence
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only, does not auto-initialize, and exports no stylesheet. Create one instance for each form that needs its own stable key.
+
+```js
+import { createDraftPersistence } from 'a11y-form-draft-persistence';
+
+const form = document.querySelector('[data-a11y-form-draft-persistence]');
+if (form instanceof HTMLFormElement) {
+  const drafts = createDraftPersistence(form, {
+    expiresAfter: 1000 * 60 * 60 * 24,
+    formVersion: 1,
+    key: 'service-intake:production:application-123:v1',
+  });
+
+  const result = await drafts.check();
+  if (result.status === 'available') {
+    // Offer an application-owned restore decision.
+  }
+}
+```
+
+## Required markup and field identity
+
+Use a semantic form with persistent visible labels and stable control identities. The data attribute is the discovery hook used by `initDraftPersistenceAll()`; `createDraftPersistence()` accepts any `HTMLElement`, though a form is the expected root.
+
+```html
+<form action="/applications/123" method="post" data-a11y-form-draft-persistence>
+  <label for="project-title">Project title</label>
+  <input id="project-title" name="projectTitle" />
+
+  <label for="project-summary">Project summary</label>
+  <textarea id="project-summary" name="projectSummary"></textarea>
+
+  <button type="submit">Submit application</button>
+  <button type="button" id="clear-draft">Clear draft</button>
+</form>
+```
+
+Controls can derive identity from `data-a11y-draft-persistence-key`, an element ID, a name, or a repeated-name occurrence. Prefer explicit keys or unique IDs for dynamic and multi-step forms. Use `data-a11y-draft-persistence-ignore` to exclude a control and `data-a11y-draft-persistence-include` with opt-in selection.
+
+Passwords, one-time codes, payment-like autocomplete fields, hidden inputs, file inputs, disabled controls, and readonly controls are excluded by default. File contents are never persisted, even when sensitive-field persistence is explicitly enabled.
+
+## Options
+
+`key` and `formVersion` are required. Invalid selector configuration is reported as an invalid configuration rather than silently broadening field selection.
+
+| Option | Default or requirement | Purpose |
+| --- | --- | --- |
+| `key` | Required | Stable, application-owned storage key. Do not put secrets or personal data in it. |
+| `formVersion` | Required | Number or string used to reject incompatible saved records. |
+| `adapter` | Local storage adapter | Storage boundary; local, session, memory, and custom adapters implement the same string-based contract. |
+| `autoSave` | `true` | Listen for eligible field changes and schedule saves. |
+| `saveDelay` | Package debounce | Delay an autosave after a change. |
+| `maxSaveWait` | Optional | Bound how long repeated changes can postpone an autosave. |
+| `saveOnBlur` | Optional | Save after focus leaves an eligible control. |
+| `saveWhenHidden` | Optional | Attempt a save when the document becomes hidden. |
+| `saveOnPageHide` | Optional | Attempt a best-effort save during `pagehide`. |
+| `expiresAfter` | No automatic expiry | Positive lifetime in milliseconds; expired records are rejected but not automatically deleted. |
+| `restoreStrategy` | `prompt` | `prompt`, `always`, `never`, or `when-empty`. |
+| `crossTab` | Opt-in | Receive external-change notices when the adapter supports subscriptions. |
+| `selectionMode` | `exclude-sensitive` | Use safe default exclusions or require explicit opt-in. |
+| `allowNames` / `ignoreNames` | Optional | Include or exclude controls by name. |
+| `allowSelector` / `ignoreSelector` | Optional | Include or exclude controls by one or more selectors. |
+| `includeDisabled` / `includeReadonly` | `false` | Opt eligible disabled or readonly controls into collection. |
+| `allowSensitiveFieldPersistence` | `false` | High-risk override for otherwise excluded sensitive controls; file contents remain excluded. |
+| `fieldFilter` | Optional | Apply an application callback to each candidate control. |
+| `fieldKey` | Optional | Provide stable application-owned control identities. |
+| `customControlAdapters` | Optional | Read, compare, and restore JSON-safe values for custom controls. |
+| `now` | Current time | Inject a clock for deterministic tests or previews. |
+
+The default local-storage adapter can outlive a browser session. Use `createSessionStorageAdapter()` for session-limited retention or `createMemoryStorageAdapter()` for tests and non-production previews. Custom adapters do not become encrypted or secure merely by being custom.
+
+## API, methods, and results
+
+| Export or method | Purpose |
+| --- | --- |
+| `A11yFormDraftPersistence` | Class implementing one persistence instance. |
+| `createDraftPersistence(root, options)` | Create or reuse one instance for a root. |
+| `initDraftPersistenceAll(options)` | Initialize every `[data-a11y-form-draft-persistence]` root with the same options and key; prefer individual creation when keys differ. |
+| `DRAFT_PERSISTENCE_EVENTS` | Canonical lifecycle event-name constants. |
+| `check()` | Return `none`, `available`, `expired`, `incompatible`, `corrupted`, or `storage-error`. Available results include value-bearing `record` data and a `conflictCount`; do not expose that record in logs or UI. |
+| `save()` | Return `saved`, `unchanged`, `skipped`, `busy`, `storage-error`, or `invalid-configuration`. |
+| `restore({ force? })` | Return `restored`, `partial`, `confirmation-required`, `blocked`, `nothing-to-restore`, `busy`, or `storage-error`. |
+| `clear()` | Return `cleared`, `already-empty`, `busy`, or `storage-error`. |
+| `pause(reason?)` / `resume(reason?)` | Stop and resume autosave scheduling. |
+| `getStatus()` | Read lifecycle, operation, pause, pending-save, and draft-status state. |
+| `destroy()` | Remove listeners, subscriptions, and pending timers. It does not delete the stored draft. |
+
+`restoreStrategy: "prompt"` blocks conflicting restoration with `confirmation-required`; the host or restore-prompt addon must obtain the user's decision before calling `restore({ force: true })`. `"when-empty"` restores only empty eligible controls. Restoration assigns values without dispatching native `input` or `change` events.
+
+## Events
+
+Events bubble from the persistence root, are non-cancelable, do not cross a shadow boundary, and contain `instance`, `key`, `status`, and `timestamp`—never raw saved values or serialized records.
+
+| `DRAFT_PERSISTENCE_EVENTS` key | Event |
+| --- | --- |
+| `init` / `destroy` | Instance lifecycle completed. |
+| `checkComplete` | A check reached a terminal status. |
+| `saved` / `saveError` | A save completed or failed. |
+| `restored` / `restoreBlocked` | Restoration completed or requires confirmation. |
+| `cleared` | A stored draft was removed. |
+| `pause` / `resume` | Autosave state changed. |
+| `externalUpdate` | Another context changed the configured key; no value is merged or restored. |
+
+After a persisted BFCache `pageshow`, an idle instance runs `check()` and emits the ordinary value-free check event. It does not save, restore, move focus, or dispatch form-control events.
+
+## Adapters and addons
+
+Every public helper is available through the package export map; no private deep imports are required.
+
+| Public subpath | Export and role |
+| --- | --- |
+| `/adapters/local-storage` | `createLocalStorageAdapter()` for origin-scoped persistent browser storage. |
+| `/adapters/session-storage` | `createSessionStorageAdapter()` for the current browser session. |
+| `/adapters/memory` | `MemoryStorageAdapter` and `createMemoryStorageAdapter()` for deterministic examples and tests. |
+| `/addons/status` | `createDraftStatus()` connects value-free events to host-owned visible and optional polite status elements. Save success remains non-live. |
+| `/addons/restore-prompt` | `createDraftRestorePrompt()` renders a labelled, non-modal restore decision in a required host container. |
+| `/addons/submission-recovery` | `createDraftSubmissionRecovery()` maps explicit application submission outcomes to save, pause, resume, and confirmed-success clearing. |
+| `/addons/setup-inspector` | `inspectDraftSetup()` performs one value-free development scan and reports stable diagnostic codes and counts. |
+
+The submission-recovery addon never clears on a native `submit` attempt. Dispatch its exported application-outcome events only after submitting, validation failure, network failure, server failure, retry, or confirmed success is actually known. The setup inspector is a configuration diagnostic, not an accessibility audit.
+
+## CSS customization
+
+The package exports no CSS. The core creates no UI; style the host form and focus indicators normally. The status addon writes into elements you provide. The restore-prompt addon owns semantics and behavior while exposing a host container, `data-state` values (`available`, `expired`, `pending`, `restore-failed`, and `clear-failed`), `data-a11y-form-draft-prompt-outcome`, and `.a11y-form-draft-prompt__actions`.
+
+```css
+#draft-restore-prompt [data-state] {
+  padding: 1rem;
+  border-inline-start: 0.25rem solid currentColor;
+}
+
+.a11y-form-draft-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+:where(button, input, select, textarea):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+```
+
+Do not hide visible recovery outcomes or make both the visible status element and its separate live element live, because that can duplicate announcements.
+
+## Keyboard interaction and focus behavior
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Follow the host form's native tab order. Restore-prompt buttons join that order normally. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Activate native save, restore, keep, clear, and application buttons. |
+| Native editing keys | Continue to operate the form controls normally; the core adds no shortcuts. |
+
+The core never moves focus. The restore-prompt addon adds no autofocus or focus trap. Failed restore and clear attempts keep the prompt available and leave focus on the initiating button. Prompt dismissal or success removes the non-modal region without choosing a new focus target, so the host must ensure the surrounding sequence remains understandable.
+
+## Progressive enhancement, submission, and privacy
+
+Keep the form action, method, labels, help, validation, and server-side processing authoritative. Without JavaScript, the form remains usable but no local recovery occurs. Saving and restoration do not submit the form.
+
+Provide a visible **Clear draft** action and a deliberate positive retention period. Expiry makes a record unavailable to restore but does not erase the stored value. Clear a submission draft only after confirmed application success; native submission is only an attempt and may still fail.
+
+Cross-tab support is a notification, not synchronization, locking, or conflict resolution. If restored values control another behavior such as conditional fields, listen for the value-free `restored` event and explicitly refresh that integration; the package intentionally emits no synthetic `input` or `change` events.
+
+## Live example
+
+The example imports the installed core, session-storage adapter, status addon, and restore-prompt addon through public package exports. It demonstrates manual save, conflict detection, a non-modal overwrite decision, clear/reset behavior, native keyboard interaction, visible focus, and a single polite status channel.
+
+<FormDraftPersistenceDemo />
+
+## Known limitations and browser support
+
+- Browser storage is neither encrypted nor appropriate for shared-device or secret-bearing workflows.
+- Cross-tab notices do not merge, synchronize, serialize, or lock drafts.
+- Hidden-document and page-exit saves are best effort; asynchronous storage is not guaranteed during unload.
+- File contents are never persisted.
+- Custom controls require a stable adapter ID, identity, JSON-safe read value, and `write()` implementation for restoration; missing or failing adapters produce partial restores.
+- The setup inspector is point-in-time evidence and cannot guarantee future dynamic markup.
+- No explicit browser matrix is published. The package requires an ESM-capable environment and standard modern DOM and storage APIs; test storage restrictions, BFCache, target browsers, and assistive technologies in the completed application.
+
+<Aside type="caution" title="Published release metadata is inconsistent">
+  npm publishes version 1.0.0 under the `latest` tag, but the unmodified public `docs` export reports `release-candidate` and the packaged changelog labels 1.0.0 “Unreleased.” This hub records the user-supplied stable status while preserving and reporting the package-owned metadata gap.
+</Aside>
+
+The npm tarball includes the runtime, declarations, README, changelog, and license, but excludes the examples and supporting guides referenced from its README. Those maintained resources remain available in the public repository.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, guides, and maintained examples](https://github.com/vmitsaras/A11y-Form-Draft-Persistence)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-form-draft-persistence)</Card>
+  <Card title="Package documentation" icon="rocket">[Documentation and example atlas](https://vmitsaras.github.io/A11y-Form-Draft-Persistence/docs/)</Card>
+  <Card title="Related: Conditional Fields" icon="document">[Resynchronize conditional state after restoration](/a11y-ui-lab/plugins/a11y-conditional-fields/)</Card>
+  <Card title="Related: Form Validator" icon="document">[Coordinate validation and error recovery](/a11y-ui-lab/plugins/a11y-form-validator/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/a11y-ui-lab/plugins/).

@@ -41,11 +41,29 @@ Accessible, dependency-light progressive enhancement for semantic HTML forms. In
 
 **Status:** Stable · **Featured:** Yes · **Package:** `a11y-form-validator`
 
+### [A11y Form Submission Recovery](/a11y-ui-lab/plugins/a11y-form-submission-recovery/)
+
+Enhance a native form with preserved values, duplicate-attempt prevention, explicit retry, failure classification, connectivity recovery, and opt-in tab-scoped draft recovery.
+
+**Status:** Stable · **Package:** `a11y-form-submission-recovery`
+
+### [A11y Quiz Form](/a11y-ui-lab/plugins/a11y-quiz-form/)
+
+Add practice, exam, or review behavior to native single- and multiple-answer quiz forms with configurable attempts, scoring, explanations, answer reveal, progress, localized feedback, lifecycle events, and reset.
+
+**Status:** Stable · **Package:** `a11y-quiz-form`
+
 ### [A11y Conditional Fields](/a11y-ui-lab/plugins/a11y-conditional-fields/)
 
 Progressively reveal relevant form sections while keeping hidden controls out of keyboard navigation, validation, and default submission. Supports checkbox, radio, select, and button triggers, polite announcements, and optional Escape-to-collapse behavior.
 
 **Status:** Stable · **Package:** `a11y-conditional-fields`
+
+### [A11y Form Draft Persistence](/a11y-ui-lab/plugins/a11y-form-draft-persistence/)
+
+Save and recover eligible semantic-form values through configurable browser-storage adapters, with conflict-aware restoration, privacy-minded field exclusions, value-free lifecycle events, and optional status, restore-prompt, submission-recovery, and setup-inspection helpers.
+
+**Status:** Stable · **Package:** `a11y-form-draft-persistence`
 
 ### [A11y Password Strength Meter](/a11y-ui-lab/plugins/a11y-password-strength-meter/)
 

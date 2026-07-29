@@ -1,0 +1,342 @@
+---
+title: A11y Quiz Form
+description: Progressively enhance native single- and multiple-answer quiz forms with attempts, scoring, explanations, feedback, and lifecycle controls.
+sidebar:
+  order: 17
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import QuizFormDemo from '../../../components/QuizFormDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-quiz-form` adds practice, exam, and review behavior to semantic HTML forms. It supports
+single-answer radio questions and multiple-answer checkbox questions, configurable attempts
+and scoring, explanations, answer reveal, progress, localized feedback, lifecycle events,
+dynamic refresh, reset, and complete teardown.
+
+<Aside type="caution" title="Accessibility is an integration outcome">
+  The package preserves native form semantics and supplies accessibility-oriented feedback,
+  but it cannot make authored questions, answer choices, explanations, or an assessment
+  conformant by itself. Test the complete quiz with the browsers and assistive technologies
+  your learners use.
+</Aside>
+
+## Use when
+
+- One native form represents one single- or multiple-answer question.
+- A practice flow needs retries, explanations, answer reveal, progress, and reset.
+- An exam-like flow needs one attempt and no reveal action, with the limits of client-side grading understood.
+- A review view should expose answers and explanations without allowing mutation.
+- The host needs typed lifecycle events, localized feedback, or dynamic answer replacement.
+
+## Avoid when
+
+- You need secure exam grading; correct answers are present in client-side `data-correct` attributes.
+- You need multi-question score aggregation, persistence, routing, timing, or analytics built in.
+- The interaction cannot use native radio buttons or checkboxes inside a labelled fieldset.
+- Question or explanation HTML is untrusted and needs sanitization.
+- A formal browser-support matrix is mandatory for procurement or compliance evidence.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-quiz-form
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-quiz-form
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-quiz-form
+    ```
+  </TabItem>
+</Tabs>
+
+Import the public ESM entry and exported stylesheet. The package does not auto-initialize.
+Repeated initialization of the same form returns its existing instance.
+
+```js
+import { createQuizForm } from 'a11y-quiz-form';
+import 'a11y-quiz-form/styles.css';
+
+const form = document.querySelector('[data-a11y-quiz]');
+
+if (form instanceof HTMLFormElement) {
+  createQuizForm(form, {
+    maxAttempts: 2,
+    showProgress: true,
+  });
+}
+```
+
+Use `initQuizForms(options?, root?)` to initialize every `[data-a11y-quiz]` or compatibility
+`.js-a11y-quiz` form within a document or another `ParentNode`.
+
+## Required markup
+
+The plugin does not generate question or answer content. Provide one form per question with a
+fieldset, legend, labelled native inputs, answer cards, status and result containers, and real
+buttons. Use radio buttons for one answer and checkboxes for multiple answers. Mark every
+correct answer card with `data-correct="true"`.
+
+```html
+<form class="a11y-quiz" data-a11y-quiz novalidate>
+  <fieldset class="a11y-quiz__fieldset">
+    <legend class="a11y-quiz__question">
+      Which element submits a form?
+    </legend>
+    <p class="a11y-quiz__instruction">Choose one answer.</p>
+
+    <div class="a11y-quiz__answers">
+      <div class="a11y-quiz__answer" data-correct="true">
+        <label class="a11y-quiz__answer-label">
+          <input
+            class="a11y-quiz__input"
+            type="radio"
+            name="element"
+            value="button"
+          />
+          <span class="a11y-quiz__answer-text">&lt;button&gt;</span>
+        </label>
+        <p class="a11y-quiz__answer-note" hidden>Previously selected</p>
+        <p class="a11y-quiz__explanation" hidden>
+          A button has native form behavior.
+        </p>
+      </div>
+    </div>
+
+    <p class="a11y-quiz__attempt-count" hidden></p>
+    <p class="a11y-quiz__status"></p>
+
+    <div class="a11y-quiz__actions">
+      <button type="submit">Check answer</button>
+      <button type="button" data-quiz-show-answer hidden>Show answer</button>
+      <button type="button" data-quiz-reset hidden>Reset</button>
+    </div>
+
+    <div class="a11y-quiz__result-summary" hidden>
+      <p class="a11y-quiz__result-summary-text"></p>
+    </div>
+  </fieldset>
+</form>
+```
+
+The package creates a missing validation container and, when `showProgress` is enabled, a
+missing progress container. Authors should provide the remaining feedback hooks. The form also
+accepts scalar options through `data-mode`, `data-max-attempts`,
+`data-explanation-mode`, `data-show-answer-mode`, `data-scoring-mode`,
+`data-allow-reset`, `data-disable-after-complete`, `data-focus-result`,
+`data-announce-changes`, `data-shuffle-answers`, `data-show-progress`, and
+`data-disable-check-until-answered`. Programmatic options take precedence.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `mode` | `'practice'` | Use `'practice'`, `'exam'`, or read-only `'review'` behavior. |
+| `maxAttempts` | `2` | Attempt limit, normalized to an integer from 1 through 100. Exam mode forces one attempt. |
+| `explanationMode` | `'selected-after-wrong'` | Use `'none'`, `'selected-after-wrong'`, `'all-after-correct'`, `'all-after-final'`, or `'all-immediate'`. |
+| `showAnswerMode` | `'after-first-wrong'` | Use `'always'`, `'after-first-wrong'`, `'after-final-attempt'`, or `'never'`. |
+| `scoringMode` | `'exact'` | Require the exact correct set, accept a correct non-empty subset with `'partial'`, or use the exact-mode alias `'all-or-nothing'`. |
+| `allowReset` | `true` | Show and accept reset after completion. Review mode always rejects reset. |
+| `disableAfterComplete` | `true` | Disable answer inputs at completion, while retaining their individual initial disabled states for reset. |
+| `focusResult` | `false` | Move focus to the result summary after completion when enabled. |
+| `announceChanges` | `true` | Write generated feedback to the polite status region. |
+| `shuffleAnswers` | `false` | Randomize answer-card DOM order at initialization and restore it on destroy. |
+| `showProgress` | `false` | Add an attempt progress indicator. |
+| `disableCheckUntilAnswered` | `true` | Disable the submit button until an answer is selected. |
+| `messages` | English catalog | Partially replace validation, result, progress, summary, and answer-state strings or attempt-aware callbacks. |
+
+`exam` mode forces one attempt, hides the hint and answer-reveal action, and uses final
+explanations. `review` mode starts revealed, disables inputs, hides actions, shows every
+explanation, and makes `check()`, `reveal()`, and `reset()` inert.
+
+For multiple-answer questions, exact scoring requires every correct option and no incorrect
+options. Partial scoring accepts a non-empty subset only when every selected option is correct;
+it returns boolean correctness, not a percentage.
+
+## Methods
+
+| Method | Purpose |
+| --- | --- |
+| `check()` | Check a non-empty active selection. An empty selection displays validation without consuming an attempt. |
+| `reveal()` | Reveal correct answers and explanations from an allowed active or final-incorrect state. |
+| `reset()` | Start a fresh practice or exam run when reset is allowed, restoring initial checked and disabled values. |
+| `getState()` | Return `state`, `attempts`, `maxAttempts`, selected values, and correctness. |
+| `refresh(options?)` | Reconcile synchronously changed answers and supporting controls. `{ preserveSelection: true }` migrates matching selections. |
+| `destroy()` | Remove listeners and generated feedback, restore author-owned DOM, attributes, controls, text, and answer order, then emit the destroy event. |
+
+`new A11yQuizForm(form, options?)` is the class-based public equivalent to
+`createQuizForm()`. Prefer the creation function unless class construction is useful to the
+host architecture.
+
+When dynamic markup changes, batch the changes and call `refresh()` once. Selection migration
+matches input `type`, `name`, and `value`, so keep those keys unique and stable. The package
+does not observe mutations automatically.
+
+## Events
+
+All events dispatch synchronously from the form, bubble, are non-composed and non-cancelable,
+and include `instance` plus the compatibility alias `quiz`. Use the exported
+`quizFormEvents` constants and `onQuizFormEvent()` for typed detail and an idempotent cleanup
+function.
+
+| Event | Additional detail and timing |
+| --- | --- |
+| `a11yquiz:init` | Initial state has been captured and enhancement is starting. |
+| `a11yquiz:ready` | Initial UI synchronization is complete. |
+| `a11yquiz:change` | A managed input changed; includes `selected`. |
+| `a11yquiz:check` | An active check was accepted, including an empty selection; includes `selected`, `valid`, and `attempt`. |
+| `a11yquiz:correct` | Correct-result UI is complete; includes `attempt`. |
+| `a11yquiz:incorrect` | Retryable or final incorrect UI is complete; includes `attempt` and `canRetry`. |
+| `a11yquiz:retry` | A retry is available; includes `attempt`. |
+| `a11yquiz:reveal` | Answer-reveal UI is complete. |
+| `a11yquiz:reset` | An accepted reset restored the initial interaction state. |
+| `a11yquiz:refresh` | Dynamic reconciliation completed; includes `preserveSelection`, `selected`, `added`, and `removed`. |
+| `a11yquiz:complete` | The run first reached a terminal result; includes `correct`, `revealed`, and `attempt`. |
+| `a11yquiz:destroy` | Cleanup and author-DOM restoration are complete. |
+
+```js
+import { onQuizFormEvent, quizFormEvents } from 'a11y-quiz-form';
+
+const stopListening = onQuizFormEvent(
+  form,
+  quizFormEvents.complete,
+  (event) => {
+    console.log(event.detail.correct, event.detail.attempt);
+  },
+);
+
+stopListening();
+```
+
+## Addons
+
+Version 1.0.0 publishes no addon subpaths. Modes, scoring, messages, progress, reveal, reset,
+events, refresh, and teardown are part of the core entry. Do not deep-import unexported package
+files to invent an addon boundary.
+
+## CSS customization
+
+The exported stylesheet uses `.a11y-quiz` as its BEM block. Public properties use the
+`--a11y-quiz-*` prefix; properties beginning with `--_` are private implementation details.
+
+```css
+.course-quiz {
+  --a11y-quiz-color-bg: #fff;
+  --a11y-quiz-color-text: #172033;
+  --a11y-quiz-color-border: #64748b;
+  --a11y-quiz-color-border-focus: #1d4ed8;
+  --a11y-quiz-color-correct-bg: #ecfdf3;
+  --a11y-quiz-color-correct-border: #15803d;
+  --a11y-quiz-color-correct-text: #14532d;
+  --a11y-quiz-color-incorrect-bg: #fff1f2;
+  --a11y-quiz-color-incorrect-border: #be123c;
+  --a11y-quiz-color-incorrect-text: #881337;
+  --a11y-quiz-color-action-bg: #4338ca;
+  --a11y-quiz-color-action-hover: #3730a3;
+  --a11y-quiz-color-focus-ring: #f59e0b;
+  --a11y-quiz-radius: 0.625rem;
+  --a11y-quiz-max-width: 48rem;
+}
+```
+
+Spacing and font-size tokens are also public through `--a11y-quiz-spacing-*` and
+`--a11y-quiz-font-size-*`. Preserve state text, visible focus, and contrast when customizing.
+The package stylesheet includes forced-colors rules and reduces transitions for
+`prefers-reduced-motion: reduce`.
+
+## Keyboard interaction
+
+| Key | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move through native answer controls, hint disclosure, and action buttons in document order. |
+| Arrow keys | Move and change selection within a native radio group. |
+| <kbd>Space</kbd> | Select a focused radio or checkbox, or activate a focused button. |
+| <kbd>Enter</kbd> | Submit the native form or activate a focused button. |
+
+The package relies on native keyboard behavior rather than replacing it with a composite
+widget pattern.
+
+## Focus behavior
+
+During non-terminal checks, focus stays on the current interaction. Enable `focusResult` to
+move focus to the result summary after completion. When an empty check can be triggered with
+`disableCheckUntilAnswered: false`, it exposes visible assertive feedback, sets validation
+ARIA, consumes no attempt, and focuses the first answer input by default. With `focusResult:
+true`, that empty state focuses the status region instead. Instructions, hints, status text,
+explanations, and answer-state text are associated through generated IDs and merged
+`aria-describedby` tokens; author-provided tokens are deduplicated and restored.
+
+During `refresh()`, retained focus stays in place. If a focused quiz control was removed, the
+package recovers to a same-key replacement, the nearest remaining answer, an available check
+action, or the form. `destroy()` restores author-owned focusability and ARIA references.
+
+## Progressive enhancement
+
+Keep the fieldset, legend, labels, native controls, instructions, and a meaningful form
+`action` and `method` in the server-rendered HTML. The question remains readable and operable
+as a form without JavaScript, but client-side scoring, retries, reveal, progress, generated
+feedback, and reset are unavailable. Supply server-side grading or a deliberate
+`<noscript>` answer/recovery path when the no-JavaScript experience matters.
+
+If the plugin owns empty-selection feedback, package examples use `novalidate`. If the form
+must retain native required-field enforcement without JavaScript, design and test that fallback
+explicitly. Correct-answer and explanation content remains author-owned.
+
+## Accessibility notes
+
+- Native fieldsets, legends, labels, radio buttons, checkboxes, details, and buttons form the semantic baseline.
+- Correct and incorrect results include visible text, rather than relying on color alone.
+- Existing author descriptions are merged with plugin descriptions and restored on teardown.
+- Generated messages must remain concise, meaningful, non-empty, and free of private response data.
+- Selecting an answer changes selection state only; checking, revealing, and resetting require explicit actions.
+- The package is designed to support accessible quiz implementations, not to guarantee complete WCAG conformance.
+
+## Live example
+
+This practice-mode question imports the installed package runtime and stylesheet through public
+exports. It demonstrates an initially disabled check action, an incorrect retry, answer reveal,
+completion events, result focus, progress, explanations, a no-JavaScript answer, and a
+persistent host reset button wired to the public `reset()` method.
+
+<QuizFormDemo />
+
+## Known limitations and browser support
+
+- One instance manages one question. Score aggregation, persistence, timing, routing, and cross-question summaries are host responsibilities.
+- Correct answers are exposed in client-side `data-correct` attributes. Exam mode is a behavior preset, not a secure assessment system.
+- The package does not generate or sanitize question, answer, hint, or explanation content.
+- Dynamic refresh supports one input per answer card; nested quizzes, duplicate answer keys, and concurrent DOM mutation are outside its contract.
+- In version 1.0.0, a terminal check with the default `focusResult: false` hides the focused check button and can leave browser focus on the document body. The built-in reset action can likewise lose focus when it hides itself. Enable result focus and design a tested host reset/focus policy; the live example keeps its public-API reset control present.
+- When `focusResult: true` is combined with `disableCheckUntilAnswered: false`, empty validation focuses the status region, but the exported stylesheet does not give that region a dedicated focus outline.
+- Version 1.0.0 has no addon exports and no published formal browser compatibility matrix.
+- The package is ESM-only and uses standard modern DOM APIs. Test supported browser and assistive-technology combinations and apply any transpilation or polyfill policy at the application boundary.
+
+## Resources and related guides
+
+<CardGrid>
+  <Card title="Package source" icon="github">
+    Review releases, issues, changelog, and examples in the [GitHub repository](https://github.com/vmitsaras/A11y-Quiz-Form).
+  </Card>
+  <Card title="Published package" icon="seti:npm">
+    Inspect the current release and install metadata on [npm](https://www.npmjs.com/package/a11y-quiz-form).
+  </Card>
+  <Card title="Package examples" icon="rocket">
+    Try the package-maintained [basic practice example](https://vmitsaras.github.io/A11y-Quiz-Form/basic/) and [multiple-answer scoring lab](https://vmitsaras.github.io/A11y-Quiz-Form/multiple-answer-scoring/).
+  </Card>
+  <Card title="Related: Form Validator" icon="document">
+    Use [A11y Form Validator](/a11y-ui-lab/plugins/a11y-form-validator/) for general-purpose inline, custom, asynchronous, and server-provided validation.
+  </Card>
+  <Card title="Related: Error Summary" icon="document">
+    Use [A11y Error Summary](/a11y-ui-lab/plugins/a11y-error-summary/) for persistent linked recovery across multi-field forms.
+  </Card>
+</CardGrid>
+
+Return to the [plugin catalog](/a11y-ui-lab/plugins/) to explore the complete form-plugin collection.

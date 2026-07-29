@@ -1,0 +1,175 @@
+---
+import 'a11y-form-submission-recovery/styles.css';
+---
+
+<section class="recovery-demo" aria-labelledby="recovery-demo-title" data-recovery-demo>
+  <header class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="recovery-demo-title">Request a communications accessibility review</h3>
+    <p>
+      Complete the form and submit it. The first request deliberately has a simulated connection failure; your
+      values remain in place and an explicit retry succeeds. No information leaves this page.
+    </p>
+  </header>
+
+  <form
+    class="a11y-form-submission-recovery"
+    data-a11y-form-submission-recovery
+    action="/communications-review"
+    method="post"
+  >
+    <div class="field">
+      <label for="reviewer-name">Your name</label>
+      <input id="reviewer-name" name="name" autocomplete="name" required />
+    </div>
+
+    <div class="field">
+      <label for="reviewer-email">Work email</label>
+      <input id="reviewer-email" name="email" type="email" autocomplete="email" required />
+    </div>
+
+    <div class="field">
+      <label for="review-request">What needs review?</label>
+      <p id="review-request-hint">Include the journey, key dates, and any access requirements for the review.</p>
+      <textarea
+        id="review-request"
+        name="request"
+        rows="5"
+        required
+        aria-describedby="review-request-hint"
+      ></textarea>
+    </div>
+
+    <div class="actions">
+      <button type="submit">Send review request</button>
+      <button type="button" class="secondary" data-reset-example>Reset example</button>
+    </div>
+
+    <div class="a11y-form-submission-recovery__feedback">
+      <p
+        class="a11y-form-submission-recovery__status"
+        data-a11y-form-submission-recovery-status
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      ></p>
+      <button
+        class="a11y-form-submission-recovery__retry"
+        data-a11y-form-submission-recovery-retry
+        type="button"
+        hidden
+      >
+        Try sending again
+      </button>
+    </div>
+
+    <p class="submission-reference" hidden data-submission-reference-row>
+      Submission reference: <output data-submission-reference></output>
+    </p>
+
+    <section class="a11y-form-submission-recovery__support" data-a11y-form-submission-recovery-support hidden>
+      <h4 class="a11y-form-submission-recovery__support-heading">Details for support</h4>
+      <dl class="a11y-form-submission-recovery__support-list">
+        <div class="a11y-form-submission-recovery__support-item" data-a11y-form-submission-recovery-support-attempt-row>
+          <dt class="a11y-form-submission-recovery__support-term" data-a11y-form-submission-recovery-support-attempt-label>Attempt</dt>
+          <dd class="a11y-form-submission-recovery__support-value" data-a11y-form-submission-recovery-support-attempt></dd>
+        </div>
+        <div class="a11y-form-submission-recovery__support-item" data-a11y-form-submission-recovery-support-status-row>
+          <dt class="a11y-form-submission-recovery__support-term" data-a11y-form-submission-recovery-support-status-label>HTTP status</dt>
+          <dd class="a11y-form-submission-recovery__support-value" data-a11y-form-submission-recovery-support-status></dd>
+        </div>
+        <div class="a11y-form-submission-recovery__support-item" data-a11y-form-submission-recovery-support-reference-row>
+          <dt class="a11y-form-submission-recovery__support-term" data-a11y-form-submission-recovery-support-reference-label>Reference</dt>
+          <dd class="a11y-form-submission-recovery__support-value" data-a11y-form-submission-recovery-support-reference></dd>
+        </div>
+      </dl>
+    </section>
+  </form>
+</section>
+
+<script>
+  import {
+    FORM_SUBMISSION_RECOVERY_EVENTS,
+    createFormSubmissionRecovery,
+    onFormSubmissionRecoveryEvent,
+  } from 'a11y-form-submission-recovery';
+  import { createSubmissionReferenceAddon } from 'a11y-form-submission-recovery/addons/submission-reference';
+  import { createFailureSupportSummaryAddon } from 'a11y-form-submission-recovery/addons/failure-support-summary';
+
+  const demo = document.querySelector<HTMLElement>('[data-recovery-demo]');
+
+  if (demo) {
+    const form = demo.querySelector<HTMLFormElement>('[data-a11y-form-submission-recovery]');
+    const resetExample = demo.querySelector<HTMLButtonElement>('[data-reset-example]');
+    const referenceRow = demo.querySelector<HTMLElement>('[data-submission-reference-row]');
+
+    if (form && resetExample) {
+      let failFirstAttempt = true;
+      const recovery = createFormSubmissionRecovery(form, {
+        addons: [
+          createSubmissionReferenceAddon({
+            exposeToUser: true,
+            outputElement: '[data-submission-reference]',
+          }),
+          createFailureSupportSummaryAddon({
+            container: '[data-a11y-form-submission-recovery-support]',
+            includeAttemptNumber: true,
+            includeHttpStatus: true,
+            includeSubmissionReference: true,
+          }),
+        ],
+        messages: {
+          submitting: 'Sending your review request.',
+          networkFailed: 'The request could not be sent. Your details are still available; try again when ready.',
+          retrying: 'Trying your review request again.',
+          succeeded: 'Your review request has been received. No data was sent from this demo.',
+        },
+        async transport() {
+          await new Promise((resolve) => window.setTimeout(resolve, 450));
+          if (failFirstAttempt) {
+            failFirstAttempt = false;
+            throw new TypeError('Simulated connection interruption');
+          }
+          return new Response(null, { status: 202 });
+        },
+      });
+
+      resetExample.addEventListener('click', () => {
+        form.reset();
+        recovery.reset({ clearStatus: true, clearOutcome: true, clearSnapshot: true });
+        failFirstAttempt = true;
+        if (referenceRow) referenceRow.hidden = true;
+      });
+
+      onFormSubmissionRecoveryEvent(form, FORM_SUBMISSION_RECOVERY_EVENTS.attempt, () => {
+        if (referenceRow) referenceRow.hidden = false;
+      });
+      document.addEventListener(
+        'astro:before-swap',
+        () => {
+          recovery.destroy();
+        },
+        { once: true },
+      );
+    }
+  }
+</script>
+
+<style>
+  .recovery-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); --a11y-form-submission-recovery-border-color: var(--sl-color-gray-3); --a11y-form-submission-recovery-background: var(--sl-color-black); --a11y-form-submission-recovery-focus-color: #60a5fa; --a11y-form-submission-recovery-success-color: #86efac; --a11y-form-submission-recovery-warning-color: #fcd34d; --a11y-form-submission-recovery-error-color: #fca5a5; }
+  .demo-heading { max-width: 48rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  form { max-width: 44rem; margin-block-start: 1.5rem; }
+  .field { display: grid; gap: .35rem; }
+  label { font-weight: 650; }
+  .field p { margin: 0; color: var(--sl-color-gray-2); font-size: .9rem; }
+  input, textarea { width: 100%; padding: .7rem .8rem; color: var(--sl-color-white); background: var(--sl-color-black); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; font: inherit; }
+  textarea { resize: vertical; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  button { margin: 0; min-block-size: 2.75rem; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { color: var(--sl-color-white); background: transparent; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .submission-reference { margin: 0; color: var(--sl-color-gray-2); font-size: .9rem; }
+  .submission-reference output { color: var(--sl-color-white); font-weight: 700; }
+</style>

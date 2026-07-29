@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as runtime from 'a11y-form-validator';
+import * as formSubmissionRecoveryRuntime from 'a11y-form-submission-recovery';
+import * as quizFormRuntime from 'a11y-quiz-form';
 import * as conditionalFieldsRuntime from 'a11y-conditional-fields';
+import * as formDraftPersistenceRuntime from 'a11y-form-draft-persistence';
 import * as passwordStrengthMeterRuntime from 'a11y-password-strength-meter';
 import * as resultCountRuntime from 'a11y-result-count';
 import * as sortableTableRuntime from 'a11y-sortable-table';
@@ -18,7 +21,10 @@ import * as commandMenuButtonRuntime from 'a11y-command-menu-button';
 import * as tabsRuntime from 'a11y-tabs-widget';
 import * as dialogRuntime from '@vmitsaras/a11y-dialog';
 import { docs } from 'a11y-form-validator/docs';
+import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recovery/docs';
+import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
+import { docs as formDraftPersistenceDocs } from 'a11y-form-draft-persistence/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
 import { docs as resultCountDocs } from 'a11y-result-count/docs';
 import { docs as sortableTableDocs } from 'a11y-sortable-table/docs';
@@ -84,6 +90,20 @@ import { initA11yDataGridKeyboardHelp } from 'a11y-data-grid/addons/keyboard-hel
 import { initA11yDataGridViewSummary } from 'a11y-data-grid/addons/view-summary';
 import { createCharacterCountAddon } from 'a11y-form-validator/addons/character-count';
 import { createErrorSummaryAddon } from 'a11y-form-validator/addons/error-summary';
+import { createSessionRecoveryAddon } from 'a11y-form-submission-recovery/addons/session-recovery';
+import { createSubmissionReferenceAddon } from 'a11y-form-submission-recovery/addons/submission-reference';
+import { createServerErrorMapperAddon } from 'a11y-form-submission-recovery/addons/server-error-mapper';
+import { createFailureSupportSummaryAddon } from 'a11y-form-submission-recovery/addons/failure-support-summary';
+import { createLocalStorageAdapter } from 'a11y-form-draft-persistence/adapters/local-storage';
+import { createSessionStorageAdapter } from 'a11y-form-draft-persistence/adapters/session-storage';
+import { createMemoryStorageAdapter } from 'a11y-form-draft-persistence/adapters/memory';
+import { createDraftStatus } from 'a11y-form-draft-persistence/addons/status';
+import { createDraftRestorePrompt } from 'a11y-form-draft-persistence/addons/restore-prompt';
+import {
+  createDraftSubmissionRecovery,
+  DRAFT_SUBMISSION_RECOVERY_EVENTS,
+} from 'a11y-form-draft-persistence/addons/submission-recovery';
+import { inspectDraftSetup } from 'a11y-form-draft-persistence/addons/setup-inspector';
 import { plugins } from '../src/data/plugins.mjs';
 import { validatePlugins } from '../scripts/validate-plugins.mjs';
 
@@ -106,6 +126,40 @@ test('the exported stylesheet resolves through the package export map', async ()
   assert.match(cssUrl, /a11y-form-validator\/dist\/styles\.css$/);
 });
 
+test('a11y-form-submission-recovery exposes the documented public contract', () => {
+  assert.ok(Object.keys(formSubmissionRecoveryRuntime).length > 0);
+  assert.equal(typeof formSubmissionRecoveryRuntime.createFormSubmissionRecovery, 'function');
+  assert.equal(typeof formSubmissionRecoveryRuntime.createFetchSubmissionTransport, 'function');
+  assert.equal(typeof formSubmissionRecoveryRuntime.initFormSubmissionRecoveryAll, 'function');
+  assert.equal(typeof formSubmissionRecoveryRuntime.onFormSubmissionRecoveryEvent, 'function');
+  assert.equal(typeof createSessionRecoveryAddon, 'function');
+  assert.equal(typeof createSubmissionReferenceAddon, 'function');
+  assert.equal(typeof createServerErrorMapperAddon, 'function');
+  assert.equal(typeof createFailureSupportSummaryAddon, 'function');
+  assert.equal(formSubmissionRecoveryDocs.packageName, 'a11y-form-submission-recovery');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-form-submission-recovery')?.docs,
+    formSubmissionRecoveryDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-form-submission-recovery/styles.css'),
+    /a11y-form-submission-recovery\/dist\/styles\.css$/,
+  );
+});
+
+test('a11y-quiz-form exposes the documented public contract', () => {
+  assert.ok(Object.keys(quizFormRuntime).length > 0);
+  assert.equal(typeof quizFormRuntime.createQuizForm, 'function');
+  assert.equal(typeof quizFormRuntime.initQuizForms, 'function');
+  assert.equal(typeof quizFormRuntime.A11yQuizForm, 'function');
+  assert.equal(typeof quizFormRuntime.defaultQuizFormMessages, 'object');
+  assert.equal(typeof quizFormRuntime.quizFormEvents, 'object');
+  assert.equal(typeof quizFormRuntime.onQuizFormEvent, 'function');
+  assert.equal(quizFormDocs.packageName, 'a11y-quiz-form');
+  assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-quiz-form')?.docs, quizFormDocs);
+  assert.match(import.meta.resolve('a11y-quiz-form/styles.css'), /a11y-quiz-form\/dist\/styles\.css$/);
+});
+
 test('a11y-conditional-fields exposes the documented public contract', () => {
   assert.ok(Object.keys(conditionalFieldsRuntime).length > 0);
   assert.equal(typeof conditionalFieldsRuntime.createConditionalFields, 'function');
@@ -114,6 +168,35 @@ test('a11y-conditional-fields exposes the documented public contract', () => {
   assert.equal(conditionalFieldsDocs.packageName, 'a11y-conditional-fields');
   assert.equal(plugins.find(({ packageName }) => packageName === 'a11y-conditional-fields')?.docs, conditionalFieldsDocs);
   assert.match(import.meta.resolve('a11y-conditional-fields/min'), /a11y-conditional-fields\/dist\/index\.min\.js$/);
+});
+
+test('a11y-form-draft-persistence exposes the documented public contract', () => {
+  assert.ok(Object.keys(formDraftPersistenceRuntime).length > 0);
+  assert.equal(typeof formDraftPersistenceRuntime.createDraftPersistence, 'function');
+  assert.equal(typeof formDraftPersistenceRuntime.initDraftPersistenceAll, 'function');
+  assert.equal(typeof formDraftPersistenceRuntime.A11yFormDraftPersistence, 'function');
+  assert.equal(typeof formDraftPersistenceRuntime.DRAFT_PERSISTENCE_EVENTS, 'object');
+  assert.equal(typeof createLocalStorageAdapter, 'function');
+  assert.equal(typeof createSessionStorageAdapter, 'function');
+  assert.equal(typeof createMemoryStorageAdapter, 'function');
+  assert.equal(typeof createDraftStatus, 'function');
+  assert.equal(typeof createDraftRestorePrompt, 'function');
+  assert.equal(typeof createDraftSubmissionRecovery, 'function');
+  assert.equal(typeof DRAFT_SUBMISSION_RECOVERY_EVENTS, 'object');
+  assert.equal(typeof inspectDraftSetup, 'function');
+  assert.equal(formDraftPersistenceDocs.packageName, 'a11y-form-draft-persistence');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-form-draft-persistence')?.docs,
+    formDraftPersistenceDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-form-draft-persistence/min'),
+    /a11y-form-draft-persistence\/dist\/index\.min\.js$/,
+  );
+  assert.throws(
+    () => import.meta.resolve('a11y-form-draft-persistence/styles.css'),
+    { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' },
+  );
 });
 
 test('a11y-password-strength-meter exposes the documented public contract', () => {
