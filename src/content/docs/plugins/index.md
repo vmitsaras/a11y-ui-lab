@@ -33,6 +33,20 @@ Enhance native modal dialogs with required visible labels, safe initial focus, T
 
 **Status:** Stable · **Package:** `@vmitsaras/a11y-dialog`
 
+### [A11y Tour Guide](/a11y-ui-lab/plugins/a11y-tour-guide/)
+
+Create optional product orientations with generated labelled dialogs, modal focus containment, direction-aware keyboard navigation, missing-target recovery, checklists, localization, public themes, and opt-in URL step synchronization.
+
+**Status:** Stable · **Package:** `a11y-tour-guide`
+
+## Content and feedback
+
+### [A11y Scroll Cue](/a11y-ui-lab/plugins/a11y-scroll-cue/)
+
+Make horizontal overflow visible with a text cue, an overflow-only keyboard tab stop, optional region naming and description, native scrolling, responsive state updates, and complete teardown.
+
+**Status:** Stable · **Package:** `a11y-scroll-cue`
+
 ## Forms
 
 ### [A11y Form Validator](/a11y-ui-lab/plugins/a11y-form-validator/)

@@ -1,0 +1,432 @@
+---
+title: A11y Tour Guide
+description: Optional, framework-agnostic product tours with modal focus management, keyboard navigation, missing-target recovery, checklists, localization, themes, and URL synchronization.
+sidebar:
+  order: 18
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import A11yTourGuideDemo from '../../../components/A11yTourGuideDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Navigation & disclosure" variant="note" />
+
+`a11y-tour-guide` creates optional guided product tours from application-owned,
+semantic page content. It generates a labelled dialog, target highlight, modal
+overlay, progress text, status region, native controls, and an optional checklist
+only after the application explicitly starts a tour. Its controller supports
+keyboard navigation, focus return, localization, RTL layouts, asynchronous step
+preparation and guards, missing-target recovery, lifecycle callbacks, public CSS
+themes, and an opt-in URL synchronization adapter.
+
+<Aside type="caution" title="A tour should supplement the interface">
+  Do not use a tour to conceal unclear navigation, missing labels, or essential instructions. Keep the underlying page understandable without the tour, start it only after an intentional action, keep it short, and always leave Skip and Close available. The package does not claim complete WCAG conformance; the integration still owns content, target order, responsive behavior, privacy, and assistive-technology testing.
+</Aside>
+
+## Use when
+
+- A person asks for a short orientation to unfamiliar product areas.
+- A release or feature handoff benefits from pointing to stable, visible page regions in order.
+- A tour needs predictable modal focus containment, focus return, progress text, and optional completion state.
+- Localized or RTL product experiences need configurable controls and announcements.
+- Dynamic pages need documented recovery for temporarily missing or replaced targets.
+
+## Avoid when
+
+- Essential content or actions exist only in the tour.
+- Clear headings, navigation, inline help, or an always-visible checklist would solve the problem with less interruption.
+- The experience would start automatically, block task completion, or repeatedly reopen without consent.
+- Targets are unstable, frequently hidden, or tied to personalized states the integration cannot prepare safely.
+- The supported browsers cannot provide `inert`, `ResizeObserver`, or other required modern platform behavior and the application cannot supply a support strategy.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-tour-guide
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-tour-guide
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-tour-guide
+    ```
+  </TabItem>
+</Tabs>
+
+The package is ESM-only, targets ES2022, and has no runtime dependencies. Import
+the controller and a public stylesheet; importing the runtime does not start a
+tour or query the page.
+
+```js
+import { createTour } from 'a11y-tour-guide';
+import 'a11y-tour-guide/styles.css';
+```
+
+`styles.css` combines the structural base stylesheet with the Classic theme.
+For a custom theme setup, import `base.css` and one public theme instead.
+
+## Required markup
+
+The page owns the launcher and every target. Use a real button for the explicit
+start action, stable unique selectors, visible headings, and content that remains
+useful before JavaScript loads.
+
+```html
+<button id="start-release-tour" type="button">Start release tour</button>
+
+<main>
+  <section id="release-overview" aria-labelledby="release-overview-title">
+    <h2 id="release-overview-title">Release overview</h2>
+    <p>Review the goal, owner, and deadline.</p>
+  </section>
+
+  <section id="release-checks" aria-labelledby="release-checks-title">
+    <h2 id="release-checks-title">Readiness checks</h2>
+    <ul>
+      <li>Keyboard regression recorded</li>
+      <li>Zoom and reflow reviewed</li>
+    </ul>
+  </section>
+</main>
+```
+
+Do not author `.a11y-tour-*` dialog, overlay, highlight, live-region, button, or
+checklist elements yourself. The package creates and removes them during its
+lifecycle. Tour `title` and `content` values are strings; retain rich or essential
+content in the page rather than trying to move it into the generated dialog.
+
+## Basic usage
+
+Create the controller after its targets exist and call `start()` from the
+launcher. Navigation methods return promises because `beforeShow` and
+`canAdvance` hooks may be asynchronous.
+
+```js
+import { createTour } from 'a11y-tour-guide';
+import 'a11y-tour-guide/styles.css';
+
+const startButton = document.querySelector('#start-release-tour');
+
+const tour = createTour({
+  steps: [
+    {
+      id: 'overview',
+      target: '#release-overview',
+      title: 'Start with the release goal',
+      content: 'Review the goal, owner, and deadline before the supporting evidence.',
+    },
+    {
+      id: 'checks',
+      target: '#release-checks',
+      title: 'Review readiness',
+      content: 'Confirm the keyboard and responsive-layout evidence.',
+    },
+  ],
+});
+
+startButton?.addEventListener('click', () => {
+  void tour.start();
+});
+```
+
+Passing a numeric index or step ID to `start()` begins at that exact stop. Indexes
+are zero-based.
+
+## Step options
+
+Every step requires a unique `id`, a `target`, a `title`, and `content`.
+
+| Option | Type | Purpose |
+| --- | --- | --- |
+| `id` | `string` | Stable unique step ID used by navigation, checklist state, events, and the URL adapter. |
+| `target` | `string \| Element \| () => Element \| null` | CSS selector, exact element, or resolver function for the element to highlight. |
+| `title` | `string` | Generated dialog heading for the step. |
+| `content` | `string` | Generated dialog body text. |
+| `placement` | `"top" \| "right" \| "bottom" \| "left" \| "auto"` | Preferred placement for this step. |
+| `locales` | `string[]` | Include the step only for matching locales. |
+| `beforeShow` | `() => void \| Promise<void>` | Prepare a target before the step is resolved and shown. |
+| `canAdvance` | `() => boolean \| Promise<boolean>` | Allow or block forward navigation. |
+| `canAdvanceMessage` | `string` | Explain a blocked Next action through the package status channel. |
+
+Prefer selector or function targets when a framework may replace DOM nodes.
+An `Element` target remains tied to that exact node. After a render replaces the
+active target, call `refresh()` from the framework's post-render phase.
+
+If a target is hidden or missing during navigation, the package announces the
+unavailable stop and searches for an available fallback step. `refresh()` is
+more conservative: it returns `false`, hides the stale highlight, and leaves the
+current step open so the application can decide how to recover.
+
+## Tour options
+
+Only `steps` is required.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `steps` | Required | Ordered `TourStep[]`. |
+| `theme` | Page theme or `"classic"` | Public theme value applied through `data-a11y-tour-theme`; legacy aliases are normalized. |
+| `locale` | Page language or `"en"` | Language used for labels and locale-filtered steps. |
+| `fallbackLocale` | `"en"` | Translation fallback. |
+| `translations` | `{}` | Per-locale partial label dictionaries. |
+| `labels` | English labels | Partial control and announcement overrides. |
+| `direction` | `"auto"` | `"ltr"`, `"rtl"`, or locale-derived direction. |
+| `placement` | `"auto"` | Default placement for steps that do not override it. |
+| `modal` | `true` | Isolate background content and contain Tab navigation. |
+| `scrollToTarget` | `true` | Bring the target into view before positioning. |
+| `smoothScroll` | `true` | Use smooth scrolling when motion is allowed. |
+| `reducedMotion` | `false` | Force motion off for this controller. |
+| `keyboardNavigation` | `true` | Enable direction-aware Arrow-key step navigation. |
+| `closeOnEscape` | `true` | Let Escape close the tour. |
+| `showProgress` | `true` | Show localized step progress. |
+| `checklist` | `false` | Add a native completion checkbox, optionally with persistence. |
+| `className` | `""` | Add a class to the generated root for public-token customization. |
+| `zIndex` | `10000` | Set the generated tour layer's stacking level. |
+| `on` | `{}` | Register typed lifecycle observers during construction. |
+
+Checklist object options are `persist`, `storageKey`, and `resumeIncomplete`.
+Persistence writes completed step IDs to `localStorage` when storage is available.
+With `resumeIncomplete`, ordinary navigation skips checked steps and `start()`
+selects the first incomplete stop; an explicit index or ID still wins.
+
+Label keys cover `next`, `previous`, `skip`, `close`, `finish`, `progress`,
+`stepAnnouncement`, `completedAnnouncement`, `skippedAnnouncement`,
+`closedAnnouncement`, `missingTargetAnnouncement`, `blockedAnnouncement`, and
+`markStepComplete`. Templates can use `{current}`, `{total}`, and `{title}` where
+the package supports them.
+
+## Runtime exports and controller methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createTour(config)` | Create a `TourController`. |
+| `A11yTourGuide` | Public controller class for advanced direct construction. |
+| `start(startAt?)` | Start at the first step, zero-based index, or step ID. |
+| `next()` / `previous()` | Move through available steps and asynchronous guards. |
+| `goTo(step)` | Navigate to a zero-based index or step ID. |
+| `refresh()` | Re-resolve and reposition the current target; return whether it is visible. |
+| `skip()` / `complete()` | End with an explicit terminal reason and remove generated UI. |
+| `destroy()` | Close if needed and permanently dispose of the controller. |
+| `isActive()` / `getCurrentStep()` | Read current activity and step state. |
+| `isStepCompleted()` / `getCompletedSteps()` | Read checklist completion state. |
+| `setStepCompleted()` / `clearCompletedSteps()` | Update checklist state. |
+| `on(name, handler)` | Add a typed observer and return an unsubscribe function. |
+| `off(name, handler)` | Remove a typed observer explicitly. |
+| `TOUR_EVENTS` | Frozen shared callback-name constants. |
+| `TOUR_THEMES` / `TOUR_THEME_ALIASES` | Supported theme values and legacy mappings. |
+| `DEFAULT_LABELS` / `formatLabel()` | Default UI copy and its template formatter. |
+| `normalizeTheme()` / `validateSteps()` | Public theme normalization and step validation helpers. |
+
+TypeScript declarations also export `TourConfig`, `TourStep`, `TourController`,
+checklist, label, direction, placement, event-map, event-detail, and event-handler
+types. A controller cannot be reused after `destroy()`; construct a new one.
+
+## Lifecycle events
+
+These are synchronous typed callbacks, not DOM `CustomEvent`s. They have no DOM
+event target and do not bubble, compose, or support cancellation. Register them
+with the `on` config option or the controller's `on()` method.
+
+| Event | Detail | When it runs |
+| --- | --- | --- |
+| `start` | `TourStartDetail` | Once after an inactive tour commits its first visible step. |
+| `stepchange` | `TourStepChangeDetail` | After any visible step commits, with previous index and navigation reason. |
+| `completionchange` | `TourCompletionChangeDetail` | For each effective item-level checklist change. |
+| `completedstepschange` | `TourCompletedStepsChangeDetail` | Once after an effective single or batch completion mutation. |
+| `complete` | `TourCompleteDetail` | After completed-tour teardown. |
+| `skip` | `TourSkipDetail` | After skipped-tour teardown. |
+| `close` | `TourCloseDetail` | After close-button or Escape teardown. |
+| `error` | `TourErrorDetail` | After failed navigation closes and cleans up the tour. |
+| `destroy` | `TourDestroyDetail` | Once after permanent disposal. |
+
+Initial activation reports `start` before its initial `stepchange`. Terminal and
+error observers see an inactive controller and removed generated root. Closing or
+destroying during `beforeShow` or `canAdvance` invalidates that work so stale
+operations cannot commit a later step. Observer exceptions propagate to the
+caller after committed state and are not converted into plugin `error` callbacks.
+
+## Public URL synchronization addon
+
+The package publishes one JavaScript addon at `a11y-tour-guide/url-sync`. It
+does not start automatically and does not import private package files.
+
+```js
+import { createTour } from 'a11y-tour-guide';
+import { createUrlStepSync } from 'a11y-tour-guide/url-sync';
+
+const tour = createTour({ steps });
+const urlSync = createUrlStepSync(tour, {
+  mode: 'query',
+  key: 'tour-step',
+  history: 'replace',
+});
+
+startButton.addEventListener('click', () => {
+  void urlSync.start();
+});
+```
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `mode` | `"query"` | Store the step in a query parameter or parameter-style hash. |
+| `key` | `"tour-step"` | Name the query or hash parameter. |
+| `history` | `"replace"` | Replace the active history entry or push one per step. |
+
+The adapter exposes `readStep()`, `start(startAt?)`, `sync()`, and `destroy()`.
+It preserves unrelated query parameters and fragments. Back and Forward use the
+controller's normal `goTo()` path only while the tour is active. Hash mode uses
+parameter syntax and should not compete with anchor navigation or another router.
+
+Step IDs become public URL state and may appear in logs, analytics, referrers,
+and copied links. Never encode titles, selectors, field values, account data, or
+other sensitive information in them. Destroy the adapter before the controller
+when the owning integration is removed.
+
+## CSS and customization
+
+Use the combined default stylesheet for the structural layer and Classic theme:
+
+```js
+import 'a11y-tour-guide/styles.css';
+```
+
+Or pair the base with one public theme and use its matching `theme` value:
+
+```js
+import 'a11y-tour-guide/base.css';
+import 'a11y-tour-guide/themes/high-contrast.css';
+
+const tour = createTour({
+  theme: 'high-contrast',
+  className: 'account-tour',
+  steps,
+});
+```
+
+| Theme | Public CSS export | Value |
+| --- | --- | --- |
+| Classic | `/themes/classic.css` | `classic` |
+| Basic | `/themes/basic.css` | `basic` |
+| Brutalist | `/themes/brutalist.css` | `brutalist` |
+| Blueprint | `/themes/blueprint.css` | `blueprint` |
+| Sticky note | `/themes/sticky-note.css` | `sticky-note` |
+| Console | `/themes/console.css` | `console` |
+| Spotlight | `/themes/spotlight.css` | `spotlight` |
+| Checklist | `/themes/checklist.css` | `checklist` |
+| Glass | `/themes/glass.css` | `glass` |
+| Compact Pro | `/themes/compact-pro.css` | `compact-pro` |
+| High contrast | `/themes/high-contrast.css` | `high-contrast` |
+
+Legacy public imports and values remain available: `dark` maps to `console`,
+`soft-light` maps to `sticky-note`, and `compact` maps to `compact-pro`. Unknown
+values fall back to Classic.
+
+Override documented public variables after the theme stylesheet. Do not depend
+on private `--_tour-*` implementation variables.
+
+```css
+.account-tour {
+  --a11y-tour-color-surface: #ffffff;
+  --a11y-tour-color-text: #172033;
+  --a11y-tour-color-muted: #475569;
+  --a11y-tour-color-accent: #1d4ed8;
+  --a11y-tour-color-border: #172033;
+  --a11y-tour-color-overlay: rgb(15 23 42 / 0.76);
+  --a11y-tour-radius: 0.75rem;
+  --a11y-tour-shadow: 0 1.25rem 3rem rgb(15 23 42 / 0.35);
+  --a11y-tour-font-family: system-ui, sans-serif;
+}
+```
+
+The base stylesheet supplies visible `:focus-visible` outlines, 44-pixel minimum
+button heights, narrow and short viewport layouts, reduced-motion overrides, and
+forced-colors boundaries. Recheck all theme overrides for text, control, focus,
+highlight, and boundary contrast in the final application.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Authored launcher | Uses native button activation to call the application's `start()` handler. |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Modal tour | Moves among generated controls and remains inside the active dialog. |
+| <kbd>Escape</kbd> | Active tour | Closes when `closeOnEscape` is enabled, then restores eligible launcher focus. |
+| <kbd>ArrowLeft</kbd> / <kbd>ArrowRight</kbd> | Active tour | Moves between steps when `keyboardNavigation` is enabled; direction reverses for RTL. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Generated buttons | Activates Close, Skip, Previous, Next, or Finish through native button behavior. |
+| <kbd>Space</kbd> | Checklist checkbox | Toggles the native labelled completion control. |
+
+Do not remove Skip or Close, replace the generated native buttons with custom
+roles, or introduce application shortcuts that conflict with the tour controls.
+
+## Focus behavior
+
+Starting a tour records the active launcher, mounts the generated labelled
+dialog, and moves focus into it for the first step. Each committed step keeps
+focus in the dialog while the visual highlight points to application content.
+Modal tours make the rest of the page inert, prevent background scrolling, and
+contain Tab and Shift+Tab.
+
+Close, Skip, Complete, and eligible error cleanup restore focus to the original
+launcher when it remains connected. Overlapping modal instances retain background
+isolation until the final modal closes, but ordinary product flows should present
+one tour at a time. Modeless tours leave page content interactive and therefore
+require especially careful product-specific focus and reading-order testing.
+
+## Progressive enhancement and accessibility notes
+
+The underlying headings, sections, lists, and controls remain application-owned
+and usable when JavaScript fails; only the optional orientation is absent. The
+launcher should remain harmless without initialization, or be revealed only after
+the controller is ready. Never auto-start from import, route load, stored state,
+or a URL parameter without a fresh user decision.
+
+Keep steps concise, ordered by task rather than visual position, and independent
+of color or highlight geometry. Use stable selectors, call `refresh()` after
+replacing the active target, provide clear blocked-step messages, and test missing
+targets deliberately. Localize controls and announcements together, verify RTL
+placement and Arrow behavior, and do not make checklist persistence a hidden
+condition for completing the underlying product task.
+
+## Live example
+
+This demo imports the installed package root and public `styles.css` export. It
+uses semantic application markup, an explicit launcher, modal focus containment,
+the public checklist option and callbacks, visible focus, reset behavior, and a
+real missing-target recovery path. Leave the optional panel hidden for the
+non-happy path or reveal it before starting to include all four stops.
+
+<A11yTourGuideDemo />
+
+## Known limitations and browser support
+
+- The tour points to existing page content; it does not repair unclear information architecture, labels, errors, or task flows.
+- `title` and `content` are string fields, so rich essential content belongs in the page.
+- A selector resolves one target. Build one step per repeated element after those elements render.
+- An exact `Element` target cannot find a framework replacement; prefer selectors or resolver functions and call `refresh()` after commit.
+- Missing or hidden targets can be skipped during navigation, so every tour needs a meaningful fallback path and testing for the all-unavailable case.
+- `beforeShow` and `canAdvance` are application callbacks; the application owns cancellation, stale work, errors, and any network activity they initiate.
+- Checklist persistence stores step IDs in `localStorage`; the package does not provide consent, expiry, cross-device sync, or server persistence.
+- URL synchronization exposes step IDs as navigation data and can conflict with anchor- or router-owned fragments.
+- Multiple concurrent tours are supported for cleanup edge cases but can produce confusing competing instructions.
+- The package targets modern ES2022 browsers and uses `inert`, `ResizeObserver`, and `matchMedia`. It ships no polyfills or versioned browser matrix.
+- The package publishes no completed browser and screen-reader compatibility matrix. Test current Chromium, Firefox, and Safari with the assistive technologies your product supports.
+
+<Aside type="note" title="Published package observations">
+  Version 1.0.0 includes the runtime, declarations, named `docs` export, base and combined stylesheets, 14 theme subpaths, URL-sync addon, README, changelog, license, and repository metadata. Its docs metadata references five maintained repository examples and routes, but those examples and the generated `docs/` site are excluded from the npm tarball. This guide inspected those public materials but integrates only through published package exports.
+</Aside>
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, examples, and generated reference](https://github.com/vmitsaras/a11y-tour-guide)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-tour-guide)</Card>
+  <Card title="Maintained demos" icon="rocket">[Guided Proof, API reference, interaction lab, and examples](https://vmitsaras.github.io/a11y-tour-guide/)</Card>
+  <Card title="Related: Dialog" icon="document">[Use a native modal for a focused task rather than an orientation overlay](/a11y-ui-lab/plugins/a11y-dialog/)</Card>
+  <Card title="Related: Tabs Widget" icon="document">[Organize closely related in-page panels with roving tab focus](/a11y-ui-lab/plugins/a11y-tabs/)</Card>
+  <Card title="Related: Menu Button" icon="document">[Reveal compact native actions without trapping focus](/a11y-ui-lab/plugins/a11y-menu-button/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/a11y-ui-lab/plugins/).

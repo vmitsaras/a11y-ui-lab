@@ -1,0 +1,234 @@
+---
+title: A11y Scroll Cue
+description: Make horizontal overflow easier to discover with a visible cue, an overflow-only keyboard tab stop, native scrolling, responsive state, and complete cleanup.
+sidebar:
+  order: 18
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import ScrollCueDemo from '../../../components/ScrollCueDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Content & feedback" variant="note" />
+
+`a11y-scroll-cue` progressively enhances horizontally overflowing content with a visible text cue. While overflow exists, it can add a keyboard tab stop to the native scrollport, supply an accessible region name, and optionally connect the cue as a description. It does not replace the content, intercept scrolling keys, or initialize when imported.
+
+<Aside type="note" title="A cue supports—not replaces—responsive design">
+  Use the plugin when horizontal scrolling is intentional and preserves the content's meaning. First remove avoidable overflow, wrapping problems, and fixed-width layout assumptions. A cue does not make an unnecessarily wide interface accessible by itself.
+</Aside>
+
+## Use when
+
+- A semantic table needs to preserve columns that cannot fit at narrow widths.
+- A code sample, timeline, card strip, or other region is deliberately horizontally scrollable.
+- Pointer and keyboard users need a visible indication that more content exists off-screen.
+- The tab stop should appear only while the region actually overflows.
+- Dynamic content or container resizing can change whether the cue is needed.
+
+## Avoid when
+
+- Reflow, wrapping, stacking, or a simpler layout can remove the horizontal overflow.
+- The content should be a data grid, carousel, tab interface, or other composite widget with its own interaction model.
+- The scrollport has no useful visible label and the integration cannot provide one.
+- Essential instructions would exist only in the JavaScript-generated cue.
+- Product requirements need custom scrolling controls, snapping, pagination, or live announcements; the core package provides none of those behaviors.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-scroll-cue
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-scroll-cue
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-scroll-cue
+    ```
+  </TabItem>
+</Tabs>
+
+Import the runtime and public stylesheet. Importing the package has no document-wide side effect.
+
+```js
+import { createA11yScrollCue } from 'a11y-scroll-cue';
+import 'a11y-scroll-cue/styles.css';
+
+const root = document.querySelector('[data-a11y-scroll-cue]');
+
+if (root instanceof HTMLElement) {
+  const cue = createA11yScrollCue(root, {
+    regionLabel: 'Feature comparison table',
+    describeScrollport: true,
+  });
+
+  // cue.update();
+  // cue.reset();
+  // cue.dismiss('host-action');
+  // cue.destroy();
+}
+```
+
+Use `initA11yScrollCueAll(options?, scope?)` to enhance matching roots in a document or a specific subtree.
+
+## Required markup
+
+Provide one root and an explicit descendant that owns native horizontal scrolling. Put the cue outside the scrollport so it does not become part of the scrollable content. The package can generate its hint and edge elements; authoring them is optional.
+
+```html
+<div
+  class="a11y-scroll-cue"
+  data-a11y-scroll-cue
+  data-a11y-scroll-cue-message="Scroll horizontally to see all columns"
+  data-a11y-scroll-cue-region-label="Plan comparison table"
+>
+  <div data-a11y-scroll-cue-scrollport>
+    <table>
+      <caption>Plan comparison</caption>
+      <!-- Keep real table headings and cells here. -->
+    </table>
+  </div>
+</div>
+```
+
+The public selectors are `[data-a11y-scroll-cue]`, `[data-a11y-scroll-cue-scrollport]`, `[data-a11y-scroll-cue-hint]`, and `[data-a11y-scroll-cue-edge]`. A missing scrollport dispatches `a11y-scroll-cue:error` with the code `missing-scrollport`; the package does not silently choose another element.
+
+Keep the underlying content semantic. The plugin supplies overflow feedback and conditional scrollport semantics, not table, list, code, or carousel semantics.
+
+## Options and data attributes
+
+JavaScript options override matching root data attributes. Invalid dataset booleans, negative thresholds, and non-numeric thresholds fall back to the defaults.
+
+| Option | Data attribute | Default | Purpose |
+| --- | --- | --- | --- |
+| `message` | `data-a11y-scroll-cue-message` | `"Scroll horizontally"` | Set the generated hint text; an authored non-empty hint keeps its own text. |
+| `threshold` | `data-a11y-scroll-cue-threshold` | `2` | Ignore overflow and horizontal scroll offsets of this many pixels or fewer. |
+| `hideOnScroll` | `data-a11y-scroll-cue-hide-on-scroll` | `true` | Dismiss the cue after real horizontal scrolling passes the threshold. |
+| `focusable` | `data-a11y-scroll-cue-focusable` | `true` | Add `tabindex="0"` only while the scrollport overflows. |
+| `observeMutations` | `data-a11y-scroll-cue-observe-mutations` | `true` | Reconcile state after descendant, text, or subtree mutations. |
+| `regionLabel` | `data-a11y-scroll-cue-region-label` | `""` | Name an overflowing focusable scrollport when it has no authored accessible name. |
+| `describeScrollport` | `data-a11y-scroll-cue-describe-scrollport` | `false` | Link the visible hint through `aria-describedby` while overflow exists. |
+
+`regionLabel` adds `role="region"` and `aria-label` only when overflow and package-managed focusability are both active. It preserves an existing role or accessible name. Prefer a concise label that identifies the content, not an instruction such as “scroll area.”
+
+## Runtime API and instance methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createA11yScrollCue(root, options?)` | Enhance one root; repeated calls for that root return its existing instance. |
+| `initA11yScrollCueAll(options?, scope?)` | Enhance every matching root in document order within an optional scope. |
+| `A11yScrollCue` | Public class implementing the same instance contract. |
+| `root` / `scrollport` / `hasOverflow` | Read the root, resolved scrollport, and current measured overflow state. |
+| `update()` | Remeasure overflow and synchronize visual, focusable, region, and descriptive state. |
+| `reset()` | Clear dismissal and show an eligible cue again after an update. |
+| `dismiss(reason?)` | Hide the cue until reset or until overflow disappears; the default reason is package-defined. |
+| `destroy()` | Remove observers and listeners, generated elements, classes, data state, and plugin-added attributes. |
+
+The runtime also exports frozen `DEFAULT_OPTIONS`, `SELECTORS`, `CLASSES`, `ATTRIBUTES`, and `EVENTS` constants. TypeScript consumers receive option, instance, event-map, event-detail, snapshot, and normalized-option declarations from the root entry.
+
+## Events
+
+Lifecycle events dispatch synchronously from the component root. Every event bubbles, is not composed across a Shadow DOM boundary, and is not cancelable. Every detail contains `instance` and `root`.
+
+| Event | When it fires | Additional detail |
+| --- | --- | --- |
+| `a11y-scroll-cue:init` | Instance and observers are installed, before first reconciliation. | `hasOverflow` |
+| `a11y-scroll-cue:update` | Any state reconciliation completes, even if overflow is unchanged. | `hasOverflow`, `visible`, `dismissed` |
+| `a11y-scroll-cue:ready` | Initial visual and semantic state has been applied. | `hasOverflow`, `visible`, `dismissed` |
+| `a11y-scroll-cue:error` | The required scrollport is missing. | `code`, `message` |
+| `a11y-scroll-cue:overflow-change` | Overflow changes after initialization, immediately before `update`. | `hasOverflow`, `previousHasOverflow` |
+| `a11y-scroll-cue:dismiss` | The cue enters its dismissed state for the first effective time. | `reason`, state snapshot fields |
+| `a11y-scroll-cue:reset` | Reset and its update complete. | `changed`, state snapshot fields |
+| `a11y-scroll-cue:destroy` | Terminal cleanup completes. | `finalState` |
+
+Successful initialization orders events as `init → update → ready`. The initial measurement establishes a baseline and does not emit `overflow-change`; a reset emits `update` before `reset`. Attach direct or delegated listeners before calling `createA11yScrollCue()` when the initial lifecycle matters.
+
+These events report state; they do not cancel or command package behavior. No aggregate event is dispatched by `initA11yScrollCueAll()`.
+
+## Addons
+
+Version 1.0.0 exports no addon, theme, adapter, or alternate-runtime subpaths. Use only the root runtime, `a11y-scroll-cue/docs`, and `a11y-scroll-cue/styles.css`. Host controls may call public instance methods, as this page's reset action does, but they remain application-owned UI rather than package addons.
+
+## CSS and customization
+
+The public stylesheet supplies horizontal overflow, the cue, visible scrollport focus, state visibility, reduced-motion handling, and forced-colors adjustments. Set its public custom properties on the root:
+
+```css
+.comparison-cue {
+  --a11y-scroll-cue-background: #ffffff;
+  --a11y-scroll-cue-color: #172033;
+  --a11y-scroll-cue-border-color: #075985;
+  --a11y-scroll-cue-hint-background: #ecfeff;
+  --a11y-scroll-cue-hint-color: #164e63;
+  --a11y-scroll-cue-shadow: 0.25rem 0.25rem 0 #164e63;
+  --a11y-scroll-cue-radius: 0.4rem;
+  --a11y-scroll-cue-z-index: 2;
+}
+```
+
+Public class hooks include `.a11y-scroll-cue`, `.a11y-scroll-cue__scrollport`, `.a11y-scroll-cue__hint`, `.a11y-scroll-cue__edge`, `.is-initialized`, `.has-overflow`, `.is-cue-visible`, and `.is-cue-dismissed`. Public data states expose overflow, visibility, dismissal, and enhancement. Variables prefixed with `--_` are stylesheet internals.
+
+Keep the package focus outline visible, maintain text and border contrast in every theme, and do not use color as the cue's only indicator. The default transition collapses under `prefers-reduced-motion: reduce`; forced-colors mode removes the decorative shadow and restores system colors.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Page | Reach or leave the scrollport through normal document order only while it overflows and `focusable` is enabled. |
+| <kbd>ArrowLeft</kbd> / <kbd>ArrowRight</kbd> | Focused scrollport | Use the browser's native horizontal scrolling behavior. |
+| <kbd>Home</kbd> / <kbd>End</kbd>, Page keys, or platform scrolling keys | Focused scrollport | Remain browser-owned; the plugin does not intercept or remap them. |
+
+Touch, trackpad, mouse-wheel modifiers, and scrollbar interaction also remain native. Exact scrolling keys and distances vary across browsers, operating systems, direction modes, and assistive technologies.
+
+## Focus behavior
+
+Initialization does not move focus. When measured overflow exceeds the threshold, `focusable: true` adds `tabindex="0"` unless the author already supplied a tabindex. When the content fits again or the instance is destroyed, package-added focus state is removed and author-provided state is restored.
+
+The cue itself is not interactive. Dismissal does not move focus and does not remove the overflowing scrollport's tab stop. `reset()`, `dismiss()`, and `update()` do not move focus. Host controls should therefore keep focus where native button activation leaves it, unless the surrounding workflow has a separate documented focus requirement.
+
+When `regionLabel` is supplied, the package adds region semantics only to an overflowing, package-focusable scrollport and never overwrites an explicit accessible name. `describeScrollport` is opt-in because repeatedly hearing the cue may be unnecessary in some products.
+
+## Progressive enhancement and accessibility notes
+
+Author the complete content and horizontal overflow layout in HTML and CSS before initializing. Without JavaScript, the table, code block, or card strip remains present and natively scrollable; only the conditional cue, package-managed focus state, and lifecycle events are absent.
+
+The package uses `ResizeObserver` when available, observes content mutations by default, and falls back to window resize handling for size reconciliation. Call `update()` after application-owned layout changes that those observers cannot detect. Turning off mutation observation can reduce work in a highly dynamic region, but the host must then reconcile relevant changes.
+
+The default cue is hidden from assistive technology and is not a live region. Opting into `describeScrollport` exposes it as a description, while separate application status messages should be used only for meaningful host actions. The package restores its generated and added state on teardown, but the host still owns semantic content, responsive layout, labels, contrast, reading order, and browser/assistive-technology testing. Using the package is not a claim of complete WCAG conformance.
+
+## Live example
+
+This release-review scenario imports the installed runtime and public CSS. It demonstrates visible overflow feedback, an overflow-only tab stop, native keyboard scrolling, scroll dismissal, a public `reset()` action, responsive `update()`, the no-overflow state, visible focus, and non-destructive cleanup.
+
+<ScrollCueDemo />
+
+## Known limitations and browser support
+
+- Version 1.0.0 is ESM-only, requires Node 20 or newer for package tooling, and publishes no named browser or assistive-technology support matrix.
+- The plugin makes existing horizontal overflow discoverable; it does not create scrolling controls, implement drag behavior, add snapping, virtualize content, or decide whether overflow is appropriate.
+- Native keyboard scrolling behavior varies by browser, operating system, writing direction, and assistive technology.
+- Lifecycle events use `composed: false`, so listeners outside a Shadow DOM root do not receive them.
+- The generated cue is intentionally not a live region. Applications that announce their own state must avoid repetitive or competing messages.
+- Mutation observation covers subtree, child-list, and text changes, but application layout changes may still need an explicit `update()`.
+- The npm tarball contains the runtime, declarations, docs metadata, CSS, README, changelog, and license. The two examples named by public docs metadata remain repository-hosted rather than package files.
+- The published changelog says only that Changesets supplies release notes; it has no entry describing version 1.0.0.
+- Public docs metadata lists the two factories and `destroy()`, but omits the public class, `update()`, `reset()`, `dismiss()`, and exported constants. This guide fills those factual gaps from the package declarations and README.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, declarations, tests, changelog, and maintained examples](https://github.com/vmitsaras/A11y-Scroll-Cue)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-scroll-cue)</Card>
+  <Card title="Maintained demos" icon="rocket">[Basic and accessibility audit queue examples](https://vmitsaras.github.io/A11y-Scroll-Cue/)</Card>
+  <Card title="Related: Sortable Table" icon="document">[Add stable sorting and `aria-sort` to a semantic data table](/a11y-ui-lab/plugins/a11y-sortable-table/)</Card>
+  <Card title="Related: Data Grid" icon="document">[Use composite cell navigation when a table is an interactive application surface](/a11y-ui-lab/plugins/a11y-data-grid/)</Card>
+  <Card title="Related: Filter List" icon="document">[Filter semantic lists or card collections with visible counts and recovery](/a11y-ui-lab/plugins/a11y-filter-list/)</Card>
+</CardGrid>
+
+<Aside type="note" title="Published package notes">
+  Version 1.0.0 satisfies the hub's normalized public contract: an importable ESM runtime, TypeScript declarations, named `docs` metadata, public CSS, README, license, repository metadata, and two maintained examples. It has no addon exports. No private import, copied implementation, or local contract adapter is used by this guide.
+</Aside>

@@ -20,6 +20,8 @@ import * as menuButtonRuntime from 'a11y-menu-button';
 import * as commandMenuButtonRuntime from 'a11y-command-menu-button';
 import * as tabsRuntime from 'a11y-tabs-widget';
 import * as dialogRuntime from '@vmitsaras/a11y-dialog';
+import * as tourGuideRuntime from 'a11y-tour-guide';
+import * as scrollCueRuntime from 'a11y-scroll-cue';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recovery/docs';
 import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
@@ -40,10 +42,13 @@ import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
 import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
 import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
+import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
+import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 import { createA11yDialogOutcome } from '@vmitsaras/a11y-dialog/outcome';
 import { createA11yDialogAsyncAction } from '@vmitsaras/a11y-dialog/async-action';
 import { inspectA11yDialogs } from '@vmitsaras/a11y-dialog/diagnostics';
 import { createA11yDialogMorph } from '@vmitsaras/a11y-dialog/morph';
+import { createUrlStepSync } from 'a11y-tour-guide/url-sync';
 import { inspectTagInputs } from 'a11y-tag-input/dev';
 import { createCheckableCommandAdapter } from 'a11y-command-menu-button/checkable';
 import { A11yTabsAccordion } from 'a11y-tabs-widget/addons/a11y-tabs-accordion';
@@ -439,5 +444,47 @@ test('@vmitsaras/a11y-dialog exposes the documented public contract', () => {
   assert.match(
     import.meta.resolve('@vmitsaras/a11y-dialog/morph.css'),
     /@vmitsaras\/a11y-dialog\/dist\/morph\.css$/,
+  );
+});
+
+test('a11y-tour-guide exposes the documented public contract', () => {
+  assert.ok(Object.keys(tourGuideRuntime).length > 0);
+  assert.equal(typeof tourGuideRuntime.createTour, 'function');
+  assert.equal(typeof tourGuideRuntime.A11yTourGuide, 'function');
+  assert.equal(typeof tourGuideRuntime.TOUR_EVENTS, 'object');
+  assert.equal(typeof tourGuideRuntime.validateSteps, 'function');
+  assert.equal(typeof createUrlStepSync, 'function');
+  assert.equal(tourGuideDocs.packageName, 'a11y-tour-guide');
+  const tourGuidePlugin = plugins.find(({ packageName }) => packageName === 'a11y-tour-guide');
+  assert.equal(tourGuidePlugin?.docs, tourGuideDocs);
+  assert.deepEqual(validatePlugins(tourGuidePlugin ? [tourGuidePlugin] : []), []);
+  assert.match(
+    import.meta.resolve('a11y-tour-guide/styles.css'),
+    /a11y-tour-guide\/dist\/styles\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('a11y-tour-guide/base.css'),
+    /a11y-tour-guide\/dist\/base\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('a11y-tour-guide/themes/high-contrast.css'),
+    /a11y-tour-guide\/dist\/themes\/high-contrast\.css$/,
+  );
+});
+
+test('a11y-scroll-cue exposes the documented public contract', () => {
+  assert.ok(Object.keys(scrollCueRuntime).length > 0);
+  assert.equal(typeof scrollCueRuntime.createA11yScrollCue, 'function');
+  assert.equal(typeof scrollCueRuntime.initA11yScrollCueAll, 'function');
+  assert.equal(typeof scrollCueRuntime.A11yScrollCue, 'function');
+  assert.equal(typeof scrollCueRuntime.EVENTS, 'object');
+  assert.equal(scrollCueDocs.packageName, 'a11y-scroll-cue');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-scroll-cue')?.docs,
+    scrollCueDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-scroll-cue/styles.css'),
+    /a11y-scroll-cue\/dist\/styles\.css$/,
   );
 });

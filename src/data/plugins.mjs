@@ -18,11 +18,14 @@ import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
 import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
 import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
+import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
+import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 
 export const pluginCategories = {
   form: 'Forms',
   navigation: 'Navigation and disclosure',
   table: 'Tables',
+  content: 'Content and feedback',
 };
 
 export const plugins = [
@@ -107,7 +110,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-sortable-table',
     demo: '/plugins/a11y-sortable-table/#live-example',
-    related: ['a11y-data-grid', 'a11y-result-count', 'a11y-filter-list'],
+    related: ['a11y-data-grid', 'a11y-result-count', 'a11y-filter-list', 'a11y-scroll-cue'],
     docs: sortableTableDocs,
   },
   {
@@ -117,7 +120,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-data-grid',
     demo: '/plugins/a11y-data-grid/#live-example',
-    related: ['a11y-sortable-table', 'a11y-filter-list'],
+    related: ['a11y-sortable-table', 'a11y-filter-list', 'a11y-scroll-cue'],
     notes: 'Version 1.0.0 publishes complete docs metadata, core styles, and 18 addon subpaths; its README and docs metadata reference maintained repository examples that are not included in the npm tarball.',
     docs: dataGridDocs,
   },
@@ -200,7 +203,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-menu-button',
     demo: '/plugins/a11y-menu-button/#live-example',
-    related: ['a11y-async-button', 'a11y-command-menu-button', 'a11y-tabs', 'a11y-dialog'],
+    related: ['a11y-async-button', 'a11y-command-menu-button', 'a11y-tabs', 'a11y-dialog', 'a11y-tour-guide'],
     notes: 'Version 1.0.0 docs metadata omits the npm URL, the npm tarball excludes its referenced examples, and the published README retains pre-publication wording.',
     docs: menuButtonDocs,
   },
@@ -222,7 +225,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-tabs',
     demo: '/plugins/a11y-tabs/#live-example',
-    related: ['a11y-menu-button', 'a11y-command-menu-button', 'a11y-dialog'],
+    related: ['a11y-menu-button', 'a11y-command-menu-button', 'a11y-dialog', 'a11y-tour-guide'],
     notes: 'Version 1.0.0 publishes complete docs metadata and 12 public addon subpaths; maintained examples are repository-hosted rather than included in the npm tarball.',
     docs: tabsDocs,
   },
@@ -233,8 +236,30 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-dialog',
     demo: '/plugins/a11y-dialog/#live-example',
-    related: ['a11y-menu-button', 'a11y-tabs'],
+    related: ['a11y-menu-button', 'a11y-tabs', 'a11y-tour-guide'],
     notes: 'Version 1.0.0 publishes complete docs metadata, core and morph stylesheets, and public outcome, async-action, diagnostics, and morph subpaths; maintained examples are repository-hosted rather than included in the npm tarball.',
     docs: dialogDocs,
+  },
+  {
+    slug: 'a11y-tour-guide',
+    packageName: 'a11y-tour-guide',
+    category: 'navigation',
+    status: 'stable',
+    docsPath: 'plugins/a11y-tour-guide',
+    demo: '/plugins/a11y-tour-guide/#live-example',
+    related: ['a11y-dialog', 'a11y-tabs', 'a11y-menu-button'],
+    notes: 'Version 1.0.0 publishes complete runtime, declaration, docs, core/base stylesheet, 14 theme, and URL-sync addon contracts. Its five maintained examples and generated reference are repository-hosted rather than included in the npm tarball.',
+    docs: tourGuideDocs,
+  },
+  {
+    slug: 'a11y-scroll-cue',
+    packageName: 'a11y-scroll-cue',
+    category: 'content',
+    status: 'stable',
+    docsPath: 'plugins/a11y-scroll-cue',
+    demo: '/plugins/a11y-scroll-cue/#live-example',
+    related: ['a11y-sortable-table', 'a11y-data-grid', 'a11y-filter-list'],
+    notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, license, and two repository-hosted examples with no addon subpath exports. Its changelog contains no release entry, and its docs API metadata omits public methods and constants that remain documented in the declarations and README.',
+    docs: scrollCueDocs,
   },
 ];

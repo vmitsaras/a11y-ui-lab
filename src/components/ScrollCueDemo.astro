@@ -1,0 +1,374 @@
+---
+import 'a11y-scroll-cue/styles.css';
+---
+
+<section class="scroll-cue-demo" data-scroll-cue-demo aria-labelledby="scroll-cue-demo-title">
+  <header class="demo-heading">
+    <p class="eyebrow">Release review</p>
+    <h3 id="scroll-cue-demo-title">Find the status columns on a narrow screen</h3>
+    <p>
+      The queue stays a semantic table. When it is wider than its container, the package adds a
+      visible cue and makes the scrollport keyboard-focusable.
+    </p>
+  </header>
+
+  <ol class="demo-steps">
+    <li>Tab to the release queue when it overflows.</li>
+    <li>Use native horizontal scrolling, such as ArrowLeft and ArrowRight.</li>
+    <li>Restore the cue, or fit the columns to test the no-overflow state.</li>
+  </ol>
+
+  <div class="demo-toolbar" aria-label="Scroll cue example controls">
+    <button type="button" data-scroll-cue-reset>Reset example</button>
+    <button type="button" aria-pressed="false" data-scroll-cue-fit>Fit columns</button>
+  </div>
+
+  <p class="demo-status" role="status" data-scroll-cue-status>
+    The example is ready. Horizontal scrolling will dismiss the cue.
+  </p>
+
+  <div
+    class="a11y-scroll-cue release-cue"
+    data-a11y-scroll-cue
+    data-a11y-scroll-cue-message="Scroll horizontally for evidence and release status"
+    data-a11y-scroll-cue-region-label="Checkout release accessibility findings"
+    data-a11y-scroll-cue-describe-scrollport="true"
+  >
+    <div data-a11y-scroll-cue-scrollport>
+      <table class="release-table" data-release-table>
+        <caption>Open findings for the checkout release</caption>
+        <thead>
+          <tr>
+            <th scope="col">Finding</th>
+            <th scope="col">Journey</th>
+            <th scope="col">Severity</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Evidence</th>
+            <th scope="col">Target</th>
+            <th scope="col">Release state</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">A11Y-214</th>
+            <td>Payment method</td>
+            <td><span class="severity severity-high">High</span></td>
+            <td>Checkout UI</td>
+            <td>Focus skips the saved-card error summary.</td>
+            <td>8 August</td>
+            <td><span class="release-state">Fix in review</span></td>
+          </tr>
+          <tr>
+            <th scope="row">A11Y-219</th>
+            <td>Address lookup</td>
+            <td><span class="severity">Medium</span></td>
+            <td>Forms</td>
+            <td>Suggestion count is not announced after filtering.</td>
+            <td>9 August</td>
+            <td><span class="release-state">Test pending</span></td>
+          </tr>
+          <tr>
+            <th scope="row">A11Y-227</th>
+            <td>Order review</td>
+            <td><span class="severity severity-high">High</span></td>
+            <td>Design system</td>
+            <td>Focus indicator is clipped at 200% zoom.</td>
+            <td>8 August</td>
+            <td><span class="release-state">Fix in progress</span></td>
+          </tr>
+          <tr>
+            <th scope="row">A11Y-231</th>
+            <td>Confirmation</td>
+            <td><span class="severity">Medium</span></td>
+            <td>Notifications</td>
+            <td>Success heading does not receive programmatic focus.</td>
+            <td>11 August</td>
+            <td><span class="release-state">Owner assigned</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="demo-note">
+    This example imports <code>a11y-scroll-cue@1.0.0</code> and its public stylesheet. Without
+    JavaScript, the complete table remains visible and horizontally scrollable.
+  </p>
+</section>
+
+<script>
+  import {
+    EVENTS,
+    createA11yScrollCue,
+    type A11yScrollCueEvent,
+  } from 'a11y-scroll-cue';
+
+  const demo = document.querySelector<HTMLElement>('[data-scroll-cue-demo]');
+
+  if (demo && demo.dataset.demoReady !== 'true') {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-scroll-cue]');
+    const scrollport = demo.querySelector<HTMLElement>('[data-a11y-scroll-cue-scrollport]');
+    const table = demo.querySelector<HTMLTableElement>('[data-release-table]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-scroll-cue-reset]');
+    const fitButton = demo.querySelector<HTMLButtonElement>('[data-scroll-cue-fit]');
+    const status = demo.querySelector<HTMLElement>('[data-scroll-cue-status]');
+
+    if (root && scrollport && table && resetButton && fitButton && status) {
+      demo.dataset.demoReady = 'true';
+
+      const onReady = (event: Event) => {
+        const readyEvent = event as A11yScrollCueEvent<typeof EVENTS.ready>;
+        status.textContent = readyEvent.detail.hasOverflow
+          ? 'The release queue overflows. The cue and keyboard tab stop are available.'
+          : 'Every release-queue column fits. No cue or extra keyboard tab stop is needed.';
+      };
+
+      const onDismiss = () => {
+        status.textContent = 'Horizontal scrolling dismissed the cue; the table remains scrollable.';
+      };
+
+      const onOverflowChange = (event: Event) => {
+        const changeEvent = event as A11yScrollCueEvent<typeof EVENTS.overflowChange>;
+        status.textContent = changeEvent.detail.hasOverflow
+          ? 'The wide layout is restored. The cue and keyboard tab stop are available again.'
+          : 'The columns now fit. The plugin removed the cue and its overflow-only tab stop.';
+      };
+
+      const onReset = (event: Event) => {
+        const resetEvent = event as A11yScrollCueEvent<typeof EVENTS.reset>;
+        status.textContent = resetEvent.detail.changed
+          ? 'The example returned to the start and the horizontal scroll cue is visible again.'
+          : 'The example returned to the start; the cue was already available.';
+      };
+
+      root.addEventListener(EVENTS.ready, onReady);
+      root.addEventListener(EVENTS.dismiss, onDismiss);
+      root.addEventListener(EVENTS.overflowChange, onOverflowChange);
+      root.addEventListener(EVENTS.reset, onReset);
+
+      const cue = createA11yScrollCue(root);
+
+      const setFittedLayout = (fitted: boolean) => {
+        table.classList.toggle('is-fit', fitted);
+        fitButton.setAttribute('aria-pressed', String(fitted));
+        fitButton.textContent = fitted ? 'Restore wide table' : 'Fit columns';
+        scrollport.scrollLeft = 0;
+        window.requestAnimationFrame(() => cue.update());
+      };
+
+      const handleFit = () => {
+        setFittedLayout(!table.classList.contains('is-fit'));
+      };
+
+      const handleReset = () => {
+        table.classList.remove('is-fit');
+        fitButton.setAttribute('aria-pressed', 'false');
+        fitButton.textContent = 'Fit columns';
+        scrollport.scrollLeft = 0;
+        window.requestAnimationFrame(() => cue.reset());
+      };
+
+      fitButton.addEventListener('click', handleFit);
+      resetButton.addEventListener('click', handleReset);
+
+      const cleanup = () => {
+        fitButton.removeEventListener('click', handleFit);
+        resetButton.removeEventListener('click', handleReset);
+        root.removeEventListener(EVENTS.ready, onReady);
+        root.removeEventListener(EVENTS.dismiss, onDismiss);
+        root.removeEventListener(EVENTS.overflowChange, onOverflowChange);
+        root.removeEventListener(EVENTS.reset, onReset);
+        cue.destroy();
+        delete demo.dataset.demoReady;
+      };
+
+      document.addEventListener('astro:before-swap', cleanup, { once: true });
+    }
+  }
+</script>
+
+<style>
+  .scroll-cue-demo {
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: .8rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-inline-size: 48rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: .25rem .5rem;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .demo-steps {
+    display: grid;
+    gap: .45rem;
+    max-inline-size: 44rem;
+    margin-block: 1.25rem;
+  }
+
+  .demo-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+    margin-block: 1rem;
+  }
+
+  .demo-toolbar button {
+    min-block-size: 2.75rem;
+    padding: .55rem .9rem;
+    border: 2px solid #075985;
+    border-radius: .45rem;
+    color: #fff;
+    background: #075985;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .demo-toolbar button[aria-pressed='true'] {
+    color: #075985;
+    background: #fff;
+  }
+
+  .demo-toolbar button:focus-visible {
+    outline: 3px solid #9a3412;
+    outline-offset: 3px;
+  }
+
+  .demo-status {
+    min-block-size: 1.5rem;
+    margin-block: .75rem;
+    font-weight: 650;
+  }
+
+  .release-cue {
+    --a11y-scroll-cue-background: #fff;
+    --a11y-scroll-cue-color: #172033;
+    --a11y-scroll-cue-border-color: #075985;
+    --a11y-scroll-cue-hint-background: #ecfeff;
+    --a11y-scroll-cue-hint-color: #164e63;
+    --a11y-scroll-cue-shadow: .25rem .25rem 0 #164e63;
+    --a11y-scroll-cue-radius: .4rem;
+    overflow: hidden;
+    border: 1px solid #94a3b8;
+    border-radius: .6rem;
+    color-scheme: light;
+  }
+
+  .release-cue [data-a11y-scroll-cue-scrollport] {
+    border-radius: inherit;
+  }
+
+  .release-table {
+    min-inline-size: 74rem;
+    border-collapse: collapse;
+    color: #172033;
+    background: #fff;
+  }
+
+  .release-table.is-fit {
+    inline-size: 100%;
+    min-inline-size: 100%;
+    table-layout: fixed;
+  }
+
+  .release-table caption {
+    padding: .9rem 1rem;
+    color: #334155;
+    font-weight: 750;
+    text-align: start;
+  }
+
+  .release-table th,
+  .release-table td {
+    padding: .8rem .9rem;
+    border-block-start: 1px solid #cbd5e1;
+    overflow-wrap: anywhere;
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .release-table thead th {
+    color: #475569;
+    font-size: .77rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .release-table tbody th {
+    color: #075985;
+  }
+
+  .severity,
+  .release-state {
+    display: inline-flex;
+    min-block-size: 1.8rem;
+    align-items: center;
+    padding-inline: .55rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 750;
+  }
+
+  .severity-high {
+    border-width: 2px;
+    color: #9f1239;
+  }
+
+  .release-state::before {
+    content: '';
+    inline-size: .45rem;
+    block-size: .45rem;
+    margin-inline-end: .4rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .demo-note {
+    margin-block-end: 0;
+    color: var(--sl-color-gray-2);
+    font-size: .9rem;
+  }
+
+  @media (max-width: 36rem) {
+    .demo-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .demo-toolbar button {
+      inline-size: 100%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-cue-demo *,
+    .scroll-cue-demo *::before,
+    .scroll-cue-demo *::after {
+      scroll-behavior: auto;
+      transition-duration: .001ms;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .release-cue,
+    .demo-toolbar button {
+      border-color: CanvasText;
+    }
+  }
+</style>
