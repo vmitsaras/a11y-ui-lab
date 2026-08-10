@@ -39,6 +39,12 @@ Create optional product orientations with generated labelled dialogs, modal focu
 
 **Status:** Stable · **Package:** `a11y-tour-guide`
 
+### [A11y Context Breadcrumb](/a11y-ui-lab/plugins/a11y-context-breadcrumb/)
+
+Generate a contextual breadcrumb from document headings while preserving semantic navigation, native anchor behavior, visible focus, active-section context, and complete teardown.
+
+**Status:** Stable · **Package:** `a11y-context-breadcrumb`
+
 ## Content and feedback
 
 ### [A11y Scroll Cue](/a11y-ui-lab/plugins/a11y-scroll-cue/)
@@ -46,6 +52,12 @@ Create optional product orientations with generated labelled dialogs, modal focu
 Make horizontal overflow visible with a text cue, an overflow-only keyboard tab stop, optional region naming and description, native scrolling, responsive state updates, and complete teardown.
 
 **Status:** Stable · **Package:** `a11y-scroll-cue`
+
+### [A11y Virtual List](/a11y-ui-lab/plugins/a11y-virtual-list/)
+
+Render a bounded DOM window for genuinely large vertical datasets with fixed or estimated row sizing, range announcements, stable-key focus recovery, optional keyboard navigation, scroll persistence, empty-state recovery, and explicit cleanup.
+
+**Status:** Stable · **Package:** `a11y-virtual-list`
 
 ## Forms
 

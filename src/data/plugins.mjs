@@ -16,10 +16,12 @@ import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
+import { docs as contextBreadcrumbDocs } from 'a11y-context-breadcrumb/docs';
 import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
 import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
 import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
 import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
+import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -131,7 +133,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-filter-list',
     demo: '/plugins/a11y-filter-list/#live-example',
-    related: ['a11y-result-count', 'a11y-sortable-table'],
+    related: ['a11y-result-count', 'a11y-sortable-table', 'a11y-virtual-list'],
     docs: filterListDocs,
   },
   {
@@ -171,7 +173,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-load-more',
     demo: '/plugins/a11y-load-more/#live-example',
-    related: ['a11y-result-count', 'a11y-async-button'],
+    related: ['a11y-result-count', 'a11y-async-button', 'a11y-virtual-list'],
     docs: loadMoreDocs,
   },
   {
@@ -219,6 +221,17 @@ export const plugins = [
     docs: commandMenuButtonDocs,
   },
   {
+    slug: 'a11y-context-breadcrumb',
+    packageName: 'a11y-context-breadcrumb',
+    category: 'navigation',
+    status: 'stable',
+    docsPath: 'plugins/a11y-context-breadcrumb',
+    demo: '/plugins/a11y-context-breadcrumb/#live-example',
+    related: ['a11y-menu-button', 'a11y-tabs', 'a11y-scroll-cue'],
+    notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, changelog, and license. Its maintained documentation and Basic/Lifecycle Events examples are public repository and GitHub Pages content, not npm tarball files; it has no addon subpath exports.',
+    docs: contextBreadcrumbDocs,
+  },
+  {
     slug: 'a11y-tabs',
     packageName: 'a11y-tabs-widget',
     category: 'navigation',
@@ -258,8 +271,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-scroll-cue',
     demo: '/plugins/a11y-scroll-cue/#live-example',
-    related: ['a11y-sortable-table', 'a11y-data-grid', 'a11y-filter-list'],
+    related: ['a11y-sortable-table', 'a11y-data-grid', 'a11y-filter-list', 'a11y-virtual-list'],
     notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, license, and two repository-hosted examples with no addon subpath exports. Its changelog contains no release entry, and its docs API metadata omits public methods and constants that remain documented in the declarations and README.',
     docs: scrollCueDocs,
+  },
+  {
+    slug: 'a11y-virtual-list',
+    packageName: 'a11y-virtual-list',
+    category: 'content',
+    status: 'stable',
+    docsPath: 'plugins/a11y-virtual-list',
+    demo: '/plugins/a11y-virtual-list/#live-example',
+    related: ['a11y-load-more', 'a11y-filter-list', 'a11y-scroll-cue'],
+    notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, changelog, and one repository-hosted example with no addon subpath exports. Its public docs metadata still contains a pre-release warning even though npm, the README, changelog, and v1.0.0 tag confirm the stable release.',
+    docs: virtualListDocs,
   },
 ];

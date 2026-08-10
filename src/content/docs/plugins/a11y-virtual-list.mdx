@@ -1,0 +1,318 @@
+---
+title: A11y Virtual List
+description: Render a bounded DOM window for genuinely large vertical datasets with range announcements, stable-key focus recovery, optional keyboard navigation, and scroll restoration.
+sidebar:
+  order: 19
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import VirtualListDemo from '../../../components/VirtualListDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Content & feedback" variant="note" />
+
+`a11y-virtual-list` renders a moving window of a large vertical dataset instead of mounting every row at once. It provides fixed and estimated row-height modes, range announcements, stable-key focus recovery, optional `aria-activedescendant` or listbox navigation, scroll persistence, and explicit cleanup. The ESM package is framework-agnostic and does not initialize on import.
+
+<Aside type="caution" title="Virtualization is a performance escape hatch">
+  Do not virtualize ordinary documents just because the package can. Off-screen items are absent from the DOM, so browser find-in-page, print output, screen reader browse behavior, and expected document semantics can be incomplete. Prefer pagination, server-side filtering, or a load-more pattern unless profiling proves that a genuinely large dataset needs virtualization.
+</Aside>
+
+## Use when
+
+- A large audit log, notification history, operational queue, or option dataset has a measured DOM-rendering problem.
+- Only a vertical window should be mounted while the host still owns the complete item data and row renderer.
+- Active items need Arrow, Home, End, and Page-key movement without trapping Tab navigation.
+- A list update must recover focus by a stable item key where possible.
+- The interface needs visible, debounced feedback such as “Showing items 80–120 of 4,000.”
+- Scroll and active-item state should optionally persist in session or local storage.
+
+## Avoid when
+
+- The content is a normal article, search-results page, catalog, or other reading experience that should support complete find-in-page and print output.
+- Pagination, filtering, server queries, or incremental loading can keep the DOM manageable.
+- The interface needs table or grid virtualization, horizontal virtualization, masonry, drag and drop, sticky grouped headers, infinite network loading, or spreadsheet behavior.
+- Variable-height rows cannot be tested with the target content and dataset size.
+- The product cannot test the chosen interaction mode with its supported browsers and assistive technologies.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-virtual-list
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-virtual-list
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-virtual-list
+    ```
+  </TabItem>
+</Tabs>
+
+Import the factory and the public baseline stylesheet. Importing the runtime does not touch the document or initialize matching elements.
+
+```js
+import { createVirtualList } from 'a11y-virtual-list';
+import 'a11y-virtual-list/styles.css';
+
+const root = document.querySelector('[data-a11y-virtual-list]');
+
+if (root instanceof HTMLElement) {
+  const list = createVirtualList(root, {
+    items,
+    rowHeight: 56,
+    navigation: 'roving',
+    getKey: (item) => item.id,
+    renderItem: (item, index, meta) => {
+      const row = document.createElement('li');
+      row.className = 'a11y-virtual-list__item';
+      row.dataset.a11yVirtualListItem = '';
+      row.textContent = `${index + 1}. ${item.label}`;
+      row.setAttribute('aria-posinset', String(meta.posInSet));
+      row.setAttribute('aria-setsize', String(meta.setSize));
+      return row;
+    },
+    onActivate: (item) => openRecord(item.id),
+  });
+
+  // list.scrollToIndex(200, 'center');
+  // list.updateItems(nextItems);
+  // list.destroy();
+}
+```
+
+Use `initVirtualListAll(options?)` only when every `[data-a11y-virtual-list]` root can share the supplied options. It initializes matching roots in the current document and does not run automatically.
+
+## Required markup
+
+The root cannot be an empty placeholder. It needs a viewport, a virtual spacer, and an items container. A visible status target is optional but strongly recommended when range announcements are enabled.
+
+```html
+<section
+  class="a11y-virtual-list"
+  data-a11y-virtual-list
+  data-row-height="56"
+  data-overscan="6"
+  data-navigation="roving"
+  aria-labelledby="audit-log-title"
+>
+  <header class="a11y-virtual-list__header">
+    <h2 id="audit-log-title" class="a11y-virtual-list__title">Audit log</h2>
+    <p id="audit-log-help" class="a11y-virtual-list__description">
+      Use Arrow keys to move and Enter or Space to activate an entry.
+    </p>
+    <p
+      class="a11y-virtual-list__status"
+      data-a11y-virtual-list-status
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      Preparing entries
+    </p>
+  </header>
+
+  <div
+    class="a11y-virtual-list__viewport"
+    data-a11y-virtual-list-viewport
+    tabindex="0"
+    aria-label="Audit log entries"
+    aria-describedby="audit-log-help"
+  >
+    <div class="a11y-virtual-list__spacer" data-a11y-virtual-list-spacer>
+      <ol class="a11y-virtual-list__items" data-a11y-virtual-list-items></ol>
+    </div>
+  </div>
+
+  <noscript>
+    <p>Use the paginated audit-log view when JavaScript is unavailable.</p>
+  </noscript>
+</section>
+```
+
+Required structural selectors are `[data-a11y-virtual-list]`, `[data-a11y-virtual-list-viewport]`, `[data-a11y-virtual-list-spacer]`, and `[data-a11y-virtual-list-items]`. Each rendered row is normalized with `[data-a11y-virtual-list-item]`, its index and key, a generated ID, row-size state, and position metadata where the DOM contains only part of the dataset. Return a real `HTMLElement` from `renderItem`; invalid results dispatch an error and fall back to a text row.
+
+Keep the underlying list or option semantics appropriate to the content. The plugin virtualizes rows; it does not decide whether the host data is a document list, activity log, notification history, or option picker.
+
+## Options and data attributes
+
+Version 1.0.0 normalizes the following options. JavaScript options override dataset values.
+
+### Data and rendering
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `items` | `[]` | Item array owned by the host. The package copies the array before rendering. |
+| `totalCount` | `null` | Override the total used for sizing and position metadata; `null` uses `items.length`, and the runtime never reports fewer than the supplied items. The package does not fetch missing entries. |
+| `rowHeight` | `48` | Fixed or initial estimated row height in CSS pixels, clamped between the configured minimum and maximum. |
+| `rowHeightMode` | `"fixed"` | Use `"fixed"` for uniform rows or `"estimated"` to measure mounted rows and estimate off-screen offsets. |
+| `minRowHeight` / `maxRowHeight` | `28` / `240` | Bounds used while normalizing row heights. |
+| `overscan` | `6` | Extra rows mounted before and after the visible range. |
+| `minOverscan` / `maxOverscan` | `2` / `30` | Bounds used while normalizing overscan. |
+| `getKey(item, index)` | index string | Return a stable key used for row identity and focus recovery after updates. |
+| `renderItem(item, index, meta)` | text row | Return the row `HTMLElement`. Metadata provides index, key, active/selected state, `setSize`, and `posInSet`. |
+
+### Interaction, persistence, and feedback
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `navigation` | `"none"` | Choose native list behavior, `"roving"` active-descendant navigation, or `"listbox"` option selection. |
+| `orientation` | `"vertical"` | Published declarations support vertical orientation only. |
+| `activeIndex` | `0` | Initial active item; later explicit values passed to `updateOptions()` move the active item. |
+| `preserveFocusedItem` | `true` | Keep a row containing focus mounted and recover focus across stable-key item updates. |
+| `selectionFollowsFocus` | `false` | In keyboard modes, synchronize selection when the active item moves. Use deliberately for option-picking behavior. |
+| `onActivate(item, index)` | none | Host callback for Enter, Space, or pointer activation in roving mode. |
+| `onSelect(item, index)` | none | Host callback for committed selection in listbox mode. |
+| `restoreScroll` | `true` | Save after scrolling and restore during initialization when a storage key is configured. |
+| `restoreKey` | `""` | Application-owned suffix for `a11y-virtual-list:{key}`. Empty disables storage access. |
+| `storage` | `"session"` | Use `"session"`, `"local"`, or `"none"`. Storage failures dispatch `a11y-virtual-list:error`. |
+| `announceRange` | `true` | Update the optional visible status target after the visible range changes. |
+| `announceTotal` | `true` | Include the total in range text. |
+| `announceDebounce` | `180` | Debounce range text in milliseconds, normalized between 0 and 5,000. |
+| `debug` | `false` | Published runtime flag reserved for diagnostic behavior. Version 1.0.0 documents no console contract. |
+
+Dataset parsing supports `data-row-height`, `data-row-height-mode`, `data-overscan`, `data-total-count`, `data-navigation`, `data-restore-scroll`, `data-restore-key`, `data-storage`, `data-announce-range`, `data-announce-total`, and `data-announce-debounce`. Items, callbacks, stable keys, focus policy, and overscan/height bounds are JavaScript options.
+
+<Aside type="caution" title="A larger total does not load remote data">
+  `totalCount` can exceed `items.length`, but the package still addresses rows by index in the host array. It does not fetch or page missing records. Supply renderable data for every reachable index or keep `totalCount` aligned with the current item array.
+</Aside>
+
+## Runtime API and instance methods
+
+The root entry publicly exports three runtime values: `createVirtualList`, `initVirtualListAll`, and the `A11yVirtualList` class. Repeated construction for the same root returns the existing instance until it is destroyed.
+
+| Export or method | Purpose |
+| --- | --- |
+| `createVirtualList(root, options?)` | Initialize one structural root and return its `VirtualListInstance`. |
+| `initVirtualListAll(options?)` | Initialize every matching root in document order. |
+| `A11yVirtualList` | Public generic class implementing the instance contract. |
+| `init()` | Attach behavior and render. Factories call it for you; repeated calls are safe. |
+| `destroy()` | Cancel frames, timers, observers, and listeners; remove rendered rows and plugin state; restore managed attributes. |
+| `updateItems(items, options?)` | Replace the dataset, clamp active/selected indices, and recover focused content by stable key where possible. |
+| `updateOptions(options)` | Normalize changed options and rerender. The current active item is preserved unless `activeIndex` is supplied. |
+| `scrollToIndex(index, align?)` | Scroll with `"start"`, `"center"`, `"end"`, or `"nearest"` alignment. |
+| `getVisibleRange()` | Return the visible start/end indices and total. |
+| `getRenderedRange()` | Return the overscanned DOM range plus the visible indices and total. |
+| `setActiveIndex(index, { scroll? })` | Move the active item and scroll it into the rendered window unless `scroll: false`. |
+| `getActiveIndex()` | Return the current active index. |
+| `saveScrollPosition()` | Persist scroll offset, active index, and timestamp when storage is configured. |
+| `restoreScrollPosition()` | Read valid stored state and reconcile the rendered window. |
+| `clearScrollPosition()` | Remove the configured storage entry. |
+
+TypeScript declarations also publish the option, instance, range, item metadata, stored-state, navigation, row-height, storage, alignment, and event-detail types from the root entry.
+
+## Events
+
+Events dispatch synchronously from the root, bubble, and are not cancelable or composed across a Shadow DOM boundary. Every detail includes `instance`.
+
+| Event | When it fires | Additional detail |
+| --- | --- | --- |
+| `a11y-virtual-list:init` | Listeners and initial state are installed, before the first render. | — |
+| `a11y-virtual-list:ready` | Initial rendering and optional restoration are complete. | — |
+| `a11y-virtual-list:range-change` | Visible indices or the total change. | Rendered and visible range fields. |
+| `a11y-virtual-list:render` | A render pass completes. | Rendered and visible range fields. |
+| `a11y-virtual-list:item-active` | `setActiveIndex()` changes the active item. | `item`, `index`, `key`. |
+| `a11y-virtual-list:item-activate` | Roving-mode Enter, Space, click, or tap activates the current row. | `item`, `index`, `key`. |
+| `a11y-virtual-list:select` | Listbox-mode Enter, Space, click, or tap commits an option. | `item`, `index`, `key`. |
+| `a11y-virtual-list:scroll-save` | Configured scroll state is stored. | — |
+| `a11y-virtual-list:scroll-restore` | Valid stored scroll and active state are restored. | — |
+| `a11y-virtual-list:update` | `updateItems()` or `updateOptions()` finishes. | — |
+| `a11y-virtual-list:error` | Rendering, key generation, storage, or required browser state throws. | `error`. |
+| `a11y-virtual-list:destroy` | Terminal cleanup completes. | — |
+
+Attach listeners before creating the instance if the initial `init`, range, render, or `ready` lifecycle matters. Host callbacks run alongside the corresponding item events; events report package activity and do not form a cancelable command channel.
+
+## Addons
+
+Version 1.0.0 has no addon, adapter, theme, alternate-runtime, or minified subpath exports. The supported package paths are the root runtime, `a11y-virtual-list/docs`, `a11y-virtual-list/styles.css`, and `a11y-virtual-list/package.json`. Application controls may call public instance methods, but they remain host-owned interface rather than package addons.
+
+## CSS and customization
+
+The public stylesheet supplies the vertical scroll viewport, virtual spacer and translated row window, active/selected/focused state, visible focus, reduced-motion handling, and forced-colors adjustments. Customize the public variables on the root:
+
+```css
+.audit-queue {
+  --a11y-virtual-list-border: #475569;
+  --a11y-virtual-list-bg: #ffffff;
+  --a11y-virtual-list-text: #172033;
+  --a11y-virtual-list-focus: #1d4ed8;
+  --a11y-virtual-list-muted: #475569;
+  --a11y-virtual-list-accent: #075985;
+  --a11y-virtual-list-selected-bg: #dbeafe;
+  --a11y-virtual-list-row-gap: 0;
+  --a11y-virtual-list-viewport-height: 30rem;
+}
+```
+
+Public class hooks include `.a11y-virtual-list`, its `__header`, `__title`, `__description`, `__status`, `__viewport`, `__spacer`, `__items`, `__item`, `__item-inner`, `__item-meta`, `__item-badge`, and `__item-action` elements, plus `is-initialized`, `is-ready`, `is-scrolling`, `is-restoring`, `is-keyboard-mode`, `is-active`, `is-focused`, and `is-selected` states. Variables prefixed with `--_` are stylesheet and runtime internals.
+
+Keep the viewport and nested actions’ focus indicators visible. Preserve selected-state meaning beyond color, keep fixed row CSS synchronized with `rowHeight`, and retest row measurement after changing fonts, padding, wrapping, badges, or controls. The package stylesheet honors reduced-motion and forced-colors preferences.
+
+## Keyboard interaction
+
+Keyboard behavior depends on `navigation`.
+
+| Key | `"none"` | `"roving"` or `"listbox"` |
+| --- | --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Enter and leave authored controls through normal document order. | Enter or leave the viewport and any nested native controls normally; focus is not trapped. |
+| <kbd>ArrowDown</kbd> / <kbd>ArrowUp</kbd> | No package behavior. | Move the active item by one and keep it rendered. |
+| <kbd>Home</kbd> / <kbd>End</kbd> | No package behavior. | Move to the first or last item. |
+| <kbd>PageDown</kbd> / <kbd>PageUp</kbd> | No package behavior. | Move by the current visible page size. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Native behavior of the focused control. | Activate the active row, or commit the active option in listbox mode. |
+
+Keyboard events that start in links, buttons, form controls, summaries, editable content, media controls, focusable descendants, and recognized custom-control roles are not intercepted. Clicking or tapping a non-interactive part of a roving or listbox row moves the active item, focuses the viewport, and triggers the same activation or selection outcome.
+
+## Focus behavior
+
+Roving and listbox modes keep DOM focus on the viewport and identify the active mounted row with `aria-activedescendant`. The plugin scrolls and rerenders as the active index changes. Listbox mode additionally sets `role="listbox"`, vertical orientation, `role="option"`, and `aria-selected`; use it only when rows are selectable options, not for logs or reading content.
+
+Focus is never trapped. Nested controls retain native keyboard and pointer behavior. With `preserveFocusedItem: true`, a row containing DOM focus stays mounted even when it falls outside the normal overscan window. This can temporarily increase the rendered range.
+
+Before `updateItems()` replaces rows, the package captures the focused item’s stable key and control position. If an equivalent item and control remain, focus is restored there after reordering. If the item or control disappears, focus moves to the viewport rather than being lost. `destroy()` also avoids leaving focus on a row it removes. Supply a reliable `getKey` whenever items can reorder or update.
+
+## Progressive enhancement and accessibility notes
+
+The runtime does not auto-initialize, so the host controls when virtualization starts. Provide the complete labelled structure and nearby keyboard instructions before calling a factory. A virtualized experience cannot expose its full dataset without JavaScript; production integrations should offer an authoritative paginated or server-filtered fallback rather than an empty, inaccessible dead end.
+
+Native list mode avoids inventing Arrow-key semantics and is appropriate when rows contain normal links, buttons, or readable log content. Roving mode is for non-interactive row activation. Listbox mode is only for choosing an option. Do not put articles, chat transcripts, or mixed interactive documents into listbox semantics.
+
+Rendered windows expose item position and set-size metadata when only part of the list is mounted. The optional status target receives debounced, polite, atomic range text and reports `Showing 0 items` for an empty dataset. Keep separate host feedback restrained so it does not compete with range announcements.
+
+Estimated-height mode observes rendered rows and adjusts off-screen estimates. Test it with realistic wrapping, zoom, text spacing, localization, responsive layouts, and rapid dataset changes. The host still owns content semantics, labels, loading and empty states, data fetching, errors, and supported browser/assistive-technology testing. Using this package is not a claim of complete WCAG conformance.
+
+## Live example
+
+This regression-review queue imports the installed package and public CSS. It demonstrates a 640-item dataset with a bounded DOM window, roving navigation, pointer activation, a nested native control, visible focus, range and rendered-row feedback, programmatic navigation, an empty state, reset recovery, and teardown on page navigation.
+
+<VirtualListDemo />
+
+## Known limitations and browser support
+
+- Version 1.0.0 is ESM-only, targets ES2022, has zero runtime dependencies, and publishes no named browser or assistive-technology support matrix.
+- Browser find-in-page cannot search unmounted rows, print output includes only the current DOM window, and screen reader browse behavior may be incomplete.
+- The package supports vertical virtualization only. It does not implement table/grid virtualization, horizontal virtualization, masonry, infinite loading, drag and drop, sticky groups, or spreadsheet interaction.
+- Fixed mode assumes CSS and `rowHeight` describe the same uniform block size. Estimated mode improves variable-height placement but remains an estimate for off-screen content.
+- `totalCount` does not provide remote data or placeholder loading; a count larger than the supplied array can expose undefined items to the renderer.
+- Storage is synchronous Web Storage. The package dispatches errors when access throws, but the host must decide whether persistence is appropriate for the data and privacy context.
+- Range announcements are text generated by the package in English. Version 1.0.0 publishes no localization option for those strings.
+- The npm tarball includes runtime, declarations, docs metadata, CSS, README, changelog, and license. Its single maintained example remains repository-hosted rather than packaged.
+- Public `docs.warnings` still says the npm package is unreleased. npm, the installed README, changelog, and `v1.0.0` tag confirm the stable release, so that warning is stale package metadata.
+- The GitHub Pages endpoint is still described as undeployed by the installed README; use the repository example until the maintainer confirms deployment.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, declarations, tests, and maintained example](https://github.com/vmitsaras/A11y-Virtual-List)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-virtual-list)</Card>
+  <Card title="Maintained example" icon="rocket">[Inspect the repository’s basic interaction lab](https://github.com/vmitsaras/A11y-Virtual-List/tree/main/examples/basic)</Card>
+  <Card title="Related: Load More" icon="document">[Prefer progressive incremental loading when the full document should remain available](/a11y-ui-lab/plugins/a11y-load-more/)</Card>
+  <Card title="Related: Filter List" icon="document">[Reduce a semantic list through search and category filters before considering virtualization](/a11y-ui-lab/plugins/a11y-filter-list/)</Card>
+  <Card title="Related: Scroll Cue" icon="document">[Make intentional horizontal overflow discoverable without virtualizing it](/a11y-ui-lab/plugins/a11y-scroll-cue/)</Card>
+</CardGrid>
+
+<Aside type="note" title="Published package notes">
+  Version 1.0.0 satisfies the hub’s normalized contract: a stable tagged npm release, importable ESM runtime, TypeScript declarations, named `docs` metadata, public CSS, README, changelog, MIT license, repository metadata, and one maintained example. It publishes no addons. This guide uses no private import, copied implementation, or local contract adapter.
+</Aside>

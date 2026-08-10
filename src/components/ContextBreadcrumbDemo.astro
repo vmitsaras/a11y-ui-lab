@@ -1,0 +1,184 @@
+---
+import 'a11y-context-breadcrumb/styles.css';
+---
+
+<section class="context-breadcrumb-demo" data-context-breadcrumb-demo aria-labelledby="context-breadcrumb-demo-title">
+  <header class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="context-breadcrumb-demo-title">Follow a release-readiness guide</h3>
+    <p>
+      The breadcrumb is generated from the nested guide headings. Use the links or the jump controls to
+      change the active section, then reveal an excluded note to check that it does not enter the path.
+    </p>
+  </header>
+
+  <div class="demo-toolbar" aria-label="Contextual breadcrumb example controls">
+    <button type="button" data-context-breadcrumb-jump="scope">Jump to scope</button>
+    <button type="button" data-context-breadcrumb-jump="keyboard">Jump to keyboard checks</button>
+    <button type="button" data-context-breadcrumb-reset>Reset example</button>
+    <label class="visibility-control">
+      <input type="checkbox" data-context-breadcrumb-optional />
+      Reveal an excluded internal note
+    </label>
+  </div>
+
+  <p class="demo-status" role="status" data-context-breadcrumb-status>
+    The breadcrumb will report the active guide section here.
+  </p>
+
+  <nav
+    class="a11y-context-breadcrumb release-breadcrumb"
+    aria-label="Current release-guide section"
+    data-a11y-context-breadcrumb
+  >
+    <ol class="a11y-context-breadcrumb__list" data-a11y-context-breadcrumb-list>
+      <li class="a11y-context-breadcrumb__item"><span class="a11y-context-breadcrumb__text">Release guide</span></li>
+    </ol>
+  </nav>
+
+  <div class="release-guide" data-a11y-context-breadcrumb-content>
+    <section class="guide-section" id="context-demo-scope">
+      <p class="guide-kicker">Step 1</p>
+      <h4>Scope the release</h4>
+      <p>
+        Define the customer journey, target browsers, assistive technologies, release owner, and rollback
+        contact before collecting evidence. This visible content stays useful without JavaScript.
+      </p>
+    </section>
+
+    <section class="guide-section" id="context-demo-keyboard">
+      <p class="guide-kicker">Step 2</p>
+      <h4>Check keyboard behavior</h4>
+      <p>Verify the full journey with a keyboard, including visible focus, native controls, and recovery paths.</p>
+
+      <div class="guide-subsection" id="context-demo-evidence">
+        <h5>Capture evidence</h5>
+        <p>Record the browser, viewport, steps, observed result, and remaining risk so a reviewer can repeat it.</p>
+      </div>
+    </section>
+
+    <aside class="internal-note" data-a11y-context-breadcrumb-skip data-context-breadcrumb-optional-note hidden>
+      <h4>Internal rollout shorthand</h4>
+      <p>This visible note is deliberately excluded from the breadcrumb with the public skip attribute.</p>
+    </aside>
+
+    <section class="guide-section" id="context-demo-recovery">
+      <p class="guide-kicker">Step 3</p>
+      <h4>Plan recovery</h4>
+      <p>Document who can pause the release, how to preserve the evidence, and how customers receive a clear update.</p>
+    </section>
+  </div>
+</section>
+
+<script>
+  import {
+    A11yContextBreadcrumbEvents,
+    createA11yContextBreadcrumb,
+  } from 'a11y-context-breadcrumb';
+
+  const demo = document.querySelector<HTMLElement>('[data-context-breadcrumb-demo]');
+
+  if (demo && !demo.dataset.demoReady) {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-context-breadcrumb]');
+    const content = demo.querySelector<HTMLElement>('[data-a11y-context-breadcrumb-content]');
+    const status = demo.querySelector<HTMLElement>('[data-context-breadcrumb-status]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-context-breadcrumb-reset]');
+    const optionalControl = demo.querySelector<HTMLInputElement>('[data-context-breadcrumb-optional]');
+    const optionalNote = demo.querySelector<HTMLElement>('[data-context-breadcrumb-optional-note]');
+
+    if (root && content && status && resetButton && optionalControl && optionalNote) {
+      demo.dataset.demoReady = 'true';
+
+      const setStatus = (message: string) => {
+        status.textContent = message;
+      };
+
+      const onChange = (event: Event) => {
+        const detail = (event as CustomEvent).detail as { activeItem?: { label?: string }; reason?: string };
+        setStatus(
+          detail.activeItem?.label
+            ? `Current section: ${detail.activeItem.label}. Updated after ${detail.reason ?? 'an interaction'}.`
+            : 'No guide heading is active yet. Use a jump control or scroll through the guide.',
+        );
+      };
+
+      const onError = (event: Event) => {
+        const detail = (event as CustomEvent).detail as { message?: string };
+        setStatus(`The package reported: ${detail.message ?? 'an unknown setup error'}`);
+      };
+
+      root.addEventListener(A11yContextBreadcrumbEvents.change, onChange);
+      root.addEventListener(A11yContextBreadcrumbEvents.error, onError);
+
+      const breadcrumb = createA11yContextBreadcrumb(root, {
+        contentRoot: content,
+        headingSelector: 'h4, h5',
+        baseItems: [{ label: 'Release guide', href: '#context-demo-scope' }],
+        maxItems: 3,
+        sticky: false,
+        activeOffset: 150,
+      });
+
+      for (const button of demo.querySelectorAll<HTMLButtonElement>('[data-context-breadcrumb-jump]')) {
+        button.addEventListener('click', () => {
+          const target = demo.querySelector<HTMLElement>(`#context-demo-${button.dataset.contextBreadcrumbJump}`);
+          if (!target) return;
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          window.setTimeout(() => breadcrumb.update('demo-jump', true), 350);
+        });
+      }
+
+      optionalControl.addEventListener('change', () => {
+        optionalNote.hidden = !optionalControl.checked;
+        breadcrumb.refresh();
+        setStatus(
+          optionalControl.checked
+            ? 'The internal note is visible but remains excluded from the breadcrumb after refresh.'
+            : 'The excluded internal note is hidden again; the breadcrumb was refreshed.',
+        );
+      });
+
+      resetButton.addEventListener('click', () => {
+        optionalControl.checked = false;
+        optionalNote.hidden = true;
+        breadcrumb.refresh();
+        const start = demo.querySelector<HTMLElement>('#context-demo-scope');
+        start?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => breadcrumb.update('demo-reset', true), 350);
+        setStatus('Example reset. The guide returned to its first section and the excluded note is hidden.');
+      });
+
+      document.addEventListener(
+        'astro:before-swap',
+        () => {
+          root.removeEventListener(A11yContextBreadcrumbEvents.change, onChange);
+          root.removeEventListener(A11yContextBreadcrumbEvents.error, onError);
+          breadcrumb.destroy();
+          delete demo.dataset.demoReady;
+        },
+        { once: true },
+      );
+    }
+  }
+</script>
+
+<style>
+  .context-breadcrumb-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading { max-inline-size: 50rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow, .guide-kicker { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+  .demo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-block: 1.25rem; }
+  .demo-toolbar button { min-block-size: 2.75rem; padding: .6rem .9rem; border: 2px solid var(--sl-color-accent-high); border-radius: .45rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 750; cursor: pointer; }
+  .visibility-control { display: inline-flex; align-items: center; gap: .5rem; min-block-size: 2.75rem; font-weight: 650; cursor: pointer; }
+  .visibility-control input { inline-size: 1.1rem; block-size: 1.1rem; margin: 0; }
+  .demo-toolbar button:focus-visible, .visibility-control input:focus-visible { outline: 3px solid #fbbf24; outline-offset: 3px; }
+  .demo-status { min-block-size: 1.5rem; margin-block: 1rem; font-weight: 650; }
+  :global(.release-breadcrumb) { --a11y-context-breadcrumb-bg: #fff; --a11y-context-breadcrumb-color: #172033; --a11y-context-breadcrumb-muted: #475569; --a11y-context-breadcrumb-border: #0e7490; --a11y-context-breadcrumb-radius: .5rem; --a11y-context-breadcrumb-shadow: 0 .35rem .9rem rgb(15 23 42 / .16); margin-block: 1rem 1.5rem; }
+  .release-guide { display: grid; gap: 1rem; }
+  .guide-section, .internal-note { min-block-size: 16rem; padding: 1.25rem; border: 1px solid var(--sl-color-gray-5); border-radius: .6rem; background: var(--sl-color-black); scroll-margin-block-start: 5rem; }
+  .guide-section h4, .guide-subsection h5 { margin-block: .35rem .65rem; }
+  .guide-subsection { margin-block-start: 2rem; padding: 1rem; border-inline-start: .3rem solid var(--sl-color-accent-high); background: var(--sl-color-gray-6); }
+  .internal-note { min-block-size: auto; border-style: dashed; border-color: #fbbf24; }
+  @media (max-width: 42rem) { .demo-toolbar { align-items: stretch; flex-direction: column; } .demo-toolbar button { inline-size: 100%; } }
+  @media (prefers-reduced-motion: reduce) { .guide-section, .internal-note { scroll-behavior: auto; } }
+</style>

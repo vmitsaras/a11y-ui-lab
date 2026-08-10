@@ -18,10 +18,12 @@ import * as characterCountRuntime from 'a11y-character-count';
 import * as tagInputRuntime from 'a11y-tag-input';
 import * as menuButtonRuntime from 'a11y-menu-button';
 import * as commandMenuButtonRuntime from 'a11y-command-menu-button';
+import * as contextBreadcrumbRuntime from 'a11y-context-breadcrumb';
 import * as tabsRuntime from 'a11y-tabs-widget';
 import * as dialogRuntime from '@vmitsaras/a11y-dialog';
 import * as tourGuideRuntime from 'a11y-tour-guide';
 import * as scrollCueRuntime from 'a11y-scroll-cue';
+import * as virtualListRuntime from 'a11y-virtual-list';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recovery/docs';
 import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
@@ -40,10 +42,12 @@ import { docs as characterCountDocs } from 'a11y-character-count/docs';
 import { docs as tagInputDocs } from 'a11y-tag-input/docs';
 import { docs as menuButtonDocs } from 'a11y-menu-button/docs';
 import { docs as commandMenuButtonDocs } from 'a11y-command-menu-button/docs';
+import { docs as contextBreadcrumbDocs } from 'a11y-context-breadcrumb/docs';
 import { docs as tabsDocs } from 'a11y-tabs-widget/docs';
 import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
 import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
 import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
+import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
 import { createA11yDialogOutcome } from '@vmitsaras/a11y-dialog/outcome';
 import { createA11yDialogAsyncAction } from '@vmitsaras/a11y-dialog/async-action';
 import { inspectA11yDialogs } from '@vmitsaras/a11y-dialog/diagnostics';
@@ -401,6 +405,28 @@ test('a11y-command-menu-button exposes the documented public contract', () => {
   );
 });
 
+test('a11y-context-breadcrumb exposes the documented public contract', () => {
+  assert.ok(Object.keys(contextBreadcrumbRuntime).length > 0);
+  assert.equal(typeof contextBreadcrumbRuntime.createA11yContextBreadcrumb, 'function');
+  assert.equal(typeof contextBreadcrumbRuntime.initA11yContextBreadcrumbAll, 'function');
+  assert.equal(typeof contextBreadcrumbRuntime.A11yContextBreadcrumb, 'function');
+  assert.equal(typeof contextBreadcrumbRuntime.A11yContextBreadcrumbDefaults, 'object');
+  assert.equal(typeof contextBreadcrumbRuntime.A11yContextBreadcrumbEvents, 'object');
+  assert.equal(contextBreadcrumbDocs.packageName, 'a11y-context-breadcrumb');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-context-breadcrumb')?.docs,
+    contextBreadcrumbDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-context-breadcrumb/styles.css'),
+    /a11y-context-breadcrumb\/dist\/styles\.css$/,
+  );
+  assert.throws(
+    () => import.meta.resolve('a11y-context-breadcrumb/addons/example'),
+    { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' },
+  );
+});
+
 test('a11y-tabs-widget exposes the documented public contract', () => {
   assert.ok(Object.keys(tabsRuntime).length > 0);
   assert.equal(typeof tabsRuntime.createTabs, 'function');
@@ -486,5 +512,21 @@ test('a11y-scroll-cue exposes the documented public contract', () => {
   assert.match(
     import.meta.resolve('a11y-scroll-cue/styles.css'),
     /a11y-scroll-cue\/dist\/styles\.css$/,
+  );
+});
+
+test('a11y-virtual-list exposes the documented public contract', () => {
+  assert.ok(Object.keys(virtualListRuntime).length > 0);
+  assert.equal(typeof virtualListRuntime.createVirtualList, 'function');
+  assert.equal(typeof virtualListRuntime.initVirtualListAll, 'function');
+  assert.equal(typeof virtualListRuntime.A11yVirtualList, 'function');
+  assert.equal(virtualListDocs.packageName, 'a11y-virtual-list');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-virtual-list')?.docs,
+    virtualListDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-virtual-list/styles.css'),
+    /a11y-virtual-list\/dist\/styles\.css$/,
   );
 });

@@ -1,0 +1,438 @@
+---
+import 'a11y-virtual-list/styles.css';
+---
+
+<section class="virtual-list-demo" data-virtual-list-demo aria-labelledby="virtual-list-demo-title">
+  <header class="demo-heading">
+    <p class="eyebrow">Accessibility regression queue</p>
+    <h3 id="virtual-list-demo-title">Review 640 findings without mounting 640 rows</h3>
+    <p>
+      This queue uses roving active-descendant navigation. The host owns the finding data,
+      rendering, activation feedback, empty state, and recovery controls.
+    </p>
+  </header>
+
+  <ol class="demo-steps">
+    <li>Tab to the queue and use Arrow keys, Home, End, Page Up, or Page Down.</li>
+    <li>Press Enter or Space to activate a row, or Tab to a row’s native evidence button.</li>
+    <li>Try the no-match state, then reset the complete dataset.</li>
+  </ol>
+
+  <div class="demo-toolbar" aria-label="Virtual list example controls">
+    <button type="button" data-virtual-list-jump aria-controls="virtual-list-demo-viewport">
+      Jump to finding 320
+    </button>
+    <button type="button" class="secondary" data-virtual-list-empty aria-controls="virtual-list-demo-viewport">
+      Show no-match state
+    </button>
+    <button type="button" class="secondary" data-virtual-list-reset aria-controls="virtual-list-demo-viewport">
+      Reset queue
+    </button>
+  </div>
+
+  <p class="demo-feedback" role="status" aria-live="polite" data-virtual-list-feedback>
+    The regression queue is ready.
+  </p>
+
+  <div class="demo-summary" aria-label="Virtualization metrics">
+    <p><strong>Dataset:</strong> <span data-virtual-list-total>640 findings</span></p>
+    <p><strong>Mounted DOM rows:</strong> <span data-virtual-list-rendered>0</span></p>
+  </div>
+
+  <section
+    class="a11y-virtual-list regression-queue"
+    data-a11y-virtual-list
+    data-row-height="104"
+    data-overscan="5"
+    data-navigation="roving"
+    data-restore-scroll="false"
+    aria-labelledby="regression-queue-title"
+  >
+    <header class="a11y-virtual-list__header">
+      <h4 id="regression-queue-title" class="a11y-virtual-list__title">
+        Checkout regression findings
+      </h4>
+      <p id="regression-queue-description" class="a11y-virtual-list__description">
+        Use Arrow keys to move. Press Enter or Space to activate a finding. Native evidence
+        buttons keep their usual keyboard behavior.
+      </p>
+      <p
+        class="a11y-virtual-list__status"
+        data-a11y-virtual-list-status
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        Preparing 640 findings
+      </p>
+    </header>
+
+    <div
+      class="a11y-virtual-list__viewport"
+      id="virtual-list-demo-viewport"
+      data-a11y-virtual-list-viewport
+      tabindex="0"
+      aria-label="Checkout accessibility regression findings"
+      aria-describedby="regression-queue-description"
+    >
+      <div class="a11y-virtual-list__spacer" data-a11y-virtual-list-spacer>
+        <ol class="a11y-virtual-list__items" data-a11y-virtual-list-items></ol>
+      </div>
+    </div>
+
+    <noscript>
+      <p>
+        JavaScript is required for this virtualized demonstration. A production interface should
+        provide paginated or server-filtered access to the complete queue.
+      </p>
+    </noscript>
+  </section>
+
+  <p class="demo-note">
+    The example imports <code>a11y-virtual-list@1.0.0</code> and its public stylesheet. The
+    no-match control exercises <code>updateItems([])</code>; Reset restores the original data.
+  </p>
+</section>
+
+<script>
+  import {
+    createVirtualList,
+    type VirtualListInstance,
+    type VirtualListItemMeta,
+  } from 'a11y-virtual-list';
+
+  interface Finding {
+    id: string;
+    issue: string;
+    journey: string;
+    owner: string;
+    severity: 'High' | 'Medium' | 'Low';
+  }
+
+  const demo = document.querySelector<HTMLElement>('[data-virtual-list-demo]');
+
+  if (demo) {
+    const root = demo.querySelector<HTMLElement>('[data-a11y-virtual-list]');
+    const viewport = demo.querySelector<HTMLElement>('[data-a11y-virtual-list-viewport]');
+    const feedback = demo.querySelector<HTMLElement>('[data-virtual-list-feedback]');
+    const total = demo.querySelector<HTMLElement>('[data-virtual-list-total]');
+    const rendered = demo.querySelector<HTMLElement>('[data-virtual-list-rendered]');
+    const jumpButton = demo.querySelector<HTMLButtonElement>('[data-virtual-list-jump]');
+    const emptyButton = demo.querySelector<HTMLButtonElement>('[data-virtual-list-empty]');
+    const resetButton = demo.querySelector<HTMLButtonElement>('[data-virtual-list-reset]');
+
+    const issues = [
+      'Focus indicator clips at 200% zoom',
+      'Error summary skips the invalid field',
+      'Updated count is not announced',
+      'Dialog trigger loses focus on close',
+      'Control name omits visible context',
+      'Keyboard order differs from the layout',
+      'Status message repeats during loading',
+      'Target size is too small at narrow widths',
+    ];
+    const journeys = ['Payment', 'Address', 'Review', 'Confirmation'];
+    const owners = ['Checkout UI', 'Design system', 'Forms', 'Notifications'];
+    const severities: Finding['severity'][] = ['High', 'Medium', 'Low'];
+
+    const originalItems: Finding[] = Array.from({ length: 640 }, (_, index) => ({
+      id: `A11Y-${String(1201 + index)}`,
+      issue: issues[index % issues.length],
+      journey: journeys[index % journeys.length],
+      owner: owners[index % owners.length],
+      severity: severities[index % severities.length],
+    }));
+
+    let items = [...originalItems];
+    let instance: VirtualListInstance<Finding> | null = null;
+
+    const announce = (message: string) => {
+      if (feedback) feedback.textContent = message;
+    };
+
+    const updateMetrics = () => {
+      if (total) total.textContent = `${items.length} ${items.length === 1 ? 'finding' : 'findings'}`;
+      if (rendered && root) {
+        rendered.textContent = String(root.querySelectorAll('[data-a11y-virtual-list-item]').length);
+      }
+    };
+
+    const setEmptyControls = (isEmpty: boolean) => {
+      if (jumpButton) jumpButton.disabled = isEmpty;
+      if (emptyButton) emptyButton.disabled = isEmpty;
+    };
+
+    const renderFinding = (item: Finding, index: number, meta: VirtualListItemMeta) => {
+      const row = document.createElement('li');
+      const inner = document.createElement('div');
+      const copy = document.createElement('span');
+      const label = document.createElement('strong');
+      const context = document.createElement('span');
+      const badge = document.createElement('span');
+      const action = document.createElement('button');
+
+      row.className = 'a11y-virtual-list__item';
+      row.dataset.a11yVirtualListItem = '';
+      row.setAttribute('aria-posinset', String(meta.posInSet));
+      row.setAttribute('aria-setsize', String(meta.setSize));
+
+      inner.className = 'a11y-virtual-list__item-inner';
+      copy.className = 'regression-row__copy';
+      label.textContent = `${index + 1}. ${item.id}: ${item.issue}`;
+      context.className = 'a11y-virtual-list__item-meta';
+      context.textContent = `${item.journey} · ${item.owner}`;
+      copy.append(label, context);
+
+      badge.className = `a11y-virtual-list__item-badge severity-${item.severity.toLowerCase()}`;
+      badge.textContent = item.severity;
+
+      action.className = 'a11y-virtual-list__item-action';
+      action.type = 'button';
+      action.textContent = 'View evidence';
+      action.setAttribute('aria-label', `View evidence for ${item.id}`);
+      action.addEventListener('click', () => {
+        announce(`Opened evidence for ${item.id}. The row activation handler did not run.`);
+      });
+
+      inner.append(copy, badge, action);
+      row.append(inner);
+      return row;
+    };
+
+    if (root && viewport) {
+      root.addEventListener('a11y-virtual-list:render', updateMetrics);
+      root.addEventListener('a11y-virtual-list:error', () => {
+        announce('The virtual list reported an error. Reset the example and try again.');
+      });
+
+      instance = createVirtualList<Finding>(root, {
+        items,
+        rowHeight: 104,
+        overscan: 5,
+        navigation: 'roving',
+        restoreScroll: false,
+        preserveFocusedItem: true,
+        getKey: (item) => item.id,
+        renderItem: renderFinding,
+        onActivate: (item, index) => {
+          announce(`Activated finding ${index + 1}: ${item.id}, ${item.issue}.`);
+        },
+      });
+
+      requestAnimationFrame(updateMetrics);
+
+      jumpButton?.addEventListener('click', () => {
+        instance?.setActiveIndex(319, { scroll: true });
+        viewport.focus();
+        announce('Moved to finding 320. Focus is on the queue viewport.');
+      });
+
+      emptyButton?.addEventListener('click', () => {
+        items = [];
+        instance?.updateItems(items);
+        setEmptyControls(true);
+        updateMetrics();
+        announce('No findings match the current review. Use Reset queue to recover.');
+      });
+
+      resetButton?.addEventListener('click', () => {
+        items = [...originalItems];
+        instance?.updateItems(items, { activeIndex: 0 });
+        instance?.scrollToIndex(0, 'start');
+        instance?.clearScrollPosition();
+        setEmptyControls(false);
+        updateMetrics();
+        announce('The complete 640-finding queue has been restored.');
+      });
+
+      document.addEventListener(
+        'astro:before-swap',
+        () => {
+          instance?.destroy();
+          instance = null;
+        },
+        { once: true },
+      );
+    }
+  }
+</script>
+
+<style>
+  .virtual-list-demo {
+    --a11y-virtual-list-border: var(--sl-color-gray-4);
+    --a11y-virtual-list-bg: var(--sl-color-bg);
+    --a11y-virtual-list-text: var(--sl-color-text);
+    --a11y-virtual-list-focus: var(--sl-color-accent-high);
+    --a11y-virtual-list-muted: var(--sl-color-gray-2);
+    --a11y-virtual-list-accent: var(--sl-color-accent-high);
+    --a11y-virtual-list-selected-bg: var(--sl-color-accent-low);
+    --a11y-virtual-list-viewport-height: 24rem;
+    display: grid;
+    gap: 1.25rem;
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading,
+  .demo-heading p,
+  .demo-summary p,
+  .demo-feedback,
+  .demo-note {
+    margin: 0;
+  }
+
+  .demo-heading {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .eyebrow {
+    color: var(--sl-color-accent-high);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .demo-steps {
+    margin: 0;
+    padding-inline-start: 1.4rem;
+  }
+
+  .demo-toolbar,
+  .demo-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .demo-toolbar button,
+  :global(.virtual-list-demo .a11y-virtual-list__item-action) {
+    min-block-size: 2.75rem;
+    margin: 0;
+    padding: 0.6rem 0.85rem;
+    border: 2px solid var(--sl-color-accent-high);
+    border-radius: 0.4rem;
+    color: var(--sl-color-black);
+    background: var(--sl-color-accent-high);
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .demo-toolbar button.secondary,
+  :global(.virtual-list-demo .a11y-virtual-list__item-action) {
+    color: var(--sl-color-white);
+    background: transparent;
+  }
+
+  .demo-toolbar button:focus-visible,
+  :global(.virtual-list-demo .a11y-virtual-list__item-action:focus-visible) {
+    outline: 3px solid var(--sl-color-accent-high);
+    outline-offset: 3px;
+  }
+
+  .demo-toolbar button:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
+
+  .demo-feedback {
+    min-block-size: 3rem;
+    padding: 0.8rem 1rem;
+    border-inline-start: 0.3rem solid var(--sl-color-accent-high);
+    background: var(--sl-color-gray-6);
+    font-weight: 650;
+  }
+
+  .demo-summary {
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.45rem;
+    background: var(--sl-color-black);
+  }
+
+  .demo-summary p + p {
+    padding-inline-start: 0.75rem;
+    border-inline-start: 1px solid var(--sl-color-gray-4);
+  }
+
+  .regression-queue {
+    padding: 1rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.55rem;
+    background: var(--sl-color-black);
+  }
+
+  :global(.virtual-list-demo .a11y-virtual-list__item) {
+    block-size: 104px;
+  }
+
+  :global(.virtual-list-demo .a11y-virtual-list__item-inner) {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  :global(.virtual-list-demo .regression-row__copy) {
+    display: grid;
+    gap: 0.2rem;
+    min-inline-size: 0;
+  }
+
+  :global(.virtual-list-demo .regression-row__copy strong),
+  :global(.virtual-list-demo .regression-row__copy span) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.virtual-list-demo .severity-high) {
+    border-color: var(--sl-color-red-high);
+  }
+
+  :global(.virtual-list-demo .severity-medium) {
+    border-color: var(--sl-color-orange);
+  }
+
+  .demo-note {
+    color: var(--sl-color-gray-2);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 38rem) {
+    .demo-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .demo-toolbar button {
+      inline-size: 100%;
+    }
+
+    .demo-summary {
+      flex-direction: column;
+    }
+
+    .demo-summary p + p {
+      padding-block-start: 0.5rem;
+      padding-inline-start: 0;
+      border-block-start: 1px solid var(--sl-color-gray-4);
+      border-inline-start: 0;
+    }
+
+    :global(.virtual-list-demo .a11y-virtual-list__item-inner) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    :global(.virtual-list-demo .regression-row__copy) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .demo-feedback {
+      border-color: Highlight;
+    }
+  }
+</style>
