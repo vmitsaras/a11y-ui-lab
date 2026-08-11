@@ -1,0 +1,414 @@
+---
+import 'a11y-transcript/styles.css';
+import 'a11y-transcript/addons/preferences-toolbar.css';
+import 'a11y-transcript/addons/search.css';
+
+const audioSrc = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/media/a11y-transcript-review.m4a`;
+---
+
+<section class="transcript-demo" data-a11y-transcript-demo aria-labelledby="transcript-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="transcript-demo-title">Accessibility review briefing</h3>
+    <p>
+      Play the original local narration, activate a timed cue, search the complete
+      transcript, or change its reading presentation. Search for “captions” to try
+      the recoverable no-results state.
+    </p>
+  </div>
+
+  <div class="demo-toolbar">
+    <button class="demo-secondary" type="button" data-transcript-demo-no-results>
+      Try no results
+    </button>
+    <button class="demo-secondary" type="button" data-transcript-demo-reset>
+      Reset example
+    </button>
+  </div>
+
+  <p class="demo-summary" data-transcript-demo-summary>
+    Ready. Playback and cue activation keep focus on the control you used.
+  </p>
+
+  <div class="media-panel">
+    <audio id="transcript-demo-media" controls preload="metadata">
+      <source src={audioSrc} type="audio/mp4" />
+      Your browser does not support the audio element. The transcript remains available below.
+    </audio>
+
+    <div class="progress-row">
+      <label for="transcript-demo-progress">Briefing progress</label>
+      <progress id="transcript-demo-progress" max="6" value="0">0 of 6 cues</progress>
+    </div>
+  </div>
+
+  <section
+    class="a11y-transcript review-transcript"
+    data-a11y-transcript
+    data-media="#transcript-demo-media"
+    data-sync
+    aria-labelledby="transcript-demo-transcript-title"
+  >
+    <header class="a11y-transcript__header">
+      <h4 id="transcript-demo-transcript-title" class="a11y-transcript__title">
+        Review transcript
+      </h4>
+      <p>Six short actions for an inclusive release review.</p>
+    </header>
+
+    <form class="a11y-transcript-search" data-transcript-demo-search role="search">
+      <label class="a11y-transcript-search__field" for="transcript-demo-query">
+        Search transcript
+        <input
+          id="transcript-demo-query"
+          class="a11y-transcript-search__input"
+          type="search"
+          name="query"
+          enterkeyhint="search"
+          data-a11y-transcript-search-input
+        />
+      </label>
+      <button class="a11y-transcript-search__button" type="submit">Search</button>
+      <button
+        class="a11y-transcript-search__button"
+        type="button"
+        data-a11y-transcript-search-previous
+      >
+        Previous
+      </button>
+      <button
+        class="a11y-transcript-search__button"
+        type="button"
+        data-a11y-transcript-search-next
+      >
+        Next
+      </button>
+      <p
+        class="a11y-transcript-search__status"
+        data-transcript-demo-search-status
+      ></p>
+    </form>
+
+    <div class="preference-panel">
+      <span class="preference-label">Reading preferences</span>
+      <div
+        class="a11y-transcript-preferences"
+        data-transcript-demo-preferences
+        aria-label="Transcript reading preferences"
+      >
+        <button
+          class="a11y-transcript-preferences__button"
+          type="button"
+          data-a11y-transcript-preference="compact"
+        >
+          Compact
+        </button>
+        <button
+          class="a11y-transcript-preferences__button"
+          type="button"
+          data-a11y-transcript-preference="largeText"
+        >
+          Large text
+        </button>
+        <button
+          class="a11y-transcript-preferences__button"
+          type="button"
+          data-a11y-transcript-preference="highContrast"
+        >
+          High contrast
+        </button>
+      </div>
+    </div>
+
+    <div
+      class="a11y-transcript__scroller"
+      tabindex="0"
+      aria-label="Scrollable accessibility review transcript"
+    >
+      <ol class="a11y-transcript__list">
+        <li class="a11y-transcript__item">
+          <button class="a11y-transcript__cue" type="button" data-start="0" data-end="5">
+            <span class="a11y-transcript__time">00:00</span>
+            Welcome to the accessibility review briefing.
+          </button>
+        </li>
+        <li class="a11y-transcript__item">
+          <button class="a11y-transcript__cue" type="button" data-start="5" data-end="10">
+            <span class="a11y-transcript__time">00:05</span>
+            Start with semantic HTML and readable content.
+          </button>
+        </li>
+        <li class="a11y-transcript__item">
+          <button class="a11y-transcript__cue" type="button" data-start="10" data-end="15">
+            <span class="a11y-transcript__time">00:10</span>
+            Use focus that remains clear and predictable.
+          </button>
+        </li>
+        <li class="a11y-transcript__item">
+          <button class="a11y-transcript__cue" type="button" data-start="15" data-end="20">
+            <span class="a11y-transcript__time">00:15</span>
+            Test keyboard controls before launch.
+          </button>
+        </li>
+        <li class="a11y-transcript__item">
+          <button class="a11y-transcript__cue" type="button" data-start="20" data-end="25">
+            <span class="a11y-transcript__time">00:20</span>
+            Respect reduced motion and high contrast preferences.
+          </button>
+        </li>
+        <li class="a11y-transcript__item">
+          <button class="a11y-transcript__cue" type="button" data-start="25">
+            <span class="a11y-transcript__time">00:25</span>
+            Record gaps, owners, and the next review date.
+          </button>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <noscript>
+    <p>The complete transcript remains readable, but timed cues and search require JavaScript.</p>
+  </noscript>
+</section>
+
+<script>
+  import {
+    A11Y_TRANSCRIPT_EVENTS,
+    createA11yTranscript,
+  } from 'a11y-transcript';
+  import type { A11yTranscriptInstance } from 'a11y-transcript';
+  import { createA11yTranscriptPreferencesToolbar } from 'a11y-transcript/addons/preferences-toolbar';
+  import type { A11yTranscriptPreferencesToolbarController } from 'a11y-transcript/addons/preferences-toolbar';
+  import { createA11yTranscriptProgress } from 'a11y-transcript/addons/progress';
+  import type { A11yTranscriptProgressController } from 'a11y-transcript/addons/progress';
+  import { createA11yTranscriptSearch } from 'a11y-transcript/addons/search';
+  import type { A11yTranscriptSearchController } from 'a11y-transcript/addons/search';
+
+  const demoRoot = document.querySelector('[data-a11y-transcript-demo]');
+
+  if (demoRoot instanceof HTMLElement) {
+    const transcriptRoot = demoRoot.querySelector('[data-a11y-transcript]');
+    const media = demoRoot.querySelector('#transcript-demo-media');
+    const progress = demoRoot.querySelector('#transcript-demo-progress');
+    const searchForm = demoRoot.querySelector('[data-transcript-demo-search]');
+    const searchInput = demoRoot.querySelector('#transcript-demo-query');
+    const searchStatus = demoRoot.querySelector('[data-transcript-demo-search-status]');
+    const preferencesToolbar = demoRoot.querySelector('[data-transcript-demo-preferences]');
+    const noResults = demoRoot.querySelector('[data-transcript-demo-no-results]');
+    const reset = demoRoot.querySelector('[data-transcript-demo-reset]');
+    const summary = demoRoot.querySelector('[data-transcript-demo-summary]');
+
+    if (
+      transcriptRoot instanceof HTMLElement &&
+      media instanceof HTMLMediaElement &&
+      progress instanceof HTMLProgressElement &&
+      searchForm instanceof HTMLFormElement &&
+      searchInput instanceof HTMLInputElement &&
+      searchStatus instanceof HTMLElement &&
+      preferencesToolbar instanceof HTMLElement &&
+      noResults instanceof HTMLButtonElement &&
+      reset instanceof HTMLButtonElement &&
+      summary instanceof HTMLElement
+    ) {
+      let transcript: A11yTranscriptInstance;
+      let progressController: A11yTranscriptProgressController;
+      let searchController: A11yTranscriptSearchController;
+      let preferencesController: A11yTranscriptPreferencesToolbarController;
+
+      const initialize = () => {
+        transcript = createA11yTranscript(transcriptRoot, {
+          media,
+          sync: true,
+          autoScroll: false,
+          respectReducedMotion: true,
+          status: true,
+        });
+        progressController = createA11yTranscriptProgress(transcriptRoot, progress);
+        searchController = createA11yTranscriptSearch(transcript, searchForm, {
+          status: searchStatus,
+        });
+        preferencesController = createA11yTranscriptPreferencesToolbar(
+          transcriptRoot,
+          preferencesToolbar,
+          { persist: false },
+        );
+      };
+
+      const destroy = () => {
+        searchController.destroy();
+        progressController.destroy();
+        preferencesController.destroy();
+        transcript.destroy();
+      };
+
+      initialize();
+
+      transcriptRoot.addEventListener(A11Y_TRANSCRIPT_EVENTS.seek, (event) => {
+        if (event instanceof CustomEvent) {
+          const start = Number(event.detail?.start);
+          summary.textContent = Number.isFinite(start)
+            ? `Moved playback to ${start} seconds. Focus stayed on the activated cue.`
+            : 'Cue activated. Focus stayed on the control you used.';
+        }
+      });
+
+      media.addEventListener('error', () => {
+        summary.textContent = 'The narration could not load. The complete transcript and search controls remain available.';
+      });
+
+      noResults.addEventListener('click', () => {
+        searchInput.value = 'captions';
+        searchForm.requestSubmit();
+        summary.textContent = 'No-results search submitted. Use the same search field to recover with another term.';
+        searchInput.focus();
+      });
+
+      reset.addEventListener('click', () => {
+        media.pause();
+        media.currentTime = 0;
+        preferencesController.reset();
+        destroy();
+        searchForm.reset();
+        searchStatus.textContent = '';
+        progress.value = 0;
+        summary.textContent = 'Example reset. Playback is at the beginning and all preferences are off.';
+        initialize();
+      });
+
+      document.addEventListener('astro:before-swap', destroy, { once: true });
+    }
+  }
+</script>
+
+<style>
+  .transcript-demo {
+    margin-block: 2rem;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    background: var(--sl-color-gray-7);
+  }
+
+  .demo-heading {
+    max-width: 52rem;
+  }
+
+  .demo-heading h3 {
+    margin-block: 0.25rem 0.5rem;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--sl-color-accent-high);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .demo-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-block-start: 1.25rem;
+  }
+
+  .demo-secondary {
+    min-block-size: 2.75rem;
+    padding: 0.65rem 1rem;
+    border: 2px solid var(--sl-color-accent-high);
+    border-radius: 0.4rem;
+    color: var(--sl-color-white);
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .demo-secondary:focus-visible {
+    outline: 3px solid #60a5fa;
+    outline-offset: 3px;
+  }
+
+  .demo-summary {
+    min-height: 1.5rem;
+    margin-block: 1rem;
+    font-weight: 650;
+  }
+
+  .media-panel {
+    display: grid;
+    gap: 0.75rem;
+    margin-block: 1rem;
+    padding: 1rem;
+    border-radius: 0.6rem;
+    color: #172033;
+    background: #eef2ff;
+  }
+
+  .media-panel audio,
+  .progress-row progress {
+    inline-size: 100%;
+  }
+
+  .progress-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, auto) minmax(10rem, 1fr);
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .progress-row label,
+  .preference-label {
+    font-weight: 700;
+  }
+
+  .review-transcript {
+    --a11y-transcript-border-color: #64748b;
+    --a11y-transcript-background: #ffffff;
+    --a11y-transcript-color: #172033;
+    --a11y-transcript-active-color: #172033;
+    --a11y-transcript-active-background: #dbeafe;
+    --a11y-transcript-active-border: #1d4ed8;
+    --a11y-transcript-focus-ring: 3px solid #1d4ed8;
+    --a11y-transcript-scroller-max-height: 18rem;
+    margin-block-start: 1rem;
+  }
+
+  .review-transcript p {
+    margin-block: 0.35rem 0;
+  }
+
+  .preference-panel {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 1rem;
+  }
+
+  .review-transcript :global(.a11y-transcript-preferences__button) {
+    min-height: 2.75rem;
+    cursor: pointer;
+  }
+
+  .review-transcript :global(.a11y-transcript-preferences__button:focus-visible) {
+    outline: 3px solid #1d4ed8;
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 40rem) {
+    .demo-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .progress-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .demo-secondary {
+      border-color: ButtonText;
+    }
+  }
+</style>

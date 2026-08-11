@@ -1,0 +1,352 @@
+---
+title: A11y Transcript
+description: Progressively enhance a readable HTML transcript with optional media synchronization, active-cue highlighting, click-to-seek controls, restrained status feedback, and focused navigation addons.
+sidebar:
+  order: 20
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import TranscriptDemo from '../../../components/TranscriptDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Content & feedback" variant="note" />
+
+`a11y-transcript` progressively enhances semantic transcript HTML. It can bind timed cues to a native `<audio>` or `<video>` element, show the current cue, let people seek from native cue controls, provide restrained manual-action status feedback, and opt into motion-aware auto-scroll. The dependency-free ESM runtime does not initialize on import, and the transcript remains readable when JavaScript or media is unavailable.
+
+## Use when
+
+- A podcast, recorded meeting, training clip, interview, or video already has an accurate human-readable transcript.
+- Timed transcript cues should reflect native media playback and support click-to-seek behavior.
+- Focus must stay on the cue a person activates instead of moving to the media player.
+- A long transcript benefits from optional search, chapter navigation, progress, current-cue recovery, or reader preferences.
+- Auto-scroll should be an explicit, pausable enhancement that respects reduced-motion preferences.
+- The application needs synchronous lifecycle and cue events without adopting a framework.
+
+## Avoid when
+
+- You need the package to generate, transcribe, translate, or validate transcript content.
+- You need to parse WebVTT, SRT, or another caption format at runtime; version 1.0.0 expects authored HTML cues.
+- A custom media player, waveform editor, caption editor, or composite transcript grid is required.
+- Automatic scrolling is mandatory and cannot pause when the person reads or scrolls manually.
+- Content must render inside Shadow DOM while lifecycle events need to cross that boundary.
+- A plain static transcript already meets the task and timed interaction would add no user value.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-transcript
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-transcript
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-transcript
+    ```
+  </TabItem>
+</Tabs>
+
+Import the factory and public stylesheet. The runtime has no import-time DOM side effects.
+
+```js
+import { createA11yTranscript } from 'a11y-transcript';
+import 'a11y-transcript/styles.css';
+
+const root = document.querySelector('[data-a11y-transcript]');
+
+if (root instanceof HTMLElement) {
+  const transcript = createA11yTranscript(root);
+
+  // transcript.enableAutoScroll();
+  // transcript.unsync();
+  // transcript.destroy();
+}
+```
+
+`initA11yTranscriptsAll(options?)` initializes every matching root in the current document. `A11yTranscript` is also a public constructor. Duplicate initialization on one root returns the existing instance.
+
+## Required markup
+
+Use an author-visible heading and complete transcript text. Timed cues need numeric `data-start` values in seconds. `data-end` is optional; when omitted, the next valid cue start supplies the end boundary.
+
+```html
+<audio id="episode-audio" controls preload="metadata">
+  <source src="/media/episode.m4a" type="audio/mp4" />
+  Your browser does not support audio. Read the transcript below.
+</audio>
+
+<section
+  class="a11y-transcript"
+  data-a11y-transcript
+  data-media="#episode-audio"
+  data-sync
+  aria-labelledby="episode-transcript-title"
+>
+  <h2 id="episode-transcript-title" class="a11y-transcript__title">
+    Episode transcript
+  </h2>
+
+  <ol class="a11y-transcript__list">
+    <li class="a11y-transcript__item">
+      <button
+        class="a11y-transcript__cue"
+        type="button"
+        data-start="0"
+        data-end="8"
+      >
+        <span class="a11y-transcript__time">00:00</span>
+        <span class="a11y-transcript__speaker">Host:</span>
+        Welcome to the episode.
+      </button>
+    </li>
+    <li class="a11y-transcript__item">
+      <button class="a11y-transcript__cue" type="button" data-start="8">
+        <span class="a11y-transcript__time">00:08</span>
+        <span class="a11y-transcript__speaker">Guest:</span>
+        Thanks for inviting me.
+      </button>
+    </li>
+  </ol>
+</section>
+```
+
+`data-a11y-transcript` is required only for bulk discovery. A directly constructed instance can use any `HTMLElement` root. `data-media` must be a selector for an existing native media element when media is not passed as an option. `data-sync` enables `timeupdate` synchronization. `data-auto-scroll` and the compatibility spelling `data-autoscroll` opt into auto-scroll.
+
+Native buttons are the recommended timed cues because they already provide names, focus, Enter, Space, click, and touch activation. Static transcripts do not need timed cues or JavaScript:
+
+```html
+<section aria-labelledby="plain-transcript-title">
+  <h2 id="plain-transcript-title">Transcript</h2>
+  <p><strong>Host:</strong> Welcome to the episode.</p>
+  <p><strong>Guest:</strong> Thanks for inviting me.</p>
+</section>
+```
+
+## Options and data attributes
+
+JavaScript options override equivalent data attributes.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `media` | `null` | Native media element, CSS selector, or `null`. Falls back to `data-media`. |
+| `sync` | `false` | Listen for media `timeupdate` and keep the active cue synchronized. Falls back to `data-sync`. |
+| `cueSelector` | `"[data-start]"` | Select timed cue elements inside the root. Invalid selectors fail safely with a console warning and no collected cues. |
+| `activeClass` | `"is-active"` | Class applied to the current cue. The core also manages `aria-current="time"`. |
+| `autoScroll` | `false` | Scroll the active cue inside its nearest `.a11y-transcript__scroller`; data attributes can opt in. |
+| `scrollBehavior` | `"smooth"` | Use `"smooth"` or `"auto"` for package-triggered scrolling. |
+| `respectReducedMotion` | `true` | Force instant scrolling when `prefers-reduced-motion: reduce` matches. |
+| `status` | `true` | Create a polite, visually hidden status target for manual seek messages when one is not authored. |
+| `interactive` | `"auto"` | Bind native buttons and links in auto mode, upgrade every cue when `true`, or disable cue activation when `false`. |
+
+In `interactive: true`, non-native cues receive `role="button"` and `tabindex="0"` plus Enter and Space handling. Prefer native controls instead; forced interactivity is for integrations that cannot change established markup. In `interactive: false`, active-cue synchronization can remain visual while cue activation is disabled.
+
+## Runtime API and instance methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createA11yTranscript(root, options?)` | Initialize one root and return its public instance. |
+| `initA11yTranscriptsAll(options?)` | Initialize all current `[data-a11y-transcript]` roots in document order. |
+| `A11yTranscript` | Public low-level class and default export. |
+| `root` / `options` | Read the root and normalized options for an instance. |
+| `init()` | Re-read media and cue markup, bind handlers, and begin a new lifecycle after destruction. |
+| `destroy()` | Remove listeners, generated status markup, active state, and package state classes. Repeated calls are safe. |
+| `sync()` / `unsync()` | Add or remove media `timeupdate` synchronization. |
+| `seekTo(seconds)` | Seek associated media, reconcile the active cue, dispatch `seek`, and update manual status text. |
+| `getActiveCue()` | Return the current cue or `null`. |
+| `setActiveCue(cueElement)` | Make a collected cue current without seeking media. |
+| `enableAutoScroll()` / `disableAutoScroll()` | Opt into or leave active-cue scrolling. |
+| `pauseAutoScroll()` | Disable enabled auto-scroll after user scroll or scroll-key interaction. |
+| `A11Y_TRANSCRIPT_EVENTS` | Reuse the six supported event names without string literals. |
+
+The root entry also publishes option, normalized-option, instance, cue-detail, event-map, event-name, and typed-event declarations.
+
+## Events
+
+Events dispatch synchronously from the transcript root with `bubbles: true`, `composed: false`, and `cancelable: false`. Every detail contains `instance`; cue events additionally contain `cue`, `start`, `end`, and normalized `text`, using `null` when no cue is current.
+
+| Event | When it fires |
+| --- | --- |
+| `a11y-transcript:init` | Successful initialization completes, immediately before `ready`. |
+| `a11y-transcript:ready` | Immediately after `init`. |
+| `a11y-transcript:cuechange` | The effective active cue changes; it precedes `seek` when seeking changes the cue. |
+| `a11y-transcript:seek` | Every valid `seekTo()` call or cue activation, including a repeated seek to the current cue. |
+| `a11y-transcript:autoscrollpaused` | User interaction or `pauseAutoScroll()` changes auto-scroll from enabled to disabled. |
+| `a11y-transcript:destroy` | Cleanup completes once for the initialized lifecycle. |
+
+Playback-driven cue changes do not update the polite status target. This avoids announcing every cue while media runs. Listen before initialization when the initial `init` and `ready` sequence matters.
+
+## Public addons
+
+Five optional JavaScript addons are published as explicit package subpaths. None auto-initializes or deep-imports package internals.
+
+### Progress
+
+`a11y-transcript/addons/progress` mirrors cue or media progress into an author-provided `<progress>` or text element.
+
+```js
+import { createA11yTranscriptProgress } from 'a11y-transcript/addons/progress';
+
+const controller = createA11yTranscriptProgress(root, progressElement, {
+  mode: 'auto',
+  announce: false,
+});
+```
+
+Options cover `cueSelector`, `media`, `mode: "auto" | "cue" | "time"`, `announce`, and `formatText(state)`. Auto mode uses finite media duration when available and otherwise falls back to cue-index progress. Text targets use `aria-live="off"` by default. The controller exposes `update(detail?)` and `destroy()`.
+
+### Jump to active cue
+
+`a11y-transcript/addons/jump-to-active` connects a native author-provided button to `getActiveCue()` and scrolls only after the person activates it.
+
+```js
+import { createA11yTranscriptJumpToActive } from 'a11y-transcript/addons/jump-to-active';
+
+const controller = createA11yTranscriptJumpToActive(transcript, jumpButton);
+```
+
+The no-active-cue state is a safe no-op. Scrolling respects reduced motion. The controller exposes `destroy()`.
+
+### Reader preferences
+
+`a11y-transcript/addons/preferences-toolbar` connects native buttons or checkboxes carrying `data-a11y-transcript-preference="compact|largeText|highContrast"` to classes and data states on the transcript root.
+
+```js
+import { createA11yTranscriptPreferencesToolbar } from 'a11y-transcript/addons/preferences-toolbar';
+import 'a11y-transcript/addons/preferences-toolbar.css';
+
+const preferences = createA11yTranscriptPreferencesToolbar(root, toolbar, {
+  persist: true,
+  storageKey: 'product:episode-transcript-preferences',
+});
+```
+
+Options cover injected `storage`, `storageKey`, `persist`, `useDataAttributes`, and per-preference `classes`. Persistence is off by default and stores only three booleans. Controllers expose current `preferences`, `setPreference()`, `togglePreference()`, `reset()`, and `destroy()`. `destroy()` removes addon-owned UI state but does not delete saved values.
+
+### Chapter navigation
+
+`a11y-transcript/addons/chapter-nav` generates or enhances a native chapter list. It can read `data-chapter` labels from timed cues, accept explicit `{ label, start }` definitions, or bind an existing target.
+
+```js
+import { createA11yTranscriptChapterNav } from 'a11y-transcript/addons/chapter-nav';
+
+const chapters = createA11yTranscriptChapterNav(transcript, {
+  target: document.querySelector('#episode-chapters'),
+  label: 'Episode chapters',
+});
+```
+
+Options cover `target`, `chapters`, `cueSelector`, `chapterAttribute`, and navigation `label`. The generated default is a native labelled navigation with ordered-list buttons; no roving tabindex is added. Controllers expose `element`, `update(chapters?)`, and `destroy()`.
+
+### Search
+
+`a11y-transcript/addons/search` enhances a native search form without hiding, filtering, or rewriting cues.
+
+```js
+import { createA11yTranscriptSearch } from 'a11y-transcript/addons/search';
+import 'a11y-transcript/addons/search.css';
+
+const search = createA11yTranscriptSearch(transcript, searchForm, {
+  status: searchStatus,
+  cueSelector: '[data-start]',
+  caseSensitive: false,
+});
+```
+
+The form needs one search input plus author-provided Previous and Next buttons marked with `data-a11y-transcript-search-previous` and `data-a11y-transcript-search-next`. Native form submission applies whole-cue word or phrase matches. Submission does not scroll; explicit Previous and Next actions wrap, retain focus, and scroll the current match. Empty, single-result, no-result, clear, and invalid-selector states update concise status text and correctly disable navigation. Controllers expose `refresh()` for application-owned cue changes and `destroy()` for complete addon cleanup.
+
+## CSS and customization
+
+The core `styles.css` export provides component layout, visible focus, current-cue treatment, scrolling, a visually hidden status region, reduced-motion handling, and forced-colors adjustments. Customize its public variables on the root:
+
+```css
+.episode-transcript {
+  --a11y-transcript-gap: 0.875rem;
+  --a11y-transcript-padding: 1.25rem;
+  --a11y-transcript-border-color: #64748b;
+  --a11y-transcript-radius: 0.75rem;
+  --a11y-transcript-color: #172033;
+  --a11y-transcript-background: #ffffff;
+  --a11y-transcript-active-color: #172033;
+  --a11y-transcript-active-background: #dbeafe;
+  --a11y-transcript-active-border: #1d4ed8;
+  --a11y-transcript-focus-ring: 3px solid #1d4ed8;
+  --a11y-transcript-scroller-max-height: 24rem;
+}
+```
+
+`--a11y-transcript-active-bg` remains a compatibility alias used by the default active background. Cue padding can be changed through `--a11y-transcript-cue-padding-block` and `--a11y-transcript-cue-padding-inline`.
+
+The preferences stylesheet adds variables for compact font size and line height, large-text font size and line height, preference control spacing and presentation, and high-contrast state colors. The search stylesheet publishes `--a11y-transcript-search-*` hooks for gap, control padding, border, radius, match/current colors, and match/current backgrounds. Match state uses outline style and thickness plus an inset marker so it is not communicated by color alone.
+
+Public BEM hooks include the root, `__header`, `__title`, `__controls`, `__list`, `__item`, `__cue`, `__time`, `__scroller`, `__speaker`, and `__status`, plus `is-active`, `is-interactive`, `is-initialized`, `is-synced`, and `is-auto-scroll`. Preserve package focus and forced-colors treatments when applying product themes.
+
+## Keyboard interaction
+
+| Key | Context | Behavior and focus result |
+| --- | --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Page | Follow native document order through media, cue, search, chapter, preference, and host controls. Focus is not trapped. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Native button cue | Activate the cue and seek associated media while focus stays on the cue. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Non-native cue with `interactive: true` | Use the package-added button semantics and activation handler. |
+| <kbd>Enter</kbd> | Search input | Submit through native form behavior without moving focus or scrolling the transcript. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Search, chapter, jump, or preference button | Use native activation. Search result navigation retains control focus; chapter and jump actions do not move focus to media or cues. |
+| Arrow, Page, Home, or End keys | Focused transcript scroller | Use native scrolling. When auto-scroll is enabled, scroll-key interaction pauses it. |
+
+Wheel, touch-scroll, and pointer interaction on the transcript scroller also pause enabled auto-scroll. The package adds no composite Arrow-key model or roving tabindex.
+
+## Focus behavior
+
+Initialization, playback synchronization, `setActiveCue()`, and status updates do not move focus. Activating a timed cue keeps focus on that cue while media seeks. Search submission and match navigation retain focus on the search control used. Chapter, preference, progress, and jump addons rely on native controls and do not move focus into the transcript.
+
+`interactive: "auto"` never adds plain text cues to the tab order. Only `interactive: true` upgrades non-native cues with `role="button"` and `tabindex="0"`. Destroy removes package-added semantics, listeners, generated status markup, active state, and root state classes. If a host hides or removes the currently focused control, the host must provide an explicit focus policy.
+
+## Progressive enhancement
+
+Author the complete transcript before initialization. With JavaScript disabled, a static transcript remains a normal heading plus readable text, and native audio or video controls continue to work independently. With media missing or unsupported, transcript content still remains available. JavaScript adds synchronization, timed activation, current-cue state, lifecycle events, and optional addons; it must not be the only source of transcript content.
+
+Auto-scroll is off by default. When enabled, user scrolling pauses it so the interface does not fight deliberate reading. Reduced-motion preferences force instant package scrolling. Search never removes unmatched content, and progress text does not become a live region unless the host deliberately enables announcements.
+
+## Accessibility notes
+
+- `aria-current="time"` exposes the current cue without announcing every playback update.
+- Manual cue activation uses a polite status message; playback-driven changes do not create live-region chatter.
+- Native media controls remain browser-owned and should be tested with the product’s supported browser and assistive-technology combinations.
+- Timestamps, speaker names, transcript language, punctuation, and accuracy remain author responsibilities.
+- Reader-preference persistence uses Web Storage only when the host opts in; choose a scoped key and document the behavior.
+- Package behavior can support an accessible implementation, but installing it is not a claim of WCAG conformance.
+
+## Live example
+
+This accessibility review briefing imports the installed runtime, three public addons, and their exported CSS. It uses docs-owned narration, timed native cue buttons, media synchronization, visible progress, whole-cue search with a no-results recovery path, non-persistent reader preferences, visible focus, and a complete reset.
+
+<TranscriptDemo />
+
+## Known limitations and browser support
+
+- Version 1.0.0 is ESM-only and publishes no named browser or assistive-technology support matrix.
+- The runtime depends on native `HTMLMediaElement`, `CustomEvent`, `Element.closest()`, `classList`, `matchMedia()`, and `scrollIntoView()` behavior.
+- There is no WebVTT/SRT parser, transcript generator, custom media player, framework wrapper, Shadow DOM integration, or complex composite keyboard model.
+- Events use `composed: false`, so listeners outside a Shadow DOM root do not receive them.
+- Search operates on normalized whole-cue text. It does not rank results, search hidden metadata, generate `<mark>` elements, highlight substrings, or search continuously while typing.
+- Auto-scroll is deliberately off by default and can pause after wheel, touch, pointer, or scrolling-key interaction.
+- Cue time accuracy, transcript content, localization, media fallback, and final browser/assistive-technology testing remain host responsibilities.
+- The npm tarball includes runtime, declarations, docs metadata, core and addon CSS, README, accessibility test scenarios, changelog, and license. All six maintained examples remain repository-hosted rather than package files.
+- The published changelog says Changesets supplies release notes but contains no entry describing 1.0.0. The npm `latest` tag, stable semver, repository `v1.0.0` tag, and installed README support the catalog’s stable status.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, declarations, tests, changelog, and maintained examples](https://github.com/vmitsaras/a11y-transcript)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and version history](https://www.npmjs.com/package/a11y-transcript)</Card>
+  <Card title="Maintained examples" icon="rocket">[Basic, disclosure, interactivity, long-transcript, and resilience examples](https://github.com/vmitsaras/a11y-transcript#examples)</Card>
+  <Card title="Related: Scroll Cue" icon="document">[Make an intentionally overflowing transcript or comparison region discoverable](/a11y-ui-lab/plugins/a11y-scroll-cue/)</Card>
+  <Card title="Related: Virtual List" icon="document">[Understand why readable transcript content should remain fully available instead of virtualized](/a11y-ui-lab/plugins/a11y-virtual-list/)</Card>
+  <Card title="Related: Load More" icon="document">[Incrementally reveal large result sets while the host owns data and rendering](/a11y-ui-lab/plugins/a11y-load-more/)</Card>
+</CardGrid>
+
+<Aside type="note" title="Published package notes">
+  Version 1.0.0 satisfies the hub’s normalized contract: a stable tagged npm release, importable ESM runtime, TypeScript declarations, named `docs` metadata, public core CSS, five addon JavaScript exports, two addon stylesheets, README, accessibility scenarios, MIT license, repository metadata, and maintained examples. This guide and demo use no private import, copied implementation, or local contract adapter.
+</Aside>

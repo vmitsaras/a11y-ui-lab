@@ -59,6 +59,12 @@ Render a bounded DOM window for genuinely large vertical datasets with fixed or 
 
 **Status:** Stable · **Package:** `a11y-virtual-list`
 
+### [A11y Transcript](/a11y-ui-lab/plugins/a11y-transcript/)
+
+Progressively enhance a readable HTML transcript with optional media synchronization, active-cue highlighting, click-to-seek controls, restrained status feedback, opt-in auto-scroll, and focused addons for search, chapters, progress, current-cue recovery, and reader preferences.
+
+**Status:** Stable · **Package:** `a11y-transcript`
+
 ## Forms
 
 ### [A11y Form Validator](/a11y-ui-lab/plugins/a11y-form-validator/)

@@ -37,6 +37,7 @@
     "a11y-tabs-widget": "^1.0.0",
     "a11y-tag-input": "^1.0.0",
     "a11y-tour-guide": "^1.0.0",
+    "a11y-transcript": "^1.0.0",
     "a11y-virtual-list": "^1.0.0",
     "astro": "^7.0.2",
     "sharp": "^0.34.5"

@@ -24,6 +24,7 @@ import * as dialogRuntime from '@vmitsaras/a11y-dialog';
 import * as tourGuideRuntime from 'a11y-tour-guide';
 import * as scrollCueRuntime from 'a11y-scroll-cue';
 import * as virtualListRuntime from 'a11y-virtual-list';
+import * as transcriptRuntime from 'a11y-transcript';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recovery/docs';
 import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
@@ -48,6 +49,7 @@ import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
 import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
 import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
+import { docs as transcriptDocs } from 'a11y-transcript/docs';
 import { createA11yDialogOutcome } from '@vmitsaras/a11y-dialog/outcome';
 import { createA11yDialogAsyncAction } from '@vmitsaras/a11y-dialog/async-action';
 import { inspectA11yDialogs } from '@vmitsaras/a11y-dialog/diagnostics';
@@ -113,6 +115,11 @@ import {
   DRAFT_SUBMISSION_RECOVERY_EVENTS,
 } from 'a11y-form-draft-persistence/addons/submission-recovery';
 import { inspectDraftSetup } from 'a11y-form-draft-persistence/addons/setup-inspector';
+import { createA11yTranscriptProgress } from 'a11y-transcript/addons/progress';
+import { createA11yTranscriptJumpToActive } from 'a11y-transcript/addons/jump-to-active';
+import { createA11yTranscriptPreferencesToolbar } from 'a11y-transcript/addons/preferences-toolbar';
+import { createA11yTranscriptChapterNav } from 'a11y-transcript/addons/chapter-nav';
+import { createA11yTranscriptSearch } from 'a11y-transcript/addons/search';
 import { plugins } from '../src/data/plugins.mjs';
 import { validatePlugins } from '../scripts/validate-plugins.mjs';
 
@@ -528,5 +535,35 @@ test('a11y-virtual-list exposes the documented public contract', () => {
   assert.match(
     import.meta.resolve('a11y-virtual-list/styles.css'),
     /a11y-virtual-list\/dist\/styles\.css$/,
+  );
+});
+
+test('a11y-transcript exposes the documented public contract', () => {
+  assert.ok(Object.keys(transcriptRuntime).length > 0);
+  assert.equal(typeof transcriptRuntime.createA11yTranscript, 'function');
+  assert.equal(typeof transcriptRuntime.initA11yTranscriptsAll, 'function');
+  assert.equal(typeof transcriptRuntime.A11yTranscript, 'function');
+  assert.equal(typeof transcriptRuntime.A11Y_TRANSCRIPT_EVENTS, 'object');
+  assert.equal(typeof createA11yTranscriptProgress, 'function');
+  assert.equal(typeof createA11yTranscriptJumpToActive, 'function');
+  assert.equal(typeof createA11yTranscriptPreferencesToolbar, 'function');
+  assert.equal(typeof createA11yTranscriptChapterNav, 'function');
+  assert.equal(typeof createA11yTranscriptSearch, 'function');
+  assert.equal(transcriptDocs.packageName, 'a11y-transcript');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-transcript')?.docs,
+    transcriptDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-transcript/styles.css'),
+    /a11y-transcript\/dist\/styles\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('a11y-transcript/addons/preferences-toolbar.css'),
+    /a11y-transcript\/dist\/addons\/preferences-toolbar\.css$/,
+  );
+  assert.match(
+    import.meta.resolve('a11y-transcript/addons/search.css'),
+    /a11y-transcript\/dist\/addons\/search\.css$/,
   );
 });

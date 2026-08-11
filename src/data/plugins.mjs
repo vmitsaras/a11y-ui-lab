@@ -22,6 +22,7 @@ import { docs as dialogDocs } from '@vmitsaras/a11y-dialog/docs';
 import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
 import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
+import { docs as transcriptDocs } from 'a11y-transcript/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -271,7 +272,7 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-scroll-cue',
     demo: '/plugins/a11y-scroll-cue/#live-example',
-    related: ['a11y-sortable-table', 'a11y-data-grid', 'a11y-filter-list', 'a11y-virtual-list'],
+    related: ['a11y-sortable-table', 'a11y-data-grid', 'a11y-filter-list', 'a11y-virtual-list', 'a11y-transcript'],
     notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, license, and two repository-hosted examples with no addon subpath exports. Its changelog contains no release entry, and its docs API metadata omits public methods and constants that remain documented in the declarations and README.',
     docs: scrollCueDocs,
   },
@@ -282,8 +283,19 @@ export const plugins = [
     status: 'stable',
     docsPath: 'plugins/a11y-virtual-list',
     demo: '/plugins/a11y-virtual-list/#live-example',
-    related: ['a11y-load-more', 'a11y-filter-list', 'a11y-scroll-cue'],
+    related: ['a11y-load-more', 'a11y-filter-list', 'a11y-scroll-cue', 'a11y-transcript'],
     notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, changelog, and one repository-hosted example with no addon subpath exports. Its public docs metadata still contains a pre-release warning even though npm, the README, changelog, and v1.0.0 tag confirm the stable release.',
     docs: virtualListDocs,
+  },
+  {
+    slug: 'a11y-transcript',
+    packageName: 'a11y-transcript',
+    category: 'content',
+    status: 'stable',
+    docsPath: 'plugins/a11y-transcript',
+    demo: '/plugins/a11y-transcript/#live-example',
+    related: ['a11y-scroll-cue', 'a11y-virtual-list', 'a11y-load-more'],
+    notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, core CSS, five addon subpaths, two addon stylesheets, README, accessibility test scenarios, changelog, and MIT license. Its six maintained examples are repository-hosted rather than included in the npm tarball, and the published changelog has no 1.0.0 release entry.',
+    docs: transcriptDocs,
   },
 ];
