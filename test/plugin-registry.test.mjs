@@ -5,6 +5,7 @@ import * as formSubmissionRecoveryRuntime from 'a11y-form-submission-recovery';
 import * as quizFormRuntime from 'a11y-quiz-form';
 import * as conditionalFieldsRuntime from 'a11y-conditional-fields';
 import * as formDraftPersistenceRuntime from 'a11y-form-draft-persistence';
+import * as dirtyFormGuardRuntime from 'a11y-dirty-form-guard';
 import * as passwordStrengthMeterRuntime from 'a11y-password-strength-meter';
 import * as resultCountRuntime from 'a11y-result-count';
 import * as sortableTableRuntime from 'a11y-sortable-table';
@@ -30,6 +31,7 @@ import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recover
 import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
 import { docs as conditionalFieldsDocs } from 'a11y-conditional-fields/docs';
 import { docs as formDraftPersistenceDocs } from 'a11y-form-draft-persistence/docs';
+import { docs as dirtyFormGuardDocs } from 'a11y-dirty-form-guard/docs';
 import { docs as passwordStrengthMeterDocs } from 'a11y-password-strength-meter/docs';
 import { docs as resultCountDocs } from 'a11y-result-count/docs';
 import { docs as sortableTableDocs } from 'a11y-sortable-table/docs';
@@ -211,6 +213,24 @@ test('a11y-form-draft-persistence exposes the documented public contract', () =>
   );
   assert.throws(
     () => import.meta.resolve('a11y-form-draft-persistence/styles.css'),
+    { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' },
+  );
+});
+
+test('a11y-dirty-form-guard exposes the documented public contract', () => {
+  assert.deepEqual(Object.keys(dirtyFormGuardRuntime), ['createDirtyFormGuard']);
+  assert.equal(typeof dirtyFormGuardRuntime.createDirtyFormGuard, 'function');
+  assert.equal(dirtyFormGuardDocs.packageName, 'a11y-dirty-form-guard');
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-dirty-form-guard')?.docs,
+    dirtyFormGuardDocs,
+  );
+  assert.throws(
+    () => import.meta.resolve('a11y-dirty-form-guard/styles.css'),
+    { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' },
+  );
+  assert.throws(
+    () => import.meta.resolve('a11y-dirty-form-guard/addons/status'),
     { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' },
   );
 });

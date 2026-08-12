@@ -97,6 +97,12 @@ Save and recover eligible semantic-form values through configurable browser-stor
 
 **Status:** Stable · **Package:** `a11y-form-draft-persistence`
 
+### [A11y Dirty Form Guard](/a11y-ui-lab/plugins/a11y-dirty-form-guard/)
+
+Warn users before a native form with tracked edits is refreshed, closed, or navigated away from, with optional concise dirty/clean status text, ignored controls, clean baselines after confirmed saves, and complete cleanup.
+
+**Status:** Stable · **Package:** `a11y-dirty-form-guard`
+
 ### [A11y Password Strength Meter](/a11y-ui-lab/plugins/a11y-password-strength-meter/)
 
 Add local, explainable password-strength feedback to a semantic password field with visible text, native progress semantics, requirement status text, and restrained polite announcements.

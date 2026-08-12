@@ -1,0 +1,214 @@
+---
+title: A11y Dirty Form Guard
+description: Native-form dirty-state tracking and browser leave protection for unsaved changes, with optional concise status text, clean baselines, ignored controls, and teardown.
+sidebar:
+  order: 2.75
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import DirtyFormGuardDemo from '../../../components/DirtyFormGuardDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Forms" variant="note" />
+
+`a11y-dirty-form-guard` watches one native HTML form for unsaved changes. While the controller is enabled and the form is dirty, it asks the browser to show its native leave warning on refresh, close, or navigation. It never moves, wraps, or replaces controls, and it can update an application-owned status element when the form becomes dirty or clean.
+
+<Aside type="caution" title="A leave warning is not a save guarantee">
+  Browser `beforeunload` protection is best effort and its dialog text is controlled by the browser. Keep real form submission, server-side validation, draft retention, and recovery decisions in the application.
+</Aside>
+
+## Use when
+
+- A normal form has an explicit save or submit flow and users could otherwise lose edits by leaving.
+- The application needs a lightweight dirty-state signal without replacing native controls or focus behavior.
+- A confirmed asynchronous save should establish a new clean baseline.
+- A small number of controls, such as an in-page preview switch, should not count as unsaved data.
+
+## Avoid when
+
+- The primary need is saving or restoring form data; this package only warns about unsaved changes.
+- Users need a custom leave-confirmation dialog; browsers intentionally own the dialog and ignore custom wording.
+- State changes happen mainly outside native controls and cannot be represented by explicit `markDirty()` / `markClean()` calls.
+- The product needs persistence across tabs, devices, sessions, crashes, or a server-authoritative draft.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-dirty-form-guard
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-dirty-form-guard
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-dirty-form-guard
+    ```
+  </TabItem>
+</Tabs>
+
+The published package is ESM-only. It has one runtime export and does not auto-initialize.
+
+```js
+import { createDirtyFormGuard } from 'a11y-dirty-form-guard';
+```
+
+## Basic usage and required markup
+
+Pass one `HTMLFormElement` directly. Use ordinary labels and native controls with stable `name` or `id` values. The status element is optional; when supplied, it must already exist in your markup.
+
+```html
+<p id="profile-status" hidden></p>
+
+<form id="profile-form" action="/profile" method="post">
+  <label for="display-name">Display name</label>
+  <input id="display-name" name="displayName" autocomplete="name" />
+
+  <label>
+    <input name="updates" type="checkbox" value="email" />
+    Email me product updates
+  </label>
+
+  <label>
+    <input name="preview" type="checkbox" data-dirty-ignore />
+    Show a local preview
+  </label>
+
+  <button type="submit">Save profile</button>
+  <button type="reset">Reset</button>
+</form>
+```
+
+```js
+import { createDirtyFormGuard } from 'a11y-dirty-form-guard';
+
+const form = document.querySelector('#profile-form');
+const statusElement = document.querySelector('#profile-status');
+
+if (form instanceof HTMLFormElement) {
+  const guard = createDirtyFormGuard(form, {
+    statusElement: statusElement instanceof HTMLElement ? statusElement : undefined,
+    message: 'Save or reset this profile before leaving the page.',
+    disableOnSubmit: true,
+  });
+}
+```
+
+Controls outside the form can participate through the native `form` attribute. Controls marked `data-dirty-ignore`, and controls whose name or ID appears in `ignore`, are not tracked.
+
+## Options
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `message` | Package message | Text appended after `Unsaved changes:` in the optional status element. It does not control the browser leave-dialog wording. |
+| `enabled` | `true` | Start leave protection enabled or disabled. |
+| `ignore` | None | Control names or IDs that should be excluded from dirty tracking. |
+| `disableOnSubmit` | Package default | Disable leave protection when native `submit` fires. Use this only when that submission truly begins navigation; application code owns failed-save handling. |
+| `statusElement` | None | Existing element for visible clean/dirty text. The package does not render a status element when it is omitted. |
+| `onDirtyChange` | None | Callback after dirty state or the changed-field set changes. |
+| `onDirty` | None | Callback only on a clean-to-dirty transition. |
+| `onClean` | None | Callback only on a dirty-to-clean transition. |
+
+## Controller API and callbacks
+
+`createDirtyFormGuard(form, options)` returns one controller per form. Repeating the factory call for the same live form returns the existing controller with its original options; destroy it before creating a replacement.
+
+| Method | Purpose |
+| --- | --- |
+| `isDirty()` | Return whether the form currently differs from its clean snapshot or was manually marked dirty. |
+| `markClean()` | Make current values the clean baseline. Call only after an asynchronous save has succeeded. |
+| `markDirty()` | Mark non-control application state as dirty. |
+| `resetSnapshot()` | Replace the baseline with current values and clear manually dirty state. |
+| `enable()` / `disable()` | Turn native leave protection on or off without destroying dirty tracking. |
+| `destroy()` | Remove listeners and restore the supplied status element’s original text and ARIA attributes. |
+
+Callbacks receive `{ instance, dirty, form, changedFields, reason }`. `reason` is one of `input`, `change`, `reset`, `mark-clean`, `mark-dirty`, or `reset-snapshot`. The package exposes callbacks, not custom DOM lifecycle events. `onDirtyChange` does not run again for repeated edits in the same already-dirty field; `onDirty` and `onClean` run only for dirty-state transitions.
+
+## Events and integrations
+
+Use the supplied callback options for updates. Avoid logging form values unnecessarily; `changedFields` is the public, value-free summary provided by the callback detail.
+
+```js
+const guard = createDirtyFormGuard(form, {
+  onDirtyChange({ changedFields, dirty }) {
+    saveButton.disabled = !dirty;
+    changedSummary.textContent = changedFields.join(', ') || 'None';
+  },
+  onClean() {
+    saveNotice.textContent = 'All changes saved.';
+  },
+});
+```
+
+For a native, navigation-bound submit, `disableOnSubmit: true` disables leave protection when `submit` fires. For an AJAX flow, prevent submission if appropriate and call `markClean()` only after the server confirms success. Do not call it after a failed request.
+
+## Addons, CSS, and customization
+
+This release publishes **no addon subpath exports** and **no CSS export**. There is nothing to import from `a11y-dirty-form-guard/styles.css`, and the package does not create a custom dialog or visual shell.
+
+Style the semantic host markup you own, including a persistent visible focus indicator and the optional status element. The controller supplies status text and polite announcement behavior only at dirty/clean transitions; do not layer a second live region over the same state change.
+
+```css
+#profile-status {
+  padding: 0.75rem 1rem;
+  border-inline-start: 0.3rem solid currentColor;
+}
+
+:where(input, select, textarea, button):focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+```
+
+The repository’s Basic and Team Settings examples have their own host CSS. Those files are not an npm stylesheet contract and are not imported by this hub.
+
+## Keyboard interaction and focus behavior
+
+| Key or action | Behavior |
+| --- | --- |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Follow the form’s normal native focus order; the controller adds no focusable controls. |
+| Native editing and selection keys | Continue to work in each native control. Routine edits do not repeatedly announce status. |
+| <kbd>Enter</kbd> / <kbd>Space</kbd> | Activate native controls according to their normal semantics. |
+| Browser refresh, close, or navigation | When enabled and dirty, the browser may show its native leave warning. |
+
+The controller never moves focus. Its optional status element is updated when the form becomes dirty or clean, not for each keystroke. On native form reset, dirty state is checked in `requestAnimationFrame` after the browser applies reset values. A supplied status element’s original content and ARIA attributes are restored on `destroy()`.
+
+## Progressive enhancement and accessibility notes
+
+Keep the form’s `action`, `method`, labels, validation, error handling, and server processing usable without JavaScript. Without JavaScript, the form still submits normally; the unsaved-change warning and optional state text are simply absent.
+
+- Native `beforeunload` dialogs cannot use custom application copy; browsers show their own wording.
+- Use visible status wording as well as any nonvisual announcement; never use color alone to convey dirty state.
+- The package leaves form semantics, focus order, and control placement intact.
+- File inputs are compared using basic file metadata (name and size), not file contents.
+- Call `destroy()` when removing the form or replacing its UI so listeners and status changes are cleaned up.
+
+## Live example
+
+The demo imports the installed `createDirtyFormGuard` public export. It uses a semantic form, an optional package-managed status element, an ignored preview control, a failed-save path that deliberately keeps the form dirty, successful `markClean()` handling, native reset behavior, visible focus, and an associated-form control.
+
+<DirtyFormGuardDemo />
+
+## Known limitations and browser support
+
+- It is not a persistence, validation, submission-recovery, tab-locking, or synchronization solution.
+- Browser leave protection is best effort and should never be the only protection for important data.
+- No custom leave dialog is available; browsers control the wording and presentation.
+- The package tracks one live controller per form. Destroy it before recreating it with new options.
+- The publisher does not declare a formal browser support matrix. It requires an ESM-capable browser with standard forms, events, `requestAnimationFrame`, and `beforeunload` support. Test target browsers, assistive technology, zoom, and forced-colors modes in your complete application.
+
+The published npm tarball contains the runtime, declarations, docs metadata, README, changelog, and MIT license. Its two maintained examples and manual accessibility scenarios remain public repository resources, not tarball files.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, examples, and manual accessibility scenarios](https://github.com/vmitsaras/A11y-Dirty-Form-Guard)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and release metadata](https://www.npmjs.com/package/a11y-dirty-form-guard)</Card>
+  <Card title="Related: Form Submission Recovery" icon="document">[Coordinate failed submission and retry states](/a11y-ui-lab/plugins/a11y-form-submission-recovery/)</Card>
+  <Card title="Related: Form Validator" icon="document">[Validate native form controls before submission](/a11y-ui-lab/plugins/a11y-form-validator/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/a11y-ui-lab/plugins/).

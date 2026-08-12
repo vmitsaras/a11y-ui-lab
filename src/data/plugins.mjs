@@ -23,6 +23,7 @@ import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
 import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
 import { docs as transcriptDocs } from 'a11y-transcript/docs';
+import { docs as dirtyFormGuardDocs } from 'a11y-dirty-form-guard/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -85,6 +86,17 @@ export const plugins = [
     related: ['a11y-conditional-fields', 'a11y-form-validator'],
     notes: 'Version 1.0.0 is published under npm latest, while its public docs metadata still reports release-candidate and its changelog labels 1.0.0 unreleased. The package exports no CSS, and repository-maintained examples and guides are referenced by the README but excluded from the npm tarball.',
     docs: formDraftPersistenceDocs,
+  },
+  {
+    slug: 'a11y-dirty-form-guard',
+    packageName: 'a11y-dirty-form-guard',
+    category: 'form',
+    status: 'stable',
+    docsPath: 'plugins/a11y-dirty-form-guard',
+    demo: '/plugins/a11y-dirty-form-guard/#live-example',
+    related: ['a11y-form-submission-recovery', 'a11y-form-validator', 'a11y-error-summary'],
+    notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, README, changelog, and MIT license. It has no CSS or addon subpath exports; its two maintained examples and manual accessibility scenarios are public repository resources rather than npm-tarball files.',
+    docs: dirtyFormGuardDocs,
   },
   {
     slug: 'a11y-password-strength-meter',

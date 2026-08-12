@@ -1,0 +1,172 @@
+<section class="dirty-form-demo" aria-labelledby="dirty-form-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="dirty-form-demo-title">Safeguard workspace access settings</h3>
+    <p>Edit a tracked setting, try a failed save, then save or reset it. The controller watches the native form directly and retains the browser’s own leave warning while it is dirty.</p>
+  </div>
+
+  <div class="demo-brief" aria-labelledby="demo-brief-title">
+    <h4 id="demo-brief-title">Try it</h4>
+    <ol>
+      <li>Change a workspace setting and note the concise dirty status.</li>
+      <li>Choose “Simulate a failed save”, then save: tracked edits remain dirty and protected.</li>
+      <li>Clear that simulation and save, or use the native Reset button, to return to a clean baseline.</li>
+    </ol>
+  </div>
+
+  <p class="guard-status" data-dirty-form-status hidden></p>
+
+  <form id="dirty-form-guard-demo-form" data-dirty-form-guard-demo action="/settings" method="post" aria-describedby="dirty-form-help">
+    <p id="dirty-form-help" class="help">The form has ordinary labels, fieldsets, controls, reset behavior, and submission semantics. With JavaScript, this example intercepts submission to demonstrate application-owned save outcomes.</p>
+
+    <div class="form-grid">
+      <fieldset>
+        <legend>Workspace identity</legend>
+        <div class="field">
+          <label for="dirty-workspace-name">Workspace name</label>
+          <input id="dirty-workspace-name" name="workspaceName" autocomplete="organization" value="Northstar Analytics" />
+        </div>
+        <div class="field">
+          <label for="dirty-visibility">Default visibility</label>
+          <select id="dirty-visibility" name="visibility">
+            <option value="private" selected>Private to invited members</option>
+            <option value="organization">Visible across the organization</option>
+            <option value="restricted">Restricted by project group</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Access policies</legend>
+        <label class="choice"><input name="accessPolicies" type="checkbox" value="sso" checked /> Require single sign-on</label>
+        <label class="choice"><input name="accessPolicies" type="checkbox" value="audit" checked /> Keep the admin audit log visible</label>
+        <label class="choice"><input name="accessPolicies" type="checkbox" value="external-share" /> Allow external report sharing</label>
+      </fieldset>
+    </div>
+
+    <div class="field">
+      <label for="dirty-summary">Workspace summary</label>
+      <textarea id="dirty-summary" name="summary" rows="4">Dashboards and account-health reports for the customer success team.</textarea>
+    </div>
+
+    <label class="choice ignored-control">
+      <input id="dirty-preview" name="preview" type="checkbox" data-dirty-ignore />
+      Preview the policy impact (intentionally ignored by the guard)
+    </label>
+
+    <label class="choice failure-control">
+      <input id="dirty-failure" type="checkbox" data-dirty-ignore />
+      Simulate a failed save on the next submission
+    </label>
+
+    <div class="actions">
+      <button type="submit">Save changes</button>
+      <button class="secondary" type="reset">Reset</button>
+    </div>
+  </form>
+
+  <label class="field associated-field" for="dirty-notes">
+    Handover notes (associated from outside the form)
+    <textarea id="dirty-notes" form="dirty-form-guard-demo-form" name="handoverNotes" rows="3">Associate external controls with the form by using its native form attribute.</textarea>
+  </label>
+
+  <div class="outcome-panel" aria-labelledby="dirty-outcome-title">
+    <h4 id="dirty-outcome-title">Save outcome</h4>
+    <p data-save-outcome>Initial workspace settings are the current clean baseline.</p>
+    <p class="visually-hidden" data-save-announcement role="status" aria-atomic="true"></p>
+    <p class="changed-fields"><strong>Tracked changed fields:</strong> <span data-changed-fields>None.</span></p>
+  </div>
+</section>
+
+<script>
+  import { createDirtyFormGuard } from 'a11y-dirty-form-guard';
+
+  const form = document.querySelector('[data-dirty-form-guard-demo]');
+
+  if (form instanceof HTMLFormElement) {
+    const statusElement = document.querySelector('[data-dirty-form-status]');
+    const failureControl = form.querySelector('#dirty-failure');
+    const outcome = document.querySelector('[data-save-outcome]');
+    const announcement = document.querySelector('[data-save-announcement]');
+    const changedFields = document.querySelector('[data-changed-fields]');
+
+    if (
+      statusElement instanceof HTMLElement
+      && failureControl instanceof HTMLInputElement
+      && outcome instanceof HTMLElement
+      && announcement instanceof HTMLElement
+      && changedFields instanceof HTMLElement
+    ) {
+      const guard = createDirtyFormGuard(form, {
+        statusElement,
+        message: 'Save or reset these workspace settings before leaving this page.',
+        disableOnSubmit: false,
+        onDirtyChange({ changedFields: fields }) {
+          changedFields.textContent = fields.length ? fields.join(', ') : 'None.';
+        },
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        if (failureControl.checked) {
+          const message = 'Save failed. The tracked changes remain unsaved and leave protection stays active.';
+          outcome.textContent = message;
+          announcement.textContent = message;
+          return;
+        }
+
+        guard.markClean();
+        const message = 'Settings saved in this example. The current values are now the clean baseline.';
+        outcome.textContent = message;
+        announcement.textContent = message;
+      });
+
+      form.addEventListener('reset', () => {
+        window.requestAnimationFrame(() => {
+          outcome.textContent = 'The native reset restored the original values. The guard rechecks after browser reset values apply.';
+          announcement.textContent = 'Form values reset.';
+        });
+      });
+
+      document.addEventListener('astro:before-swap', () => {
+        guard.destroy();
+      }, { once: true });
+    }
+  }
+</script>
+
+<style>
+  .dirty-form-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading, form, .guard-status, .outcome-panel, .demo-brief, .associated-field { max-width: 48rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .demo-brief, .outcome-panel { margin-block-start: 1.25rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; background: var(--sl-color-gray-6); }
+  .demo-brief h4, .outcome-panel h4 { margin: 0; }
+  .demo-brief ol { margin-block-end: 0; padding-inline-start: 1.35rem; }
+  .guard-status { margin-block: 1.25rem 0; padding: 1rem; border-inline-start: .3rem solid #fbbf24; background: var(--sl-color-gray-6); font-weight: 700; }
+  form { display: grid; gap: 1.1rem; margin-block-start: 1.25rem; }
+  .help, .outcome-panel p { margin: 0; }
+  .help { padding: .85rem 1rem; border-inline-start: .3rem solid var(--sl-color-accent-high); background: var(--sl-color-gray-6); }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  fieldset { display: grid; gap: .8rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .4rem; }
+  legend, label { font-weight: 700; }
+  legend { padding-inline: .35rem; }
+  .field { display: grid; gap: .45rem; }
+  input:not([type='checkbox']), select, textarea { width: 100%; padding: .7rem .8rem; border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; color: var(--sl-color-white); background: var(--sl-color-black); font: inherit; }
+  textarea { min-height: 6rem; resize: vertical; }
+  .choice { display: flex; gap: .6rem; align-items: flex-start; font-weight: 500; }
+  .choice input { margin-block-start: .25rem; }
+  .ignored-control, .failure-control { padding: .85rem 1rem; border: 1px dashed var(--sl-color-gray-4); border-radius: .4rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  button { min-height: 3rem; margin: 0; padding: .65rem 1rem; border: 2px solid var(--sl-color-accent-high); border-radius: .4rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { color: var(--sl-color-white); background: transparent; }
+  .associated-field { margin-block-start: 1.25rem; padding: 1rem; border: 1px solid var(--sl-color-gray-5); border-radius: .5rem; background: var(--sl-color-gray-6); }
+  .associated-field textarea { color: var(--sl-color-gray-2); }
+  .outcome-panel { display: grid; gap: .65rem; }
+  .changed-fields { min-height: 1.5rem; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  @media (max-width: 38rem) { .form-grid { grid-template-columns: 1fr; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } }
+  @media (forced-colors: active) { input, select, textarea, fieldset, button, .guard-status, .demo-brief, .outcome-panel, .associated-field { border-color: CanvasText; } }
+</style>
