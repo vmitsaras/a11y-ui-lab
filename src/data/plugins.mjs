@@ -24,6 +24,7 @@ import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
 import { docs as transcriptDocs } from 'a11y-transcript/docs';
 import { docs as dirtyFormGuardDocs } from 'a11y-dirty-form-guard/docs';
+import { docs as textSplitDocs } from 'a11y-text-split/docs';
 
 export const pluginCategories = {
   form: 'Forms',
@@ -287,6 +288,17 @@ export const plugins = [
     related: ['a11y-sortable-table', 'a11y-data-grid', 'a11y-filter-list', 'a11y-virtual-list', 'a11y-transcript'],
     notes: 'Version 1.0.0 publishes an ESM runtime, declarations, docs metadata, CSS, README, license, and two repository-hosted examples with no addon subpath exports. Its changelog contains no release entry, and its docs API metadata omits public methods and constants that remain documented in the declarations and README.',
     docs: scrollCueDocs,
+  },
+  {
+    slug: 'a11y-text-split',
+    packageName: 'a11y-text-split',
+    category: 'content',
+    status: 'stable',
+    docsPath: 'plugins/a11y-text-split',
+    demo: '/plugins/a11y-text-split/#live-example',
+    related: ['a11y-scroll-cue', 'a11y-transcript'],
+    notes: 'Version 1.0.1 publishes ESM runtime and declarations, docs metadata, CSS, line and scroll addon exports, a changelog, and MIT license. Its maintained examples are repository-hosted rather than included in the npm tarball.',
+    docs: textSplitDocs,
   },
   {
     slug: 'a11y-virtual-list',

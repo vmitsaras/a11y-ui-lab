@@ -1,0 +1,227 @@
+---
+title: A11yTextSplit
+description: Accessible grapheme, word, and rendered-line text splitting for decorative motion without duplicating readable source text in the accessibility tree.
+sidebar:
+  order: 19
+---
+
+import { Aside, Badge, Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import TextSplitDemo from '../../../components/TextSplitDemo.astro';
+
+<Badge text="Stable" variant="success" /> <Badge text="Content and feedback" variant="note" />
+
+`a11y-text-split` progressively enhances existing text into styleable word, grapheme-like letter, or rendered-line tokens. Semantic mode retains token text in the accessibility tree; visual mode provides one visually-hidden clean source and hides only the decorative token wrapper. The package is framework-agnostic, ESM-only, and never initializes automatically on import.
+
+<Aside type="caution" title="Text splitting is presentation, not a replacement for semantics">
+  Start with meaningful, readable HTML. Use visual mode for decorative animation and short headings only. Do not apply visual mode to elements containing links, buttons, form controls, or other interactive content.
+</Aside>
+
+## Use when
+
+- A short heading, pull quote, or decorative label needs CSS animation hooks while retaining one readable text source.
+- You need locale-aware word or grapheme segmentation where `Intl.Segmenter` is available.
+- A responsive heading needs opt-in rendered-line wrappers or a decorative scroll reveal.
+
+## Avoid when
+
+- Splitting long-form content, data, or an interactive control would reduce readability or performance.
+- The desired animation is essential to understand the content or task.
+- You need a text editor, carousel, menu, or other interactive keyboard pattern; this package creates no widget behavior.
+- Line wrappers must remain stable across font loading, zoom, width changes, or user text spacing; rendered lines are inherently layout-dependent.
+
+## Installation
+
+<Tabs>
+  <TabItem label="npm" icon="seti:npm">
+    ```sh
+    npm install a11y-text-split
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add a11y-text-split
+    ```
+  </TabItem>
+  <TabItem label="Yarn">
+    ```sh
+    yarn add a11y-text-split
+    ```
+  </TabItem>
+</Tabs>
+
+Import the public runtime and stylesheet, then explicitly initialize an element.
+
+```js
+import { createTextSplit } from 'a11y-text-split';
+import 'a11y-text-split/styles.css';
+
+const heading = document.querySelector('[data-a11y-text-split]');
+if (heading instanceof HTMLElement) {
+  createTextSplit(heading, { type: 'words', mode: 'visual' });
+}
+```
+
+## Required markup
+
+The authored element and its original text are the source of truth. The data attributes are optional when you pass options in JavaScript.
+
+```html
+<h1
+  data-a11y-text-split
+  data-split-type="letters"
+  data-split-mode="visual"
+>
+  Accessible motion
+</h1>
+```
+
+| Attribute | Values | Purpose |
+| --- | --- | --- |
+| `data-split-type` | `words`, `letters`, `lines` | Token granularity. |
+| `data-split-mode` | `semantic`, `visual` | Semantic tokens or a clean source plus decorative tokens. |
+| `data-split-locale` | `auto` or an `Intl.Segmenter` locale | Segmentation locale; `auto` uses the nearest `lang`. |
+| `data-split-whitespace` | `preserve`, `collapse`, `trim` | Whitespace normalization before splitting. |
+| `data-split-nested-text` | Boolean-like value | Include non-interactive descendant text nodes. |
+| `data-split-line-tolerance` | Non-negative pixel value | Tolerance used when grouping rendered lines. |
+
+Invalid dataset values use documented defaults. Semantic nested splitting skips links, buttons, controls, summaries, editable content, and focusable descendants. Visual mode rejects targets containing nested interactive elements instead of hiding or duplicating their names.
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `type` | `words` | `words`, grapheme-like `letters`, or layout-measured `lines`. |
+| `mode` | `semantic` | Real semantic token spans, or a clean source plus decorative visual tokens. |
+| `locale` | `auto` | Locale passed to `Intl.Segmenter`; nearest `lang` when automatic. |
+| `whitespace` | `preserve` | Preserve, collapse, or trim whitespace. |
+| `splitNestedText` | `false` | Split eligible non-interactive descendant text nodes. |
+| `lineTolerance` | `2` | Pixel tolerance for rendered-line grouping. |
+
+Rendered lines always use visual mode because their wrappers depend on layout measurements. Call `segmentText(text, options?)` when you need public, data-only token segmentation rather than DOM enhancement.
+
+## API and methods
+
+| Export or method | Purpose |
+| --- | --- |
+| `createTextSplit(root, options?)` | Create one instance, or return the existing instance for that element. |
+| `initTextSplitAll(options?, selector?)` | Explicitly initialize all matches; default selector is `[data-a11y-text-split]`. |
+| `splitAll(selector?, options?)` | Compatibility bulk-initialization export. Prefer `initTextSplitAll()` in new code. |
+| `A11yTextSplit` | Class with static `create()`, `get()`, and `registerLineAddon()` helpers. |
+| `segmentText(text, options?)` | Return public segment data without changing the DOM. |
+| `normalizeOptions(element, options?)` / `DEFAULT_OPTIONS` | Normalize and inspect option defaults. |
+| `instance.refresh()` | Rebuild generated output while preserving original DOM nodes. |
+| `instance.destroy()` | Remove generated state, observers, and listeners, then restore original content. |
+
+Duplicate creation is safe: instances are held in a `WeakMap`. `destroy()` is idempotent and allows a fresh later initialization.
+
+## Events
+
+Events bubble from the initialized element. Lifecycle details include `detail.instance`; the line-ready event also includes `detail.lines`.
+
+| Event | When |
+| --- | --- |
+| `a11y-text-split:init` | Initialization completes. |
+| `a11y-text-split:refresh` | Generated output is rebuilt. |
+| `a11y-text-split:lines-ready` | Rendered-line grouping completes. |
+| `a11y-text-split:destroy` | Teardown completes. |
+| `a11y-text-split:scroll` | The scroll addon reports `{ visible, ratio }`. |
+
+## Addons
+
+The published package provides two public addon subpaths. Keep core and addon imports in the same readable or minified import family.
+
+### Rendered lines
+
+```js
+import { createTextSplit } from 'a11y-text-split';
+import 'a11y-text-split/lines';
+import 'a11y-text-split/styles.css';
+
+const heading = document.querySelector('h1');
+if (heading instanceof HTMLElement) {
+  createTextSplit(heading, { type: 'lines' });
+}
+```
+
+Importing `./lines` registers its line addon. It observes width changes, waits once for fonts, and cleans up observers and animation frames on refresh or destroy. Its named public exports are `installLines` and `groupByRenderedLine`.
+
+### Scroll reveal
+
+```js
+import { scrollRevealAll } from 'a11y-text-split/scroll';
+
+const cleanup = scrollRevealAll('[data-split-scroll]', {
+  threshold: 0.15,
+  once: true,
+});
+
+cleanup();
+```
+
+`scrollRevealAll()` uses CSS view timelines only when supported; otherwise it uses one `IntersectionObserver`. Without either capability, content stays statically visible. `data-scroll-once` or `once: true` unobserves after the first reveal. `supportsViewTimeline()` exposes the capability check.
+
+## CSS customization
+
+Import the public `a11y-text-split/styles.css` export for visual mode and rendered lines. It provides layout rules for the clean source, visual wrapper, tokens, spaces, and lines—not a visual theme.
+
+Generated tokens expose these custom properties for staggered animation:
+
+- `--a11y-text-split-index`
+- `--a11y-text-split-word-index`
+- `--a11y-text-split-letter-index`
+- `--a11y-text-split-punctuation-index`
+- `--a11y-text-split-space-index`
+- `--a11y-text-split-line-index`
+- `--a11y-text-split-scroll-timeline`
+
+The older `--split-*` properties remain compatibility aliases. Prefer the prefixed names in new CSS.
+
+```css
+.hero-title .a11y-text-split__word {
+  display: inline-block;
+  animation: rise 500ms both;
+  animation-delay: calc(var(--a11y-text-split-index) * 45ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-title .a11y-text-split__word { animation: none; }
+}
+```
+
+Do not override the supplied visually-hidden styles on `.a11y-text-split__source`; that source is what keeps visual-mode text readable to assistive technologies.
+
+## Keyboard and focus behavior
+
+The package adds no keyboard commands, tab stops, or focus movement. It is not an interactive widget: native keyboard behavior stays with the authored element and any supported interactive descendants. Keep visible focus styles on surrounding controls and do not make decorative split spans focusable.
+
+## Progressive enhancement and accessibility notes
+
+Before JavaScript, the original content remains readable. In semantic mode, eligible text becomes real token spans without added ARIA. In visual mode, the package adds one clean, visually-hidden text source and marks only decorative output `aria-hidden="true"`; it never hides the focusable target itself.
+
+Keep motion optional and readable at reduced motion. The package does not claim blanket WCAG conformance: integrations remain responsible for semantic source markup, contrast, motion choices, and testing with supported browsers and assistive technologies.
+
+## Live example
+
+The example imports the installed public runtime and CSS. It demonstrates visual and semantic output, word and letter tokens, a recoverable reset state, keyboard-operable controls, and reduced-motion handling.
+
+<TextSplitDemo />
+
+## Known limitations and browser support
+
+- The ESM build targets ES2022 and Baseline 2024.
+- `Intl.Segmenter` enables locale-aware segmentation where supported; the dependency-free fallback is less linguistically precise.
+- CSS scroll timelines are progressive enhancement only.
+- Rendered lines depend on width, loaded fonts, zoom, and user spacing; use them for short decorative text, not article bodies or interactive content.
+- The published package has no addon-specific stylesheet exports beyond `./styles.css`.
+- The npm tarball contains runtime, declarations, metadata, CSS, README, changelog, and license; maintained examples are public repository resources rather than tarball files.
+
+## Resources and related plugins
+
+<CardGrid>
+  <Card title="Package source" icon="github">[Repository, changelog, issues, and examples](https://github.com/vmitsaras/A11y-Splitter)</Card>
+  <Card title="Published package" icon="seti:npm">[npm package and current release](https://www.npmjs.com/package/a11y-text-split)</Card>
+  <Card title="Example gallery" icon="rocket">[Published A11yTextSplit demos](https://vmitsaras.github.io/A11y-Splitter/)</Card>
+  <Card title="Related: A11y Scroll Cue" icon="document">[Make real horizontal overflow discoverable](/a11y-ui-lab/plugins/a11y-scroll-cue/)</Card>
+</CardGrid>
+
+Return to the [plugin catalog](/a11y-ui-lab/plugins/) or pair decorative text motion with clear static content and user-controlled motion preferences.

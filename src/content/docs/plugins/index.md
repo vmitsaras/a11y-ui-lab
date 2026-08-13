@@ -53,6 +53,12 @@ Make horizontal overflow visible with a text cue, an overflow-only keyboard tab 
 
 **Status:** Stable · **Package:** `a11y-scroll-cue`
 
+### [A11yTextSplit](/a11y-ui-lab/plugins/a11y-text-split/)
+
+Split decorative text into accessible word, grapheme, or rendered-line tokens for CSS animation while retaining one clean readable source for assistive technologies, with opt-in line and scroll-reveal helpers.
+
+**Status:** Stable · **Package:** `a11y-text-split`
+
 ### [A11y Virtual List](/a11y-ui-lab/plugins/a11y-virtual-list/)
 
 Render a bounded DOM window for genuinely large vertical datasets with fixed or estimated row sizing, range announcements, stable-key focus recovery, optional keyboard navigation, scroll persistence, empty-state recovery, and explicit cleanup.

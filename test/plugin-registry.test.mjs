@@ -26,6 +26,7 @@ import * as tourGuideRuntime from 'a11y-tour-guide';
 import * as scrollCueRuntime from 'a11y-scroll-cue';
 import * as virtualListRuntime from 'a11y-virtual-list';
 import * as transcriptRuntime from 'a11y-transcript';
+import * as textSplitRuntime from 'a11y-text-split';
 import { docs } from 'a11y-form-validator/docs';
 import { docs as formSubmissionRecoveryDocs } from 'a11y-form-submission-recovery/docs';
 import { docs as quizFormDocs } from 'a11y-quiz-form/docs';
@@ -52,6 +53,7 @@ import { docs as tourGuideDocs } from 'a11y-tour-guide/docs';
 import { docs as scrollCueDocs } from 'a11y-scroll-cue/docs';
 import { docs as virtualListDocs } from 'a11y-virtual-list/docs';
 import { docs as transcriptDocs } from 'a11y-transcript/docs';
+import { docs as textSplitDocs } from 'a11y-text-split/docs';
 import { createA11yDialogOutcome } from '@vmitsaras/a11y-dialog/outcome';
 import { createA11yDialogAsyncAction } from '@vmitsaras/a11y-dialog/async-action';
 import { inspectA11yDialogs } from '@vmitsaras/a11y-dialog/diagnostics';
@@ -122,6 +124,8 @@ import { createA11yTranscriptJumpToActive } from 'a11y-transcript/addons/jump-to
 import { createA11yTranscriptPreferencesToolbar } from 'a11y-transcript/addons/preferences-toolbar';
 import { createA11yTranscriptChapterNav } from 'a11y-transcript/addons/chapter-nav';
 import { createA11yTranscriptSearch } from 'a11y-transcript/addons/search';
+import { groupByRenderedLine, installLines } from 'a11y-text-split/lines';
+import { scrollRevealAll, supportsViewTimeline } from 'a11y-text-split/scroll';
 import { plugins } from '../src/data/plugins.mjs';
 import { validatePlugins } from '../scripts/validate-plugins.mjs';
 
@@ -539,6 +543,28 @@ test('a11y-scroll-cue exposes the documented public contract', () => {
   assert.match(
     import.meta.resolve('a11y-scroll-cue/styles.css'),
     /a11y-scroll-cue\/dist\/styles\.css$/,
+  );
+});
+
+test('a11y-text-split exposes the documented public contract', () => {
+  assert.ok(Object.keys(textSplitRuntime).length > 0);
+  assert.equal(typeof textSplitRuntime.createTextSplit, 'function');
+  assert.equal(typeof textSplitRuntime.initTextSplitAll, 'function');
+  assert.equal(typeof textSplitRuntime.A11yTextSplit, 'function');
+  assert.equal(typeof textSplitRuntime.segmentText, 'function');
+  assert.equal(typeof groupByRenderedLine, 'function');
+  assert.equal(typeof installLines, 'function');
+  assert.equal(typeof scrollRevealAll, 'function');
+  assert.equal(typeof supportsViewTimeline, 'function');
+  assert.equal(textSplitDocs.packageName, 'a11y-text-split');
+  assert.ok(Array.isArray(textSplitDocs.keyboard) && textSplitDocs.keyboard.length > 0);
+  assert.equal(
+    plugins.find(({ packageName }) => packageName === 'a11y-text-split')?.docs,
+    textSplitDocs,
+  );
+  assert.match(
+    import.meta.resolve('a11y-text-split/styles.css'),
+    /a11y-text-split\/dist\/styles\.css$/,
   );
 });
 

@@ -37,6 +37,7 @@
     "a11y-sortable-table": "^1.0.0",
     "a11y-tabs-widget": "^1.0.0",
     "a11y-tag-input": "^1.0.0",
+    "a11y-text-split": "^1.0.1",
     "a11y-tour-guide": "^1.0.0",
     "a11y-transcript": "^1.0.0",
     "a11y-virtual-list": "^1.0.0",

@@ -1,0 +1,102 @@
+<section class="text-split-demo" aria-labelledby="text-split-demo-title">
+  <div class="demo-heading">
+    <p class="eyebrow">Interactive example</p>
+    <h3 id="text-split-demo-title">A readable kinetic headline</h3>
+    <p>Change the token type and output mode, then rebuild the decorative treatment. The heading remains plain readable text before JavaScript and after reset.</p>
+  </div>
+
+  <div class="controls" aria-label="Text split options">
+    <label>
+      Token type
+      <select data-split-type>
+        <option value="words">Words</option>
+        <option value="letters">Letters</option>
+      </select>
+    </label>
+    <label>
+      Output mode
+      <select data-split-mode>
+        <option value="visual">Visual (one hidden source)</option>
+        <option value="semantic">Semantic tokens</option>
+      </select>
+    </label>
+    <div class="actions">
+      <button type="button" data-apply>Apply treatment</button>
+      <button type="button" class="secondary" data-reset>Reset</button>
+    </div>
+  </div>
+
+  <div class="preview" aria-describedby="text-split-demo-status">
+    <p class="preview-label">Preview</p>
+    <p class="kinetic-copy" data-a11y-text-split>Design motion that keeps the message intact.</p>
+  </div>
+  <p id="text-split-demo-status" class="demo-status" data-demo-status role="status">Ready to enhance the headline.</p>
+</section>
+
+<script>
+  import {
+    createTextSplit,
+    type TextSplitInstance,
+    type TextSplitMode,
+    type TextSplitType,
+  } from 'a11y-text-split';
+  import 'a11y-text-split/styles.css';
+
+  const demo = document.querySelector('.text-split-demo');
+  if (demo instanceof HTMLElement) {
+    const target = demo.querySelector('[data-a11y-text-split]');
+    const type = demo.querySelector('[data-split-type]');
+    const mode = demo.querySelector('[data-split-mode]');
+    const apply = demo.querySelector('[data-apply]');
+    const reset = demo.querySelector('[data-reset]');
+    const status = demo.querySelector('[data-demo-status]');
+    const originalText = target?.textContent || '';
+    let instance: TextSplitInstance | null = null;
+
+    const applySplit = () => {
+      if (!(target instanceof HTMLElement) || !(type instanceof HTMLSelectElement) || !(mode instanceof HTMLSelectElement)) return;
+      instance?.destroy();
+      target.textContent = originalText;
+      instance = createTextSplit(target, {
+        type: type.value as TextSplitType,
+        mode: mode.value as TextSplitMode,
+      });
+      if (status instanceof HTMLElement) status.textContent = `${mode.value === 'visual' ? 'Visual' : 'Semantic'} ${type.value} treatment applied.`;
+    };
+
+    if (apply instanceof HTMLButtonElement) apply.addEventListener('click', applySplit);
+    if (reset instanceof HTMLButtonElement) {
+      reset.addEventListener('click', () => {
+        instance?.destroy();
+        instance = null;
+        if (target instanceof HTMLElement) target.textContent = originalText;
+        if (status instanceof HTMLElement) status.textContent = 'Reset to the original semantic text. No split output is active.';
+      });
+    }
+
+    applySplit();
+  }
+</script>
+
+<style>
+  .text-split-demo { margin-block: 2rem; padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; background: var(--sl-color-gray-7); }
+  .demo-heading { max-width: 44rem; }
+  .demo-heading h3 { margin-block: .25rem .5rem; }
+  .eyebrow { margin: 0; color: var(--sl-color-accent-high); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-block: 1.5rem; }
+  label { display: grid; gap: .4rem; font-weight: 700; }
+  select { min-height: 2.75rem; padding: .45rem; border: 1px solid var(--sl-color-gray-4); border-radius: .35rem; color: var(--sl-color-white); background: var(--sl-color-black); font: inherit; }
+  .actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+  button { min-height: 2.75rem; padding: .55rem .85rem; border: 2px solid var(--sl-color-accent-high); border-radius: .35rem; color: var(--sl-color-black); background: var(--sl-color-accent-high); font: inherit; font-weight: 700; cursor: pointer; }
+  button.secondary { color: var(--sl-color-white); background: transparent; }
+  select:focus-visible, button:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  .preview { display: grid; place-items: center; min-block-size: 13rem; padding: 1.5rem; border: 1px solid var(--sl-color-gray-4); border-radius: .5rem; background: linear-gradient(135deg, #172554, #111827); }
+  .preview-label { margin: 0; color: #bfdbfe; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .kinetic-copy { max-width: 19ch; margin: .5rem 0 0; color: white; font-size: clamp(2rem, 7vw, 4.5rem); font-weight: 800; line-height: 1; text-align: center; }
+  :global(.text-split-demo .a11y-text-split__word), :global(.text-split-demo .a11y-text-split__letter) { display: inline-block; animation: rise .5s both; animation-delay: calc(var(--a11y-text-split-index) * 45ms); }
+  :global(.text-split-demo .a11y-text-split__space) { white-space: pre-wrap; }
+  .demo-status { min-height: 1.5rem; margin: 1rem 0 0; }
+  @keyframes rise { from { opacity: 0; transform: translateY(.35em); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { :global(.text-split-demo .a11y-text-split__word), :global(.text-split-demo .a11y-text-split__letter) { animation: none; } }
+  @media (forced-colors: active) { select, button, .preview { border-color: CanvasText; } }
+</style>
